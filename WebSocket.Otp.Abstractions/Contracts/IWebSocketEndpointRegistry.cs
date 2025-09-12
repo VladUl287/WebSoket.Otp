@@ -2,9 +2,7 @@
 
 public interface IWebSocketEndpointRegistry
 {
-    void RegisterEndpoint<TEndpoint>(string pattern) where TEndpoint : Endpoint;
+    void Register<TEndpoint>(string path) where TEndpoint : IEndpoint;
 
-    void RegisterEndpoint<TEndpoint, TRequest>(string pattern)
-        where TRequest : class
-        where TEndpoint : Endpoint<TRequest>;
+    IEndpoint Get(string path);
 }
