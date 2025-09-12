@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
+VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSocket.Otp.Abstractions", "WebSocket.Otp.Abstractions\WebSocket.Otp.Abstractions.csproj", "{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSocket.Otp.Api", "WebSocket.Otp.Api\WebSocket.Otp.Api.csproj", "{1E3A0A94-1223-4636-965E-B74D7493CCDB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E3A0A94-1223-4636-965E-B74D7493CCDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E3A0A94-1223-4636-965E-B74D7493CCDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E3A0A94-1223-4636-965E-B74D7493CCDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E3A0A94-1223-4636-965E-B74D7493CCDB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
