@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSocket.Otp.Abstractions", "WebSocket.Otp.Abstractions\WebSocket.Otp.Abstractions.csproj", "{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Abstractions", "WebSocket.Otp.Abstractions\WebSockets.Otp.Abstractions.csproj", "{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSocket.Otp.Api", "WebSocket.Otp.Api\WebSocket.Otp.Api.csproj", "{1E3A0A94-1223-4636-965E-B74D7493CCDB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Api", "WebSocket.Otp.Api\WebSockets.Otp.Api.csproj", "{1E3A0A94-1223-4636-965E-B74D7493CCDB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
