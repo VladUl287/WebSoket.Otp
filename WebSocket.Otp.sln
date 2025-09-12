@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Abstractions
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Api", "WebSocket.Otp.Api\WebSockets.Otp.Api.csproj", "{1E3A0A94-1223-4636-965E-B74D7493CCDB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.AspNet", "WebSockets.Otp.AspNet\WebSockets.Otp.AspNet.csproj", "{9E635F7D-7ABC-4170-999D-8978E643622D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{1E3A0A94-1223-4636-965E-B74D7493CCDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1E3A0A94-1223-4636-965E-B74D7493CCDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1E3A0A94-1223-4636-965E-B74D7493CCDB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E635F7D-7ABC-4170-999D-8978E643622D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E635F7D-7ABC-4170-999D-8978E643622D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E635F7D-7ABC-4170-999D-8978E643622D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E635F7D-7ABC-4170-999D-8978E643622D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
