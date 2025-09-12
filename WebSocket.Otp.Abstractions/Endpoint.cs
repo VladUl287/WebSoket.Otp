@@ -1,4 +1,4 @@
-﻿namespace WebSocket.Otp.Abstractions;
+﻿namespace WebSockets.Otp.Abstractions;
 
 public abstract class Endpoint
 {
