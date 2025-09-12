@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96 d17.13
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSocket.Otp.Abstractions", "WebSocket.Otp.Abstractions\WebSocket.Otp.Abstractions.csproj", "{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F25982DF-0EBF-4119-8A9E-B34C6D24C4D4}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0AD4E635-F98F-473D-9662-FC4D1338CA3D}
+	EndGlobalSection
+EndGlobal
