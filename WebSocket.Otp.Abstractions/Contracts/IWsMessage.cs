@@ -1,6 +1,6 @@
 ﻿namespace WebSockets.Otp.Abstractions.Contracts;
 
-public interface IMessage
+public interface IWsMessage
 {
     string Route { get; }
 }

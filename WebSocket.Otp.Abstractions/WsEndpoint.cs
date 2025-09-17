@@ -7,7 +7,7 @@ public abstract class WsEndpoint : IEndpoint
     public abstract Task HandleAsync(IWsContext connection, CancellationToken token);
 }
 
-public abstract class WsEndpoint<TReq> : IEndpoint where TReq : IMessage
+public abstract class WsEndpoint<TReq> : IEndpoint where TReq : IWsMessage
 {
     public abstract Task HandleAsync(TReq request, IWsContext context, CancellationToken token);
 }
