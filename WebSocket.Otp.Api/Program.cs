@@ -26,7 +26,10 @@ var app = builder.Build();
     }
 
     app.UseWebSockets();
-    app.UseOtpWebSockets();
+    app.UseOtpWebSockets((opt) =>
+    {
+        opt.Path = "/ws";
+    });
 
     app.Map("/ws", async (HttpContext ctx) =>
     {
