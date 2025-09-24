@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Net.WebSockets;
-using System.Security.Claims;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
@@ -11,8 +10,6 @@ public interface IWsConnection : IAsyncDisposable
     string Path { get; }
 
     string? SubProtocol { get; }
-
-    ClaimsPrincipal? User { get; }
 
     HttpContext? Context { get; }
 

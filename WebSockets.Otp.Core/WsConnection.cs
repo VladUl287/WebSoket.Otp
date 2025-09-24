@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
-using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core;
@@ -13,8 +12,6 @@ public sealed class WsConnection(string id, WebSocket socket, HttpContext contex
     public HttpContext? Context => context;
 
     public WebSocket? Transport => socket;
-
-    public ClaimsPrincipal? User => context.User;
 
     public string Path => context.Request.Path;
 
