@@ -2,6 +2,7 @@ using System.Reflection;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.AspNet.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -25,6 +26,7 @@ var app = builder.Build();
     }
 
     app.UseWebSockets();
+    app.UseOtpWebSockets();
 
     app.Map("/ws", async (HttpContext ctx) =>
     {
@@ -36,6 +38,7 @@ var app = builder.Build();
 
         var socket = await ctx.WebSockets.AcceptWebSocketAsync();
         var conn = new WsConnection(Guid.NewGuid().ToString(), socket, ctx);
+
         var mgr = ctx.RequestServices.GetRequiredService<IWsConnectionManager>();
         if (!mgr.TryAdd(conn))
         {

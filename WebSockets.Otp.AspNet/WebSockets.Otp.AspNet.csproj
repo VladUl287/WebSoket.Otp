@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <ProjectReference Include="..\WebSocket.Otp.Abstractions\WebSockets.Otp.Abstractions.csproj" />
   </ItemGroup>
 
