@@ -1,12 +1,11 @@
 ﻿using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Contracts;
-using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Abstractions;
-using System.Text;
-using System.Text.Json;
 using WebSockets.Otp.Core.Extensions;
+using Microsoft.Extensions.DependencyInjection;
+using WebSockets.Otp.Core;
 
-namespace WebSockets.Otp.Core;
+namespace WebSockets.Otp.AspNet;
 
 public class MessageDispatcher(
     IServiceProvider root, IWsEndpointRegistry registry, IMessageSerializer serializer,

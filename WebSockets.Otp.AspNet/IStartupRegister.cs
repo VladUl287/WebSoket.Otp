@@ -3,7 +3,7 @@ using System.Reflection;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 
-namespace WebSockets.Otp.Core;
+namespace WebSockets.Otp.AspNet;
 
 public interface IStartupRegister
 {
@@ -30,14 +30,5 @@ public sealed class DefaultStartupRegistrar : IStartupRegister
         .Where(t => !t.IsAbstract && t.GetCustomAttribute<WsEndpointAttribute>() is not null);
 
         foreach (var t in types) reg.Register(t);
-    }
-}
-
-public static class AppServiceProviderExtensions
-{
-    public static void InitializeWs(this IServiceProvider sp)
-    {
-        var registrar = sp.GetService<IStartupRegister>();
-        registrar?.Register(sp);
     }
 }

@@ -1,12 +1,11 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Reflection;
 using System.Text;
-using System.Text.Json;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Core;
 
-namespace WebSockets.Otp.Core;
+namespace WebSockets.Otp.AspNet;
 
 public sealed class EndpointInvoker
 {
@@ -39,8 +38,7 @@ public sealed class EndpointInvoker
                         {
                             // attempt to convert
                             var txt = Encoding.UTF8.GetString(execCtx.RawPayload.Span);
-                            reqObj = JsonSerializer.Deserialize(txt, reqType, execCtx.RequestServices
-                                .GetService<JsonSerializerOptions>() ?? new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            //reqObj = JsonSerializer.Deserialize(txt, reqType, execCtx.RequestServices.GetService<JsonSerializerOptions>() ?? new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                         }
 
                         var task = (Task)handleMethod.Invoke(endpointInst, [reqObj, execCtx.AsPublicContext(), token])!;
