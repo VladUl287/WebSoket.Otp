@@ -5,13 +5,13 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core;
 
-public sealed class WsConnection(string id, WebSocket socket, HttpContext context) : IWsConnection
+public sealed class WsConnection(string id, HttpContext context, WebSocket socket) : IWsConnection
 {
     public string Id => id;
 
-    public HttpContext? Context => context;
+    public HttpContext Context => context;
 
-    public WebSocket? Transport => socket;
+    public WebSocket Socket => socket;
 
     public string Path => context.Request.Path;
 
