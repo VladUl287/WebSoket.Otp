@@ -17,7 +17,7 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
             await ExecuteWebSocket(context);
             return;
         }
-
+        
         await next(context);
     }
 
@@ -73,7 +73,7 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
         {
             ArrayPool<byte>.Shared.Return(buffer);
             manager.TryRemove(wsConnection.Id);
-            await wsConnection.DisposeAsync();
+            wsConnection.Dispose();
         }
     }
 }

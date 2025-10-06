@@ -3,7 +3,7 @@ using System.Net.WebSockets;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
-public interface IWsConnection : IAsyncDisposable
+public interface IWsConnection : IDisposable
 {
     string Id { get; }
 

@@ -25,9 +25,5 @@ public sealed class WsConnection(string id, WebSocket socket, HttpContext contex
     public Task CloseAsync(WebSocketCloseStatus status, string? description, CancellationToken token) =>
         socket.CloseAsync(status, description, token);
 
-    public ValueTask DisposeAsync()
-    {
-        socket.Dispose();
-        return ValueTask.CompletedTask;
-    }
+    public void Dispose() => socket.Dispose();
 }
