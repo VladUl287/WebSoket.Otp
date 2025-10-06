@@ -10,9 +10,9 @@ public sealed class WsEndpointRegistry : IWsEndpointRegistry
 {
     private readonly ConcurrentDictionary<string, Type> map = new();
 
-    public Type? Get(string path) => map.TryGetValue(path, out var value) ? value : null;
+    public Type? Resolve(string path) => map.TryGetValue(path, out var value) ? value : null;
 
-    public IEnumerable<Type> GetAll() => map.Values.AsEnumerable();
+    public IEnumerable<Type> Enumerate() => map.Values.AsEnumerable();
 
     public void Register(Type type)
     {

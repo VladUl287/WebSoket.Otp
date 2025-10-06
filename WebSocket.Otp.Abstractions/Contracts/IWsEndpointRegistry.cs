@@ -2,9 +2,9 @@
 
 public interface IWsEndpointRegistry
 {
-    Type? Get(string path);
+    Type? Resolve(string path);
 
-    IEnumerable<Type> GetAll();
+    IEnumerable<Type> Enumerate();
 
     void Register(Type type);
 }

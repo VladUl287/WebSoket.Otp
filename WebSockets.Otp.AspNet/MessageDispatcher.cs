@@ -1,79 +1,78 @@
-﻿using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions;
-using WebSockets.Otp.Core.Extensions;
+﻿using WebSockets.Otp.Abstractions.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Core;
+using WebSockets.Otp.AspNet.Extensions;
 
 namespace WebSockets.Otp.AspNet;
 
 public class MessageDispatcher(
-    IServiceProvider root, IWsEndpointRegistry registry, IMessageSerializer serializer,
+    IServiceScopeFactory root, IWsEndpointRegistry endpointRegistry, IMessageSerializer serializer,
     EndpointInvoker invoker) : IMessageDispatcher
 {
+    public sealed class MessageFormatException(string message) : FormatException(message)
+    { }
+
+    public sealed class EndpointNotFoundException(string message) : InvalidOperationException(message)
+    { }
+
+    public sealed class MessageSerializationException(string message, Exception? inner = null) : InvalidOperationException(message, inner)
+    { }
+
     public async Task DispatchMessage(IWsConnection connection, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
-        string route;
-        try
-        {
-            route = serializer.PeekRoute(payload);
-        }
-        catch
-        {
-            var b = serializer.Serialize(new InternalError("unknown", "invalid_payload"));
-            await connection.SendAsync(b, WebSocketMessageType.Text, token);
-            return;
-        }
+        var route = serializer.PeekRoute(payload) ??
+            throw new MessageFormatException("Unable to determine message route from payload");
 
-        var desc = registry.Get(route);
-        if (desc == null)
-        {
-            var b = serializer.Serialize(new InternalError(route, "no_endpoint"));
-            await connection.SendAsync(b, WebSocketMessageType.Text, token);
-            return;
-        }
+        var endpointType = endpointRegistry.Resolve(route) ??
+            throw new EndpointNotFoundException($"Endpoint for route '{route}' not found");
 
         await using var scope = root.CreateAsyncScope();
-        var sp = scope.ServiceProvider;
 
-        var execCtx = new WsExecutionContext(sp, connection, payload, route, serializer, token)
+        var serviceProvider = scope.ServiceProvider;
+        var execCtx = new WsExecutionContext(serviceProvider, connection, payload, route, serializer, token)
         {
-            Endpoint = desc
+            Endpoint = endpointType
         };
 
-        var requestPresented = desc.BaseType.IsGenericType && desc.BaseType.GetGenericTypeDefinition() == typeof(WsEndpoint<>);
-        if (requestPresented)
+        if (endpointType.AcceptsRequestMessages())
         {
             try
             {
-                var reqType = desc.BaseType.GetGenericArguments()[0];
-                if (reqType.ImplementsInterface<IWsMessage>())
-                {
-                    var req = serializer.Deserialize(reqType, payload);
-                    execCtx.RequestMessage = req;
-                }
+                var requestType = endpointType.GetRequestType();
+                var reqestData = serializer.Deserialize(requestType, payload);
+                execCtx.RequestMessage = reqestData;
             }
             catch (Exception ex)
             {
-                var b = serializer.Serialize(new InternalError(route, "invalid_payload"));
-                await connection.SendAsync(b, WebSocketMessageType.Text, token);
-                return;
+                throw new MessageSerializationException("Invalid message format", ex);
             }
         }
 
-        //var behaviorInstances = new List<object>();
-
-        var endpointInstance = sp.GetService(desc) ?? throw new InvalidOperationException($"Endoind with type '{desc.Name}' not found");
+        var endpointInstance = serviceProvider.GetService(endpointType) ??
+            throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
 
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
 
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //Task terminal(EndpointInvoker endpointInvoker) => invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
+        //var behaviorInstances = new List<Behaviour>();
 
-        //var pipeline = behaviorInstances.Aggregate(terminal, (next, behavior) => () => behavior.InvokeAsync(execCtx, next));
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //Task terminal() => invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
+
+        //Behaviour firstStep = async (next) =>
+        //{
+        //    Debug.WriteLine("Pipeline first step");
+        //    await next();
+        //};
+        //behaviorInstances.Add(firstStep);
+
+        //behaviorInstances.Reverse();
+        //var pipeline = behaviorInstances.Aggregate(terminal, (next, behavior) =>
+        //{
+        //    return () => behavior(next);
+        //});
 
         //await pipeline();
     }
 
-    private record InternalError(string Route, string Error) : IWsMessage;
+    //private delegate Task Behaviour(Func<Task> next);
 }
