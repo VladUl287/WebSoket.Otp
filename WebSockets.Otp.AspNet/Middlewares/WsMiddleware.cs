@@ -17,7 +17,7 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
             await ExecuteWebSocket(context);
             return;
         }
-        
+
         await next(context);
     }
 
@@ -61,11 +61,11 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
                 {
                     var payload = ms.ToArray();
                     ms.SetLength(0);
-                    await dispatcher.DispatchMessage(wsConnection.AsPublicContext(), payload, token);
+                    await dispatcher.DispatchMessage(wsConnection, payload, token);
                 }
             }
         }
-        catch (Exception)
+        catch
         {
             throw;
         }

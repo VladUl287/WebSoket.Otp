@@ -11,7 +11,7 @@ public class MessageDispatcher(
     IServiceProvider root, IWsEndpointRegistry registry, IMessageSerializer serializer,
     EndpointInvoker invoker) : IMessageDispatcher
 {
-    public async Task DispatchMessage(IWsContext publicCtx, ReadOnlyMemory<byte> payload, CancellationToken token = default)
+    public async Task DispatchMessage(IWsConnection connection, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         string route;
         try
@@ -21,7 +21,7 @@ public class MessageDispatcher(
         catch
         {
             var b = serializer.Serialize(new InternalError("unknown", "invalid_payload"));
-            await publicCtx.Connection.SendAsync(b, WebSocketMessageType.Text, publicCtx.Cancellation);
+            await connection.SendAsync(b, WebSocketMessageType.Text, token);
             return;
         }
 
@@ -29,14 +29,14 @@ public class MessageDispatcher(
         if (desc == null)
         {
             var b = serializer.Serialize(new InternalError(route, "no_endpoint"));
-            await publicCtx.Connection.SendAsync(b, WebSocketMessageType.Text, publicCtx.Cancellation);
+            await connection.SendAsync(b, WebSocketMessageType.Text, token);
             return;
         }
 
         await using var scope = root.CreateAsyncScope();
         var sp = scope.ServiceProvider;
 
-        var execCtx = new WsExecutionContext(sp, publicCtx.Connection, payload, route, serializer, publicCtx.Cancellation)
+        var execCtx = new WsExecutionContext(sp, connection, payload, route, serializer, token)
         {
             Endpoint = desc
         };
@@ -56,14 +56,14 @@ public class MessageDispatcher(
             catch (Exception ex)
             {
                 var b = serializer.Serialize(new InternalError(route, "invalid_payload"));
-                await publicCtx.Connection.SendAsync(b, WebSocketMessageType.Text, publicCtx.Cancellation);
+                await connection.SendAsync(b, WebSocketMessageType.Text, token);
                 return;
             }
         }
 
-        var behaviorInstances = new List<object>();
+        //var behaviorInstances = new List<object>();
 
-        var endpointInstance = sp.GetService(desc) ?? ActivatorUtilities.CreateInstance(sp, desc);
+        var endpointInstance = sp.GetService(desc) ?? throw new InvalidOperationException($"Endoind with type '{desc.Name}' not found");
 
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
 

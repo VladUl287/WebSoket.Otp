@@ -2,5 +2,5 @@
 
 public interface IMessageDispatcher
 {
-    Task DispatchMessage(IWsContext ctx, ReadOnlyMemory<byte> payload, CancellationToken token = default);
+    Task DispatchMessage(IWsConnection connection, ReadOnlyMemory<byte> payload, CancellationToken token);
 }
