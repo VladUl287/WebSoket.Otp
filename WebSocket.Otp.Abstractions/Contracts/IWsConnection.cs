@@ -11,11 +11,11 @@ public interface IWsConnection : IDisposable
 
     string? SubProtocol { get; }
 
-    HttpContext? Context { get; }
+    HttpContext Context { get; }
+
+    WebSocket Socket { get; }
 
     IDictionary<string, object> Items { get; }
-
-    WebSocket? Transport { get; }
 
     ValueTask SendAsync(ReadOnlyMemory<byte> payload, WebSocketMessageType type, CancellationToken toke);
 
