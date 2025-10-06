@@ -20,16 +20,15 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return JsonSerializer.Deserialize(span, type, Options);
     }
 
-    public string PeekRoute(ReadOnlyMemory<byte> payload)
+    public string? PeekRoute(ReadOnlyMemory<byte> payload)
     {
         var span = Encoding.UTF8.GetString(payload.Span);
         using var doc = JsonDocument.Parse(span);
         const string route = "route";
         if (doc.RootElement.TryGetProperty(route, out var r))
-        {
-            return r.GetString() ?? string.Empty;
-        }
-        throw new InvalidOperationException("Message has no 'route' property.");
+            return r.GetString();
+
+        return null;
     }
 
     public ReadOnlyMemory<byte> Serialize<T>(T message) where T : IWsMessage
