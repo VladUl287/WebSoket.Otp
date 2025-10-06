@@ -54,13 +54,10 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
                 var wsMessage = await socket.ReceiveAsync(buffer, token);
 
                 if (wsMessage.MessageType is WebSocketMessageType.Close)
+                {
+                    await wsConnection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                     break;
-
-                //if (wsMessage.MessageType is WebSocketMessageType.Close)
-                //{
-                //    await wsConnection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                //    break;
-                //}
+                }
 
                 //if (stream.Length + wsMessage.Count > maxMessageSize)
                 //{
