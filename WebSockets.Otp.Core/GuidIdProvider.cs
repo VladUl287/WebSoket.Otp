@@ -4,5 +4,5 @@ namespace WebSockets.Otp.Core;
 
 public sealed class GuidIdProvider : IIdProvider
 {
-    public string NewId() => Guid.NewGuid().ToString();
+    public string Create() => Guid.NewGuid().ToString();
 }

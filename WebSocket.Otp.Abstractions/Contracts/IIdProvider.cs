@@ -2,5 +2,5 @@
 
 public interface IIdProvider
 {
-    string NewId();
+    string Create();
 }
