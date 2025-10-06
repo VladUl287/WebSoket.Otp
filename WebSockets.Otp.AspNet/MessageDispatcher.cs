@@ -52,27 +52,5 @@ public class MessageDispatcher(
             throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
 
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
-
-        //var behaviorInstances = new List<Behaviour>();
-
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //Task terminal() => invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
-
-        //Behaviour firstStep = async (next) =>
-        //{
-        //    Debug.WriteLine("Pipeline first step");
-        //    await next();
-        //};
-        //behaviorInstances.Add(firstStep);
-
-        //behaviorInstances.Reverse();
-        //var pipeline = behaviorInstances.Aggregate(terminal, (next, behavior) =>
-        //{
-        //    return () => behavior(next);
-        //});
-
-        //await pipeline();
     }
-
-    //private delegate Task Behaviour(Func<Task> next);
 }
