@@ -20,6 +20,7 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
         services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
+        services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
         services.AddSingleton<EndpointInvoker>();
         services.AddScoped<IMessageDispatcher, MessageDispatcher>();
 
@@ -40,6 +41,7 @@ public static class WsMiddlewareExtensions
     public static IApplicationBuilder UseWsEndpoints(this IApplicationBuilder builder, Action<WsMiddlewareOptions> configure)
     {
         var options = new WsMiddlewareOptions();
+        options.RequestMatcher = new PathWsRequestMatcher(options.Path);
         configure(options);
         return builder.UseMiddleware<WsMiddleware>(options);
     }
