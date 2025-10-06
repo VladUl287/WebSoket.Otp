@@ -1,79 +1,98 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
+using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.AspNet.Options;
-using WebSockets.Otp.Core;
-using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.AspNet.Middlewares;
 
 public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions options)
 {
-    public async Task InvokeAsync(HttpContext context)
+    public Task InvokeAsync(HttpContext context)
     {
-        if (context.WebSockets.IsWebSocketRequest && Appropriate(context, options))
-        {
-            await ExecuteWebSocket(context);
-            return;
-        }
+        if (options.RequestMatcher.IsWebSocketRequest(context))
+            return AcceptWebSocket(context, options);
 
-        await next(context);
+        return next(context);
     }
 
-    private static bool Appropriate(HttpContext context, WsMiddlewareOptions options) => context.Request.Path.Equals(options.Path);
-
-    private static async Task ExecuteWebSocket(HttpContext context)
+    private static async Task AcceptWebSocket(HttpContext context, WsMiddlewareOptions options)
     {
-        var socket = await context.WebSockets.AcceptWebSocketAsync();
+        using var socket = await context.WebSockets.AcceptWebSocketAsync();
+        await ListenSocket(context, socket, options);
+    }
 
-        var idProvider = context.RequestServices.GetRequiredService<IIdProvider>();
-        var wsConnection = new WsConnection(idProvider.NewId(), socket, context);
-
-        var manager = context.RequestServices.GetRequiredService<IWsConnectionManager>();
-        if (!manager.TryAdd(wsConnection))
+    private static async Task ListenSocket(HttpContext context, WebSocket socket, WsMiddlewareOptions options)
+    {
+        var connectionManager = context.RequestServices.GetRequiredService<IWsConnectionManager>();
+        using var wsConnection = RegisterConnection(context, socket, connectionManager);
+        try
         {
-            context.Response.StatusCode = 400;
-            return;
+            await SocketLoop(context, wsConnection, options);
         }
+        finally
+        {
+            connectionManager.TryRemove(wsConnection.Id);
+        }
+    }
 
+    private static async Task SocketLoop(HttpContext context, IWsConnection wsConnection, WsMiddlewareOptions options)
+    {
         var dispatcher = context.RequestServices.GetRequiredService<IMessageDispatcher>();
+
+        //var maxMessageSize = options.MaxReceiveMessageSize;
+        var socket = wsConnection.Socket;
+
         var buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
-        var ms = new MemoryStream();
+        var stream = new MemoryStream();
         try
         {
             var token = context.RequestAborted;
-            while (!token.IsCancellationRequested && socket.State == System.Net.WebSockets.WebSocketState.Open)
+            while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
             {
-                var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
-                if (result.MessageType == System.Net.WebSockets.WebSocketMessageType.Close)
-                {
-                    await wsConnection.CloseAsync(System.Net.WebSockets.WebSocketCloseStatus.NormalClosure, "closing", CancellationToken.None);
+                var wsMessage = await socket.ReceiveAsync(buffer, token);
+
+                if (wsMessage.MessageType is WebSocketMessageType.Close)
                     break;
-                }
 
-                if (result.Count > 0)
-                {
-                    ms.Write(buffer, 0, result.Count);
-                }
+                //if (wsMessage.MessageType is WebSocketMessageType.Close)
+                //{
+                //    await wsConnection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                //    break;
+                //}
 
-                if (result.EndOfMessage)
+                //if (stream.Length + wsMessage.Count > maxMessageSize)
+                //{
+                //    await wsConnection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
+                //    break;
+                //}
+
+                await stream.WriteAsync(buffer, token);
+
+                if (wsMessage.EndOfMessage)
                 {
-                    var payload = ms.ToArray();
-                    ms.SetLength(0);
+                    var payload = stream.ToArray();
+                    stream.SetLength(0);
                     await dispatcher.DispatchMessage(wsConnection, payload, token);
                 }
             }
         }
-        catch
-        {
-            throw;
-        }
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
-            manager.TryRemove(wsConnection.Id);
-            wsConnection.Dispose();
+            stream.Dispose();
         }
+    }
+
+    private static IWsConnection RegisterConnection(HttpContext context, WebSocket socket, IWsConnectionManager manager)
+    {
+        var factory = context.RequestServices.GetRequiredService<IWsConnectionFactory>();
+
+        var wsConnection = factory.Create(context, socket);
+        if (manager.TryAdd(wsConnection))
+            return wsConnection;
+
+        throw new Exception("Fail to add connection into connection manager.");
     }
 }
