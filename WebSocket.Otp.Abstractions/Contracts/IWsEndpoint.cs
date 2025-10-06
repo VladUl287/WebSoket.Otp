@@ -1,4 +1,4 @@
 ﻿namespace WebSockets.Otp.Abstractions.Contracts;
 
-public interface IEndpoint
+public interface IWsEndpoint
 {}
