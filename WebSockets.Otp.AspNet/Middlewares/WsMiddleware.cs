@@ -78,7 +78,6 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
         finally
         {
             ArrayPool<byte>.Shared.Return(buffer);
-            stream.Dispose();
         }
     }
 
