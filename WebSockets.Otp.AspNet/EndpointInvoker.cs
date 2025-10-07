@@ -1,8 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
-using System.Text;
-using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.AspNet.Extensions;
 using WebSockets.Otp.Core;
 
 namespace WebSockets.Otp.AspNet;
@@ -13,50 +12,35 @@ public sealed class EndpointInvoker
 
     public Func<object, WsExecutionContext, CancellationToken, Task> GetInvoker(Type endpointType)
     {
-        return _cache.GetOrAdd(endpointType, t =>
+        return _cache.GetOrAdd(endpointType, (type) =>
         {
-            // two cases:
-            // - inherits WsEndpoint (raw) -> Task HandleAsync(IWsConnection, CancellationToken)
-            // - inherits WebSocketEndpoint<TReq> -> Task HandleAsync(TReq, IWsContext, CancellationToken)
-            var bt = t;
-            while (bt != null)
+            if (type.AcceptsRequestMessages())
             {
-                if (bt.IsGenericType && bt.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
+                var baseType = type.GetBaseEndpointType();
+                var reqType = baseType.GenericTypeArguments[0];
+
+                var handleMethod = type.GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, binder: null,
+                    [reqType, typeof(IWsContext), typeof(CancellationToken)], null) ??
+                    throw new InvalidOperationException($"HandleAsync({reqType.Name}, IWsContext, CancellationToken) not found on {type.Name}");
+
+                return (endpointInst, execCtx, token) =>
                 {
-                    var reqType = bt.GenericTypeArguments[0];
-
-                    // build invoked delegate using reflection
-                    var handleMethod = t.GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { reqType, 
-                        typeof(IWsContext), typeof(CancellationToken) }, null)
-                                         ?? throw new InvalidOperationException($"HandleAsync({reqType.Name}, IWsContext, CancellationToken) not found on {t.Name}");
-
-                    return (endpointInst, execCtx, token) =>
-                    {
-                        // request object must be of reqType
-                        var reqObj = execCtx.RequestMessage;
-                        if (reqObj == null || !reqType.IsInstanceOfType(reqObj))
-                        {
-                            // attempt to convert
-                            var txt = Encoding.UTF8.GetString(execCtx.RawPayload.Span);
-                            //reqObj = JsonSerializer.Deserialize(txt, reqType, execCtx.RequestServices.GetService<JsonSerializerOptions>() ?? new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        }
-
-                        var task = (Task)handleMethod.Invoke(endpointInst, [reqObj, execCtx.AsPublicContext(), token])!;
-                        return task;
-                    };
-                }
-
-                bt = bt.BaseType;
+                    var reqObj = execCtx.RequestMessage;
+                    var invocation = handleMethod.Invoke(endpointInst, [reqObj, execCtx.AsPublicContext(), token]) ??
+                        throw new NullReferenceException();
+                    return (Task)invocation;
+                };
             }
 
-            // raw WsEndpoint
-            var rawHandle = t.GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, null, new[] { typeof(IWsConnection), typeof(CancellationToken) }, null)
-                        ?? throw new InvalidOperationException($"HandleAsync(IWsConnection, CancellationToken) not found on {t.Name}");
+            var rawHandle = type.GetMethod("HandleAsync", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, null,
+                [typeof(IWsConnection), typeof(CancellationToken)], null) ??
+                throw new InvalidOperationException($"HandleAsync(IWsConnection, CancellationToken) not found on {type.Name}");
 
             return (endpointInst, execCtx, token) =>
             {
-                var task = (Task)rawHandle.Invoke(endpointInst, new object[] { execCtx.Connection, token })!;
-                return task;
+                var invocation = rawHandle.Invoke(endpointInst, [execCtx.Connection, token]) ??
+                    throw new NullReferenceException();
+                return (Task)invocation;
             };
         });
     }
