@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.AspNet.Extensions;
+using WebSockets.Otp.Core.Exceptions;
 
 namespace WebSockets.Otp.AspNet;
 
@@ -9,15 +10,6 @@ public class MessageDispatcher(
     IServiceScopeFactory root, IWsEndpointRegistry endpointRegistry, IMessageSerializer serializer,
     EndpointInvoker invoker) : IMessageDispatcher
 {
-    public sealed class MessageFormatException(string message) : FormatException(message)
-    { }
-
-    public sealed class EndpointNotFoundException(string message) : InvalidOperationException(message)
-    { }
-
-    public sealed class MessageSerializationException(string message, Exception? inner = null) : InvalidOperationException(message, inner)
-    { }
-
     public async Task DispatchMessage(IWsConnection connection, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         var route = serializer.PeekRoute(payload) ??
