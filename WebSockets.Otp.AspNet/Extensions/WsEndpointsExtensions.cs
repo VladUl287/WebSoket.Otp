@@ -27,6 +27,17 @@ public static class WsEndpointsExtensions
 
     public static Type GetRequestType(this Type type)
     {
-        return type;
+        if (!type.IsWsEndpoint())
+            throw new ArgumentException($"Type '{nameof(type)}' is not ws endpoint");
+
+        while (type is not null)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
+                return type.GetGenericArguments()[0];
+
+            type = type.BaseType;
+        }
+
+        throw new ArgumentException($"Type '{nameof(type)}' not contains request type");
     }
 }
