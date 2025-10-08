@@ -9,7 +9,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 
     private readonly int _initialCapacity = capacity;
     private int _capacity = capacity;
-    private int _position;
+    private int _length;
     private bool _disposed;
 
     public void Write(ReadOnlySpan<byte> data)
@@ -30,7 +30,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 
         _buffer = (byte*)newPtr;
         _capacity = _initialCapacity;
-        _position = Math.Min(_position, _initialCapacity);
+        _length = Math.Min(_length, _initialCapacity);
     }
 
     public void Clear()
@@ -38,7 +38,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
         ThrowIfDisposed();
 
         NativeMemory.Clear(_buffer, (uint)_capacity);
-        _position = 0;
+        _length = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
