@@ -18,6 +18,9 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     {
         ThrowIfDisposed();
 
+        if (_length > Array.MaxLength - data.Length)
+            throw new OutOfMemoryException("The combined length would exceed maximum array size.");
+
         if (_length > _capacity - data.Length)
             EnsureCapacity(_length + data.Length);
 
