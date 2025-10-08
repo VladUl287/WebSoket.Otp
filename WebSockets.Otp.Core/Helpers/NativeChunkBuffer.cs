@@ -32,8 +32,9 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
         if (requiredCapacity <= _capacity)
             return;
 
-        //TODO: udpate to 4 → 8 → 16 → 32 → 64 → 128 growth
         var newCapacity = _capacity == 0 ? 4 : _capacity * 2;
+        if ((uint)newCapacity > Array.MaxLength)
+            newCapacity = Array.MaxLength;
         newCapacity = Math.Max(newCapacity, requiredCapacity);
         Reallocate(newCapacity);
     }
