@@ -17,14 +17,23 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
         ThrowIfDisposed();
 
         if (_length + data.Length > _capacity)
-        {
-            return;
-        }
+            EnsureCapacity(_length + data.Length);
 
         var target = new Span<byte>(_buffer + _length, data.Length);
         data.CopyTo(target);
 
         _length += data.Length;
+    }
+
+    private void EnsureCapacity(int requiredCapacity)
+    {
+        if (requiredCapacity <= _capacity)
+            return;
+
+        //TODO: udpate to 4 → 8 → 16 → 32 → 64 → 128 growth
+        var newCapacity = _capacity == 0 ? 4 : _capacity * 2;
+        newCapacity = Math.Max(newCapacity, requiredCapacity);
+        Reallocate(newCapacity);
     }
 
     public void Shrink()
@@ -34,13 +43,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
         if (_capacity <= _initialCapacity)
             return;
 
-        void* newPtr = NativeMemory.Realloc(_buffer, (uint)_initialCapacity);
-        if (newPtr is null)
-            throw new OutOfMemoryException("Realloc failed.");
-
-        _buffer = (byte*)newPtr;
-        _capacity = _initialCapacity;
-        _length = Math.Min(_length, _initialCapacity);
+        Reallocate(_initialCapacity);
     }
 
     public void Clear()
@@ -49,6 +52,17 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 
         NativeMemory.Clear(_buffer, (uint)_capacity);
         _length = 0;
+    }
+
+    private void Reallocate(int capacity)
+    {
+        void* newPtr = NativeMemory.Realloc(_buffer, (uint)capacity);
+        if (newPtr is null)
+            throw new OutOfMemoryException("Realloc failed.");
+
+        _buffer = (byte*)newPtr;
+        _capacity = capacity;
+        _length = Math.Min(_length, capacity);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
