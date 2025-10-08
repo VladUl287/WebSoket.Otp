@@ -12,6 +12,8 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     private int _length;
     private bool _disposed;
 
+    public ReadOnlySpan<byte> Data => new Span<byte>(_buffer, _length);
+
     public void Write(ReadOnlySpan<byte> data)
     {
         ThrowIfDisposed();
