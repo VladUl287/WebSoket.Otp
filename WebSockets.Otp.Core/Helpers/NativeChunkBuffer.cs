@@ -15,6 +15,16 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     public void Write(ReadOnlySpan<byte> data)
     {
         ThrowIfDisposed();
+
+        if (_length + data.Length > _capacity)
+        {
+            return;
+        }
+
+        var target = new Span<byte>(_buffer + _length, data.Length);
+        data.CopyTo(target);
+
+        _length += data.Length;
     }
 
     public void Shrink()
