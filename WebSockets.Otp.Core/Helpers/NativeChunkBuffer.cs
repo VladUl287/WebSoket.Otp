@@ -30,7 +30,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 
         _buffer = (byte*)newPtr;
         _capacity = _initialCapacity;
-        _position = _initialCapacity;
+        _position = Math.Min(_position, _initialCapacity);
     }
 
     public void Clear()
