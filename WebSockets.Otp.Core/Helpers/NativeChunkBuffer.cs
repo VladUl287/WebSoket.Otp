@@ -3,21 +3,14 @@ using System.Runtime.InteropServices;
 
 namespace WebSockets.Otp.Core.Helpers;
 
-public sealed unsafe class NativeChunkBuffer : IDisposable
+public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 {
-    private byte* _buffer;
+    private byte* _buffer = (byte*)NativeMemory.AllocZeroed((uint)capacity);
 
-    private readonly int _initialCapacity;
-    private int _capacity;
+    private readonly int _initialCapacity = capacity;
+    private int _capacity = capacity;
     private int _position;
     private bool _disposed;
-
-    public NativeChunkBuffer(int capacity)
-    {
-        _initialCapacity = capacity;
-        _capacity = capacity;
-        _buffer = (byte*)NativeMemory.AllocZeroed((uint)capacity);
-    }
 
     public void Write(ReadOnlySpan<byte> data)
     {
