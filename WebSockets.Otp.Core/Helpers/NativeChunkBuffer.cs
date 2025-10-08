@@ -18,7 +18,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     {
         ThrowIfDisposed();
 
-        if (_length + data.Length > _capacity)
+        if (_length > _capacity - data.Length)
             EnsureCapacity(_length + data.Length);
 
         var target = new Span<byte>(_buffer + _length, data.Length);
