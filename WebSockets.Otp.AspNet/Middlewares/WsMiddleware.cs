@@ -37,7 +37,7 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
         }
     }
 
-    private static async Task SocketLoop(HttpContext context, IWsConnection wsConnection, WsMiddlewareOptions options)
+    public static async Task SocketLoop(HttpContext context, IWsConnection wsConnection, WsMiddlewareOptions options)
     {
         var dispatcher = context.RequestServices.GetRequiredService<IMessageDispatcher>();
 
@@ -59,13 +59,16 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
                     break;
                 }
 
+                if (wsMessage.MessageType is WebSocketMessageType.Binary)
+                    throw new NotSupportedException("Binary format message not supported yet.");
+
                 //if (stream.Length + wsMessage.Count > maxMessageSize)
                 //{
                 //    await wsConnection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
                 //    break;
                 //}
-
-                await stream.WriteAsync(buffer, token);
+                
+                await stream.WriteAsync(buffer.AsMemory(0, wsMessage.Count), token);
 
                 if (wsMessage.EndOfMessage)
                 {
