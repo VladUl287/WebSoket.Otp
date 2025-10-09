@@ -16,7 +16,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 
     public void Write(ReadOnlySpan<byte> data)
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_length > Array.MaxLength - data.Length)
             throw new OutOfMemoryException("The combined length would exceed maximum array size.");
@@ -44,7 +44,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 
     public void Shrink()
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         if (_capacity <= _initialCapacity)
             return;
@@ -54,7 +54,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
 
     public void Clear()
     {
-        ThrowIfDisposed();
+        ObjectDisposedException.ThrowIf(_disposed, this);
 
         NativeMemory.Clear(_buffer, (uint)_capacity);
         _length = 0;
@@ -70,9 +70,6 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
         _capacity = capacity;
         _length = Math.Min(_length, capacity);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, "Native chunk buffer already disposed");
 
     public void Dispose()
     {
