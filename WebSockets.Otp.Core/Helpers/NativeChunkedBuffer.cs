@@ -1,9 +1,10 @@
 ﻿using System.Buffers;
 using System.Runtime.InteropServices;
+using WebSockets.Otp.Abstractions;
 
 namespace WebSockets.Otp.Core.Helpers;
 
-public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
+public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
 {
     private byte* _buffer = (byte*)NativeMemory.AllocZeroed((uint)capacity);
 
@@ -13,7 +14,6 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     private bool _disposed;
 
     public ReadOnlySpan<byte> Span => new Span<byte>(_buffer, _length);
-
     public IMemoryOwner<byte> Manager => new MemoryManager(_buffer, _length);
 
     public void Write(ReadOnlySpan<byte> data)
@@ -82,7 +82,7 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    ~NativeChunkBuffer()
+    ~NativeChunkedBuffer()
     {
         Dispose();
     }
