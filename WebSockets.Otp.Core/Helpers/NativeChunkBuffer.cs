@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Buffers;
 using System.Runtime.InteropServices;
 
 namespace WebSockets.Otp.Core.Helpers;
@@ -13,6 +13,8 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     private bool _disposed;
 
     public ReadOnlySpan<byte> Data => new Span<byte>(_buffer, _length);
+
+    public IMemoryOwner<byte> MemoryOwner => new MemoryManager(_buffer, _length);
 
     public void Write(ReadOnlySpan<byte> data)
     {
@@ -84,4 +86,21 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     {
         Dispose();
     }
+}
+
+public sealed unsafe class MemoryManager(byte* pointer, int length) : MemoryManager<byte>
+{
+    public override Span<byte> GetSpan() => new(pointer, length);
+
+    public override MemoryHandle Pin(int elementIndex = 0)
+    {
+        if ((uint)elementIndex >= (uint)length)
+            throw new ArgumentOutOfRangeException(nameof(elementIndex));
+
+        return new MemoryHandle(pointer + elementIndex);
+    }
+
+    public override void Unpin() { }
+
+    protected override void Dispose(bool disposing) { }
 }
