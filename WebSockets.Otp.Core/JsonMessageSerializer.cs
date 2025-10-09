@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Core.Exceptions;
 
 namespace WebSockets.Otp.Core;
 
@@ -16,8 +17,15 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
 
     public object Deserialize(Type type, ReadOnlyMemory<byte> payload)
     {
-        var span = Encoding.UTF8.GetString(payload.Span);
-        return JsonSerializer.Deserialize(span, type, Options);
+        try
+        {
+            var span = Encoding.UTF8.GetString(payload.Span);
+            return JsonSerializer.Deserialize(span, type, Options);
+        }
+        catch (Exception ex)
+        {
+            throw new MessageSerializationException("Invalid message format", ex);
+        }
     }
 
     public string? PeekRoute(ReadOnlyMemory<byte> payload)
