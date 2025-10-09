@@ -21,6 +21,9 @@ public class MessageDispatcher(
         await using var scope = root.CreateAsyncScope();
 
         var serviceProvider = scope.ServiceProvider;
+        var endpointInstance = serviceProvider.GetService(endpointType) ??
+            throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
+
         var execCtx = new WsExecutionContext(serviceProvider, connection, payload, route, serializer, token)
         {
             Endpoint = endpointType
@@ -28,20 +31,10 @@ public class MessageDispatcher(
 
         if (endpointType.AcceptsRequestMessages())
         {
-            try
-            {
-                var requestType = endpointType.GetRequestType();
-                var reqestData = serializer.Deserialize(requestType, payload);
-                execCtx.RequestMessage = reqestData;
-            }
-            catch (Exception ex)
-            {
-                throw new MessageSerializationException("Invalid message format", ex);
-            }
+            var requestType = endpointType.GetRequestType();
+            var reqestData = serializer.Deserialize(requestType, payload);
+            execCtx.RequestMessage = reqestData;
         }
-
-        var endpointInstance = serviceProvider.GetService(endpointType) ??
-            throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
 
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
     }
