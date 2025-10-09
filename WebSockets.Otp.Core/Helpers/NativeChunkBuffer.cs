@@ -12,9 +12,9 @@ public sealed unsafe class NativeChunkBuffer(int capacity) : IDisposable
     private int _length;
     private bool _disposed;
 
-    public ReadOnlySpan<byte> Data => new Span<byte>(_buffer, _length);
+    public ReadOnlySpan<byte> Span => new Span<byte>(_buffer, _length);
 
-    public IMemoryOwner<byte> MemoryOwner => new MemoryManager(_buffer, _length);
+    public IMemoryOwner<byte> Manager => new MemoryManager(_buffer, _length);
 
     public void Write(ReadOnlySpan<byte> data)
     {
