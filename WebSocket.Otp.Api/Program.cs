@@ -20,7 +20,7 @@ var app = builder.Build();
     app.UseWebSockets();
     app.UseWsEndpoints((opt) =>
     {
-        opt.Path = "/ws";
+        opt.RequestPath = "/ws";
     });
 
     app.Run();
