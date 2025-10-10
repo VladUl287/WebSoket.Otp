@@ -8,6 +8,7 @@ public sealed class PathWsRequestMatcher(string path) : IWsRequestMatcher
 {
     public bool IsWebSocketRequest(HttpContext context)
     {
-        return context.WebSockets.IsWebSocketRequest && PathHelper.Normilize(context.Request.Path).Equals(path);
+        return context.WebSockets.IsWebSocketRequest;
+        //return context.WebSockets.IsWebSocketRequest && PathHelper.Normilize(context.Request.Path).Equals(path);
     }
 }

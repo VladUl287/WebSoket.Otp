@@ -1,8 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.AspNet.Extensions;
 using WebSockets.Otp.Core;
+using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.AspNet;
 
@@ -26,7 +26,7 @@ public sealed class EndpointInvoker
                 return (endpointInst, execCtx, token) =>
                 {
                     var reqObj = execCtx.RequestMessage;
-                    var invocation = handleMethod.Invoke(endpointInst, [reqObj, execCtx.AsPublicContext(), token]) ??
+                    var invocation = handleMethod.Invoke(endpointInst, [reqObj, execCtx, token]) ??
                         throw new NullReferenceException();
                     return (Task)invocation;
                 };

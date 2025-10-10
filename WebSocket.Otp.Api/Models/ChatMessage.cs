@@ -2,4 +2,7 @@
 
 namespace WebSockets.Otp.Api.Models;
 
-public sealed record ChatMessage(string Route, string UserName, string Content, DateTime Timestamp) : IWsMessage;
+public sealed class ChatMessage : WsMessage
+{
+    public string Content { get; init; } = string.Empty;
+}

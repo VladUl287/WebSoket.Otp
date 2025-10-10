@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core.Exceptions;
@@ -28,26 +30,26 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         }
     }
 
-    public string? PeekRoute(ReadOnlyMemory<byte> payload)
-    {
-        var span = Encoding.UTF8.GetString(payload.Span);
-        using var doc = JsonDocument.Parse(span);
-        const string route = "route";
-        if (doc.RootElement.TryGetProperty(route, out var r))
-            return r.GetString();
-
-        return null;
-    }
-
     public ReadOnlyMemory<byte> Serialize<T>(T message) where T : IWsMessage
     {
         var json = JsonSerializer.Serialize(message, Options);
         return Encoding.UTF8.GetBytes(json);
     }
 
-    T? IMessageSerializer.Deserialize<T>(ReadOnlyMemory<byte> payload) where T : class
+    public T? Deserialize<T>(ReadOnlyMemory<byte> payload) where T : class, IWsMessage
     {
         var span = Encoding.UTF8.GetString(payload.Span);
         return JsonSerializer.Deserialize<T>(span, Options);
+    }
+
+    public string? ExtractStringField(string field, ReadOnlyMemory<byte> payload)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(payload);
+            doc.RootElement.TryGetProperty(field, out var element);
+            return element.GetString();
+        }
+        catch { return default; }
     }
 }

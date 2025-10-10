@@ -1,13 +1,16 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Reflection;
+using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions;
+using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 
-namespace WebSockets.Otp.AspNet.Extensions;
+namespace WebSockets.Otp.Core.Extensions;
 
 public static class WsEndpointsExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsWsEndpoint(this Type type) => type.IsAssignableTo(typeof(IWsEndpoint));
+    public static bool IsWsEndpoint(this Type type) =>
+        !type.IsAbstract && type.IsAssignableTo(typeof(IWsEndpoint)) && type.GetCustomAttribute<WsEndpointAttribute>() is not null;
 
     public static bool AcceptsRequestMessages(this Type type)
     {

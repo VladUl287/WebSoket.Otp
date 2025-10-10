@@ -1,14 +1,14 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Collections.Frozen;
 using System.Reflection;
-using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core;
 
 public sealed class WsEndpointRegistry : IWsEndpointRegistry
 {
-    private readonly ConcurrentDictionary<string, Type> map = new();
+    private FrozenDictionary<string, Type> map = new Dictionary<string, Type>().ToFrozenDictionary();
 
     public Type? Resolve(string path) => map.TryGetValue(path, out var value) ? value : null;
 
@@ -16,21 +16,31 @@ public sealed class WsEndpointRegistry : IWsEndpointRegistry
 
     public void Register(Type type)
     {
-        var endpointAttr = type.GetCustomAttribute<WsEndpointAttribute>();
-        if (endpointAttr is not { } attr)
-            throw new ArgumentException("Endpoint type must be annotated with [WsEndpoint(\"route\")]");
+        var attr = ValidateWithException(type);
+        var updated = map.ToDictionary();
+        updated[attr.Key] = type;
+        map = updated.ToFrozenDictionary();
+    }
 
-        //TODO: refactor concrete endpoint types from method
-        var baseType = type.BaseType;
-        if (baseType is null or { IsAbstract: false })
-            throw new ArgumentException("Endpoint type must be annotated with [WsEndpoint(\"route\")]");
+    public void Register(IEnumerable<Type> types)
+    {
+        var mutated = map.ToDictionary();
+        foreach (var type in types)
+        {
+            var attr = ValidateWithException(type);
+            mutated[attr.Key] = type;
+        }
+        map = mutated.ToFrozenDictionary();
+    }
 
-        if (!baseType.IsGenericType && baseType != typeof(WsEndpoint))
-            throw new ArgumentException("Endpoint type must be annotated with [WsEndpoint(\"route\")]");
+    private static WsEndpointAttribute ValidateWithException(Type type)
+    {
+        var endpointAttr = type.GetCustomAttribute<WsEndpointAttribute>() ??
+            throw new ArgumentException("Endpoint type must be annotated with [WsEndpoint(\"key\")]");
 
-        if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() != typeof(WsEndpoint<>))
-            throw new ArgumentException("Endpoint type must be annotated with [WsEndpoint(\"route\")]");
+        if (!type.IsWsEndpoint())
+            throw new ArgumentException("Type is not correct endpoint type");
 
-        map[attr.Route] = type;
+        return endpointAttr;
     }
 }

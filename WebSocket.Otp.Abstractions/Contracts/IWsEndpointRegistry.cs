@@ -7,4 +7,6 @@ public interface IWsEndpointRegistry
     IEnumerable<Type> Enumerate();
 
     void Register(Type type);
+
+    void Register(IEnumerable<Type> types);
 }

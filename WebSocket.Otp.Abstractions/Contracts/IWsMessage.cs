@@ -2,5 +2,15 @@
 
 public interface IWsMessage
 {
-    string Route { get; }
+    string Key { get; init; }
+}
+
+public abstract class WsMessage : IWsMessage
+{
+    private string _key = string.Empty;
+    public string Key
+    {
+        get => _key;
+        init => _key = string.Intern(value);
+    }
 }

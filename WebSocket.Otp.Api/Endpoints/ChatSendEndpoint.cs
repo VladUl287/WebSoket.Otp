@@ -10,8 +10,11 @@ public sealed class ChatSendEndpoint(ILogger<ChatSendEndpoint> log, IWsConnectio
 {
     public override async Task HandleAsync(ChatMessage request, IWsContext ctx, CancellationToken token)
     {
-        log.LogInformation("Received chat message from {User}: {Text}", request.UserName, request.Content);
-        var reply = new ChatMessage("chat/message", request.UserName, request.Content, DateTime.UtcNow);
+        log.LogInformation("Received chat message: {Text}", request.Content);
+        var reply = new ChatMessage
+        {
+            Content = request.Content,
+        };
         var message = messageSerializer.Serialize(reply);
         foreach (var connection in connectionManager.GetAll())
         {
