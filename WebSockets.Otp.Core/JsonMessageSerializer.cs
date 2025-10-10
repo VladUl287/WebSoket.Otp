@@ -1,6 +1,4 @@
-﻿using System;
-using System.Globalization;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core.Exceptions;
@@ -42,14 +40,23 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return JsonSerializer.Deserialize<T>(span, Options);
     }
 
-    public string? ExtractStringField(string field, ReadOnlyMemory<byte> payload)
+    public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8)
     {
-        try
+        var reader = new Utf8JsonReader(jsonUtf8.Span);
+        var keyField = field.AsSpan();
+        while (reader.Read())
         {
-            using var doc = JsonDocument.Parse(payload);
-            doc.RootElement.TryGetProperty(field, out var element);
-            return element.GetString();
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(keyField))
+            {
+                reader.Read();
+                return reader.GetString();
+            }
+
+            reader.Skip();
         }
-        catch { return default; }
+        return null;
     }
 }

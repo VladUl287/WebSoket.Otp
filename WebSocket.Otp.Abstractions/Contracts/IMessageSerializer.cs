@@ -4,9 +4,9 @@ public interface IMessageSerializer
 {
     ReadOnlyMemory<byte> Serialize<T>(T message) where T : IWsMessage;
 
-    T? Deserialize<T>(ReadOnlyMemory<byte> payload) where T : class, IWsMessage;
+    T? Deserialize<T>(ReadOnlyMemory<byte> jsonUtf8) where T : class, IWsMessage;
 
-    object Deserialize(Type type, ReadOnlyMemory<byte> payload);
+    object Deserialize(Type type, ReadOnlyMemory<byte> jsonUtf8);
 
-    string? ExtractStringField(string field, ReadOnlyMemory<byte> payload);
+    string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8);
 }
