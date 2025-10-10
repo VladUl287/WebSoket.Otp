@@ -10,7 +10,7 @@ public sealed class WsMiddlewareOptions
 
     public int InitialBufferSize { get; set; } = 8 * 1024; // 8KB
 
-    public bool ReclaimBufferAfterMessage { get; set; } = true;
+    public bool ReclaimBufferAfterEachMessage { get; set; } = true;
 
     public IWsRequestMatcher RequestMatcher { get; set; } = default!;
 }
