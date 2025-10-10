@@ -4,6 +4,7 @@ using System.Buffers;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.AspNet.Options;
+using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.AspNet.Middlewares;
 
@@ -41,17 +42,17 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
     {
         var dispatcher = context.RequestServices.GetRequiredService<IMessageDispatcher>();
 
-        //var maxMessageSize = options.MaxReceiveMessageSize;
+        var maxMessageSize = options.MaxMessageSize;
         var socket = wsConnection.Socket;
 
-        var buffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
-        var stream = new MemoryStream();
+        var buffer = new NativeChunkedBuffer(options.InitialBufferSize);
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
         try
         {
             var token = context.RequestAborted;
             while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
             {
-                var wsMessage = await socket.ReceiveAsync(buffer, token);
+                var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
 
                 if (wsMessage.MessageType is WebSocketMessageType.Close)
                 {
@@ -62,25 +63,32 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
                 if (wsMessage.MessageType is WebSocketMessageType.Binary)
                     throw new NotSupportedException("Binary format message not supported yet.");
 
-                //if (stream.Length + wsMessage.Count > maxMessageSize)
-                //{
-                //    await wsConnection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
-                //    break;
-                //}
-                
-                await stream.WriteAsync(buffer.AsMemory(0, wsMessage.Count), token);
+                if (buffer.Length + wsMessage.Count > maxMessageSize)
+                {
+                    await wsConnection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
+                    break;
+                }
+
+                buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
 
                 if (wsMessage.EndOfMessage)
                 {
-                    var payload = stream.ToArray();
-                    stream.SetLength(0);
-                    await dispatcher.DispatchMessage(wsConnection, payload, token);
+                    using (var manager = buffer.Manager)
+                    {
+                        await dispatcher.DispatchMessage(wsConnection, manager.Memory, token);
+                    }
+
+                    buffer.SetLength(0);
+
+                    if (options.ReclaimBufferAfterEachMessage)
+                        buffer.Shrink();
                 }
             }
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            ArrayPool<byte>.Shared.Return(tempBuffer);
+            buffer.Dispose();
         }
     }
 
