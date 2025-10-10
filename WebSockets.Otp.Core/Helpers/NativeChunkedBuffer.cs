@@ -13,6 +13,8 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
     private int _length;
     private bool _disposed;
 
+    public int Length => _length;
+
     public ReadOnlySpan<byte> Span => new Span<byte>(_buffer, _length);
     public IMemoryOwner<byte> Manager => new MemoryManager(_buffer, _length);
 
@@ -32,6 +34,7 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
         _length += data.Length;
     }
 
+
     private void EnsureCapacity(int requiredCapacity)
     {
         if (requiredCapacity <= _capacity)
@@ -41,6 +44,7 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
         if ((uint)newCapacity > Array.MaxLength)
             newCapacity = Array.MaxLength;
         newCapacity = Math.Max(newCapacity, requiredCapacity);
+
         Reallocate(newCapacity);
     }
 
@@ -58,8 +62,22 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        NativeMemory.Clear(_buffer, (uint)_capacity);
+        NativeMemory.Clear(_buffer, (uint)_length);
         _length = 0;
+    }
+
+    public void SetLength(int length)
+    {
+        if (length < 0 || length > Array.MaxLength)
+            throw new ArgumentOutOfRangeException(nameof(length));
+
+        if (length > _capacity)
+            EnsureCapacity(length);
+
+        if (length > _length)
+            new Span<byte>(_buffer + _length, length - _length).Clear();
+
+        _length = length;
     }
 
     private void Reallocate(int capacity)
