@@ -14,3 +14,10 @@ public sealed class WsMiddlewareOptions
 
     public IWsRequestMatcher RequestMatcher { get; set; } = default!;
 }
+
+public sealed class WsConnectionState<TState>
+{
+    public TState State { get; init; }
+    public Action<TState> OnConnected;
+    public Action<TState> OnDisconnected;
+}
