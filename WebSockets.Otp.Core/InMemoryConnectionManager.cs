@@ -14,4 +14,10 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     public IEnumerable<IWsConnection> GetAll() => map.Values;
 
     public bool TryRemove(string connectionId) => map.TryRemove(connectionId, out _);
+
+    public async Task SendAsync(string connectionId, ReadOnlyMemory<byte> payload, CancellationToken token)
+    {
+        var connection = Get(connectionId);
+        await connection.Socket.SendAsync(payload, default, true, token);
+    }
 }

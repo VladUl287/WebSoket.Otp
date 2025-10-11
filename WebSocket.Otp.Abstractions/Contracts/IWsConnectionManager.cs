@@ -9,4 +9,6 @@ public interface IWsConnectionManager
     IWsConnection Get(string connectionId);
 
     IEnumerable<IWsConnection> GetAll();
+
+    Task SendAsync(string connectionId, ReadOnlyMemory<byte> payload, CancellationToken token);
 }

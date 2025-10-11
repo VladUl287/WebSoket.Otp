@@ -18,7 +18,7 @@ public sealed class ChatSendEndpoint(ILogger<ChatSendEndpoint> log, IWsConnectio
         var message = messageSerializer.Serialize(reply);
         foreach (var connection in connectionManager.GetAll())
         {
-            await connection.SendAsync(message, System.Net.WebSockets.WebSocketMessageType.Text, token);
+            await connectionManager.SendAsync(connection.Id, message, token);
         }
     }
 }
