@@ -4,7 +4,7 @@ using System.Buffers;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.AspNet.Options;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.AspNet.Middlewares;
 
