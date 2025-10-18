@@ -30,11 +30,13 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
         using var wsConnection = RegisterConnection(context, socket, connectionManager);
         try
         {
+            options.OnConnected?.Invoke(wsConnection);
             await SocketLoop(context, wsConnection, options);
         }
         finally
         {
             connectionManager.TryRemove(wsConnection.Id);
+            options.OnDisconnected?.Invoke(wsConnection);
         }
     }
 

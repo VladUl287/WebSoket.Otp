@@ -2,7 +2,7 @@
 
 namespace WebSockets.Otp.AspNet.Options;
 
-public sealed class WsMiddlewareOptions
+public class WsMiddlewareOptions
 {
     public string RequestPath { get; set; } = string.Empty;
 
@@ -13,11 +13,7 @@ public sealed class WsMiddlewareOptions
     public bool ReclaimBufferAfterEachMessage { get; set; } = true;
 
     public IWsRequestMatcher RequestMatcher { get; set; } = default!;
-}
 
-public sealed class WsConnectionState<TState>
-{
-    public TState State { get; init; }
-    public Action<TState> OnConnected;
-    public Action<TState> OnDisconnected;
+    public Action<IWsConnection>? OnConnected { get; set; }
+    public Action<IWsConnection>? OnDisconnected { get; set; }
 }
