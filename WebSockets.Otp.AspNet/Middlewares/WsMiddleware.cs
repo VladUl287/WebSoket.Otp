@@ -67,7 +67,7 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
                 if (wsMessage.MessageType is WebSocketMessageType.Binary)
                     throw new NotSupportedException("Binary format message not supported yet.");
 
-                if (buffer.Length + wsMessage.Count > maxMessageSize)
+                if (buffer.Length > maxMessageSize - wsMessage.Count)
                 {
                     await wsConnection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
                     break;

@@ -6,7 +6,7 @@ public class WsMiddlewareOptions
 {
     public string RequestPath { get; set; } = string.Empty;
 
-    public long MaxMessageSize { get; set; } = 64 * 1024; //64kb
+    public int MaxMessageSize { get; set; } = 64 * 1024; //64kb
 
     public int InitialBufferSize { get; set; } = 8 * 1024; // 8KB
 
