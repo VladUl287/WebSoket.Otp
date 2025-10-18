@@ -19,6 +19,7 @@ public static class WsMiddlewareExtensions
         services.AddHostedService((sp) => new WsEndpointInitializer(sp, assemblies));
 
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
+        services.AddSingleton<IWsService, WsService>();
 
         services.AddSingleton<IClock, UtcClock>();
         services.AddSingleton<IIdProvider, GuidIdProvider>();
@@ -26,7 +27,7 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
         services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
         services.AddSingleton<EndpointInvoker>();
-        services.AddScoped<IMessageDispatcher, MessageDispatcher>();
+        services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
         services.AddEndpoints(assemblies);
 
