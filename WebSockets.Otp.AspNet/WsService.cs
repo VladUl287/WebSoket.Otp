@@ -36,7 +36,7 @@ public sealed partial class WsService(
             _logger.LogConnectionEstablished(connection.Id);
 
             if (options.OnConnected is not null)
-                await SafeExecuteAsync(() => options.OnConnected(connection), "OnConnected", _logger);
+                await SafeExecuteAsync((conn) => options.OnConnected(conn), connection, "OnConnected", _logger);
 
         }
         finally
@@ -45,15 +45,15 @@ public sealed partial class WsService(
             _logger.LogConnectionClosed(connection.Id);
 
             if (options.OnDisconnected is not null)
-                await SafeExecuteAsync(() => options.OnDisconnected(connection), "OnDisconnected", _logger);
+                await SafeExecuteAsync((conn) => options.OnDisconnected(conn), connection, "OnDisconnected", _logger);
         }
     }
 
-    private static async Task SafeExecuteAsync(Func<Task> action, string operationName, ILogger<WsService> logger)
+    private static async Task SafeExecuteAsync<TState>(Func<TState, Task> action, TState state, string operationName, ILogger<WsService> logger)
     {
         try
         {
-            await action();
+            await action(state);
         }
         catch (Exception ex)
         {
