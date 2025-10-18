@@ -6,5 +6,5 @@ public interface IWsContext
 
     CancellationToken Cancellation { get; }
 
-    ValueTask SendAsync<T>(T message, CancellationToken token) where T : IWsMessage;
+    Task SendAsync<T>(T message, CancellationToken token) where T : IWsMessage;
 }

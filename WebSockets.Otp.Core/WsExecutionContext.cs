@@ -17,7 +17,7 @@ public sealed class WsExecutionContext(
     public Type? Endpoint { get; set; }
     public object? RequestMessage { get; set; }
 
-    public ValueTask SendAsync<T>(T message, CancellationToken token) where T : IWsMessage
+    public Task SendAsync<T>(T message, CancellationToken token) where T : IWsMessage
     {
         var bytes = serializer.Serialize(message);
         return connection.SendAsync(bytes, WebSocketMessageType.Text, token);
