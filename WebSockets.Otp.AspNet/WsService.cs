@@ -86,10 +86,8 @@ public sealed partial class WsService(
 
                 if (wsMessage.EndOfMessage)
                 {
-                    using (var manager = buffer.Manager)
-                    {
-                        await dispatcher.DispatchMessage(connection, manager.Memory, token);
-                    }
+                    using var manager = buffer.Manager;
+                    await dispatcher.DispatchMessage(connection, manager.Memory, token);
 
                     buffer.SetLength(0);
 
