@@ -2,9 +2,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
 using System.Net.WebSockets;
+using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.AspNet.Options;
-using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.AspNet.Middlewares;
 
@@ -42,15 +42,17 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
 
     public static async Task SocketLoop(HttpContext context, IWsConnection wsConnection, WsMiddlewareOptions options)
     {
-        var dispatcher = context.RequestServices.GetRequiredService<IMessageDispatcher>();
-
         var maxMessageSize = options.MaxMessageSize;
         var socket = wsConnection.Socket;
 
-        var buffer = new NativeChunkedBuffer(options.InitialBufferSize);
+        var bufferFactory = context.RequestServices.GetRequiredService<IMessageBufferFactory>();
+
+        var buffer = bufferFactory.Create(options.InitialBufferSize);
         var tempBuffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
         try
         {
+            var dispatcher = context.RequestServices.GetRequiredService<IMessageDispatcher>();
+
             var token = context.RequestAborted;
             while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
             {

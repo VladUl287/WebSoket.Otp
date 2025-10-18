@@ -4,6 +4,10 @@ namespace WebSockets.Otp.Abstractions;
 
 public interface IMessageBuffer : IDisposable
 {
+    public int Length { get; }
     ReadOnlySpan<byte> Span { get; }
     IMemoryOwner<byte> Manager { get; }
+    void Write(ReadOnlySpan<byte> data);
+    void SetLength(int length);
+    void Shrink();
 }

@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
+using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.AspNet.Middlewares;
 using WebSockets.Otp.AspNet.Options;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.AspNet.Extensions;
 
@@ -15,6 +17,8 @@ public static class WsMiddlewareExtensions
     {
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
         services.AddHostedService((sp) => new WsEndpointInitializer(sp, assemblies));
+
+        services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
 
         services.AddSingleton<IClock, UtcClock>();
         services.AddSingleton<IIdProvider, GuidIdProvider>();
