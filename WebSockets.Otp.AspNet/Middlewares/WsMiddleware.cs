@@ -48,7 +48,7 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
         var bufferFactory = context.RequestServices.GetRequiredService<IMessageBufferFactory>();
 
         var buffer = bufferFactory.Create(options.InitialBufferSize);
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(8 * 1024);
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
         try
         {
             var dispatcher = context.RequestServices.GetRequiredService<IMessageDispatcher>();
