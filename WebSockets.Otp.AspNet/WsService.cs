@@ -51,63 +51,57 @@ public sealed partial class WsService(
         }
     }
 
-    public async Task ProcessMessagesAsync(IWsConnection wsConnection, WsMiddlewareOptions options)
+    public async Task ProcessMessagesAsync(IWsConnection connection, WsMiddlewareOptions options)
     {
         var buffer = bufferFactory.Create(options.InitialBufferSize);
         var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
         try
         {
-            await MessageProcessingLoopAsync(wsConnection, buffer, options, tempBuffer);
+            var maxMessageSize = options.MaxMessageSize;
+            var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
+
+            var socket = connection.Socket;
+            var token = connection.Context.RequestAborted;
+
+            while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
+            {
+                var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
+
+                if (wsMessage.MessageType is WebSocketMessageType.Close)
+                {
+                    await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                    break;
+                }
+
+                if (wsMessage.MessageType is WebSocketMessageType.Binary)
+                    throw new NotSupportedException("Binary format message not supported yet.");
+
+                if (buffer.Length > maxMessageSize - wsMessage.Count)
+                {
+                    await connection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
+                    break;
+                }
+
+                buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
+
+                if (wsMessage.EndOfMessage)
+                {
+                    using (var manager = buffer.Manager)
+                    {
+                        await dispatcher.DispatchMessage(connection, manager.Memory, token);
+                    }
+
+                    buffer.SetLength(0);
+
+                    if (reclaimBufferAfterEachMessage)
+                        buffer.Shrink();
+                }
+            }
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(tempBuffer);
             buffer.Dispose();
-        }
-    }
-
-    private async Task MessageProcessingLoopAsync(
-        IWsConnection connection,
-        IMessageBuffer buffer,
-        WsMiddlewareOptions options,
-        byte[] tempBuffer)
-    {
-        var maxMessageSize = options.MaxMessageSize;
-        var socket = connection.Socket;
-        var token = connection.Context.RequestAborted;
-        while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
-        {
-            var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
-
-            if (wsMessage.MessageType is WebSocketMessageType.Close)
-            {
-                await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                break;
-            }
-
-            if (wsMessage.MessageType is WebSocketMessageType.Binary)
-                throw new NotSupportedException("Binary format message not supported yet.");
-
-            if (buffer.Length > maxMessageSize - wsMessage.Count)
-            {
-                await connection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
-                break;
-            }
-
-            buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
-
-            if (wsMessage.EndOfMessage)
-            {
-                using (var manager = buffer.Manager)
-                {
-                    await dispatcher.DispatchMessage(connection, manager.Memory, token);
-                }
-
-                buffer.SetLength(0);
-
-                if (options.ReclaimBufferAfterEachMessage)
-                    buffer.Shrink();
-            }
         }
     }
 
