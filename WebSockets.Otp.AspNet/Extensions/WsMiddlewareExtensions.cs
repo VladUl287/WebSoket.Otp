@@ -43,8 +43,8 @@ public static class WsMiddlewareExtensions
     public static IApplicationBuilder UseWsEndpoints(this IApplicationBuilder builder, Action<WsMiddlewareOptions> configure)
     {
         var options = new WsMiddlewareOptions();
-        options.RequestMatcher = new PathWsRequestMatcher(options.RequestPath);
         configure(options);
+        options.RequestMatcher ??= new PathWsRequestMatcher(options.RequestPath);
         return builder.UseMiddleware<WsMiddleware>(options);
     }
 

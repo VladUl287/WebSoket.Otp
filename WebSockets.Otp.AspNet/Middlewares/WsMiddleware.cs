@@ -104,6 +104,7 @@ public sealed class WsMiddleware(RequestDelegate next, WsMiddlewareOptions optio
         if (manager.TryAdd(wsConnection))
             return wsConnection;
 
+        //await socket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Unable to register connection", CancellationToken.None);
         throw new Exception("Fail to add connection into connection manager.");
     }
 }
