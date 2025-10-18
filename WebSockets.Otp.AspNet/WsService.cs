@@ -4,10 +4,11 @@ using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.AspNet.Logging;
 
 namespace WebSockets.Otp.AspNet;
 
-public sealed class WsService(
+public sealed partial class WsService(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageBufferFactory bufferFactory,
     IMessageDispatcher messageDispatcher, ILoggerFactory loggerFactory) : IWsService
 {
@@ -25,17 +26,14 @@ public sealed class WsService(
 
         if (!connectionManager.TryAdd(connection))
         {
-            if (_logger.IsEnabled(LogLevel.Warning))
-                _logger.LogWarning("Failed to add connection {ConnectionId} to connection manager", connection.Id);
-
+            _logger.LogFailedToAddConnection(connection.Id);
             await connection.CloseAsync(WebSocketCloseStatus.InternalServerError, "Unable to register connection", CancellationToken.None);
             return;
         }
 
         try
         {
-            if (_logger.IsEnabled(LogLevel.Information))
-                _logger.LogInformation("WebSocket connection established: {ConnectionId}", connection.Id);
+            _logger.LogConnectionEstablished(connection.Id);
 
             if (options.OnConnected is not null)
                 await SafeExecuteAsync(() => options.OnConnected(connection), "OnConnected", _logger);
@@ -44,7 +42,7 @@ public sealed class WsService(
         finally
         {
             connectionManager.TryRemove(connection.Id);
-            _logger.LogInformation("WebSocket connection closed: {ConnectionId}", connection.Id);
+            _logger.LogConnectionClosed(connection.Id);
 
             if (options.OnDisconnected is not null)
                 await SafeExecuteAsync(() => options.OnDisconnected(connection), "OnDisconnected", _logger);
@@ -59,8 +57,7 @@ public sealed class WsService(
         }
         catch (Exception ex)
         {
-            if (logger.IsEnabled(LogLevel.Error))
-                logger.LogError(ex, "Error executing {OperationName} handler", operationName);
+            logger.LogHandlerFail(operationName, ex);
         }
     }
 }
