@@ -18,6 +18,6 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     public async Task SendAsync(string connectionId, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         var connection = Get(connectionId);
-        await connection.Socket.SendAsync(payload, default, true, token);
+        await connection.SendAsync(payload, default, token);
     }
 }
