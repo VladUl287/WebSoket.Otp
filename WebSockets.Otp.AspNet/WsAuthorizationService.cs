@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,12 +10,21 @@ namespace WebSockets.Otp.AspNet;
 
 public sealed class WsAuthorizationService : IWsAuthorizationService
 {
-    public async Task<bool> Auhtorize(HttpContext context, WsAuthorizationOptions options)
+    private readonly IEnumerable<IWsAuthorizationValidator> validators = [];
+
+    public async Task<bool> AuhtorizeAsync(HttpContext context, WsAuthorizationOptions options)
     {
         if (context is { User.Identity.IsAuthenticated: false })
         {
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
             return false;
+        }
+
+        foreach (var validator in validators)
+        {
+            var result = await validator.ValidateAsync(context.User, options);
+            if (!result.IsAuthorized)
+                return false;
         }
 
         var customAuthResult = options is { CustomValidation: not null } && await options.CustomValidation.Invoke(context);

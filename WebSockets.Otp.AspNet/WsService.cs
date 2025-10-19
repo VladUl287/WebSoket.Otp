@@ -17,11 +17,14 @@ public sealed partial class WsService(
 
     public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
-        if (options.Authorization is not null)
+        if (options is { Authorization.RequireAuthorization: true })
         {
-            var authResult = await authService.Auhtorize(context, options.Authorization);
-            if (!authResult)
+            var authResultSuccess = await authService.AuhtorizeAsync(context, options.Authorization);
+            if (!authResultSuccess)
+            {
+                _logger.LogWarning("WebSocket authorization failed for {RemoteIp}", context.Connection.RemoteIpAddress);
                 return;
+            }
         }
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
@@ -64,46 +67,51 @@ public sealed partial class WsService(
         var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
         try
         {
-            var maxMessageSize = options.MaxMessageSize;
-            var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
-
-            var socket = connection.Socket;
-            var token = connection.Context.RequestAborted;
-
-            while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
-            {
-                var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
-
-                if (wsMessage.MessageType is WebSocketMessageType.Close)
-                {
-                    await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                    break;
-                }
-
-                if (buffer.Length > maxMessageSize - wsMessage.Count)
-                {
-                    await connection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
-                    break;
-                }
-
-                buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
-
-                if (wsMessage.EndOfMessage)
-                {
-                    using var manager = buffer.Manager;
-                    await dispatcher.DispatchMessage(connection, manager.Memory, token);
-
-                    buffer.SetLength(0);
-
-                    if (reclaimBufferAfterEachMessage)
-                        buffer.Shrink();
-                }
-            }
+            await SocketMessageLoop(connection, options, buffer, tempBuffer);
         }
         finally
         {
             ArrayPool<byte>.Shared.Return(tempBuffer);
             buffer.Dispose();
+        }
+    }
+
+    private async Task SocketMessageLoop(IWsConnection connection, WsMiddlewareOptions options, IMessageBuffer buffer, byte[] tempBuffer)
+    {
+        var maxMessageSize = options.MaxMessageSize;
+        var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
+
+        var socket = connection.Socket;
+        var token = connection.Context.RequestAborted;
+
+        while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
+        {
+            var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
+
+            if (wsMessage.MessageType is WebSocketMessageType.Close)
+            {
+                await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                break;
+            }
+
+            if (buffer.Length > maxMessageSize - wsMessage.Count)
+            {
+                await connection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
+                break;
+            }
+
+            buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
+
+            if (wsMessage.EndOfMessage)
+            {
+                using var manager = buffer.Manager;
+                await dispatcher.DispatchMessage(connection, manager.Memory, token);
+
+                buffer.SetLength(0);
+
+                if (reclaimBufferAfterEachMessage)
+                    buffer.Shrink();
+            }
         }
     }
 
