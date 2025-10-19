@@ -1,5 +1,5 @@
 export type BaseMessage = {
-    route: string
+    key: string
 }
 
 export type ChatMessage = BaseMessage & {

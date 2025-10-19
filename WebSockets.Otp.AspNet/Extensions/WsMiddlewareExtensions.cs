@@ -21,6 +21,8 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IWsService, WsService>();
 
+        services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
+
         services.AddSingleton<IClock, UtcClock>();
         services.AddSingleton<IIdProvider, GuidIdProvider>();
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();

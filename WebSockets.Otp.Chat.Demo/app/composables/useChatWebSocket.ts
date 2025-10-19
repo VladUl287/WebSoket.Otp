@@ -61,7 +61,7 @@ export const useChatWebSocket = (path: string = '/ws') => {
     if (!newMessage.value.trim() || status.value !== 'OPEN') return
 
     const message: ChatMessage = {
-      route: 'chat/message',
+      key: 'chat/message',
       username: username.value,
       content: newMessage.value.trim(),
       timestamp: new Date().toISOString()
