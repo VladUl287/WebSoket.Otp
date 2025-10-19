@@ -2,6 +2,7 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
+using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.Benchmark;
 
@@ -33,6 +34,48 @@ public class ExtractFieldBenchmark
     }
 
     [Benchmark]
+    public string? Small_ExtractField_Reader_Optimized()
+    {
+        var reader = new Utf8JsonReader(SmallMessageBytes.Span);
+        var keyField = KeyFieldMemory.Span;
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(keyField))
+            {
+                reader.Read();
+                return reader.GetString();
+            }
+
+            reader.Skip();
+        }
+        return null;
+    }
+
+    [Benchmark]
+    public string? Small_ExtractField_Reader_Interned_Custom()
+    {
+        var reader = new Utf8JsonReader(SmallMessageBytes.Span);
+        var keyField = KeyFieldMemory.Span;
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(keyField))
+            {
+                reader.Read();
+                return StringIntern.Intern(reader.ValueSpan);
+            }
+
+            reader.Skip();
+        }
+        return null;
+    }
+
+    [Benchmark]
     public string? Small_ExtractField_Reader()
     {
         var reader = new Utf8JsonReader(SmallMessageBytes.Span);
@@ -49,30 +92,6 @@ public class ExtractFieldBenchmark
                 case JsonTokenType.String when property == KeyField:
                     return reader.GetString();
             }
-        }
-
-        return null;
-    }
-
-    [Benchmark]
-    public string? Small_ExtractField_Reader_Optimized()
-    {
-        var reader = new Utf8JsonReader(SmallMessageBytes.Span);
-
-        ReadOnlySpan<char> keyField = KeyFieldMemory.Span;
-
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(keyField))
-            {
-                reader.Read();
-                return reader.GetString();
-            }
-
-            reader.Skip();
         }
 
         return null;

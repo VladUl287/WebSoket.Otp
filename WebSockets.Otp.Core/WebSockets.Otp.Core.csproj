@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.IO.Hashing" Version="9.0.10" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\WebSocket.Otp.Abstractions\WebSockets.Otp.Abstractions.csproj" />
   </ItemGroup>
 
