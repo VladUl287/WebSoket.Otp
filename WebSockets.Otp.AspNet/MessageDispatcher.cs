@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Exceptions;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Abstractions;
 
 namespace WebSockets.Otp.AspNet;
 
@@ -39,5 +40,13 @@ public class MessageDispatcher(
         }
 
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
+    }
+
+    public Task DispatchMessage(IWsConnection connection, IMessageBuffer payload, CancellationToken token)
+    {
+        var endpointKey = string.Intern(serializer.ExtractStringField(KeyField, payload.Span) ??
+            throw new MessageFormatException("Unable to determine message route from payload"));
+
+        throw new NotImplementedException();
     }
 }

@@ -9,4 +9,6 @@ public interface IMessageSerializer
     object Deserialize(Type type, ReadOnlyMemory<byte> jsonUtf8);
 
     string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8);
+
+    string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8);
 }
