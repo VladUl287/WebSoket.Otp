@@ -42,7 +42,12 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
 
     public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8)
     {
-        var reader = new Utf8JsonReader(jsonUtf8.Span);
+        return ExtractStringField(field, jsonUtf8.Span);
+    }
+
+    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8)
+    {
+        var reader = new Utf8JsonReader(jsonUtf8);
         var keyField = field.AsSpan();
         while (reader.Read())
         {
