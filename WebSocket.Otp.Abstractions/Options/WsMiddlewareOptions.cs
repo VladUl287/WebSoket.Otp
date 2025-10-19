@@ -14,6 +14,8 @@ public sealed class WsMiddlewareOptions
 
     public IWsRequestMatcher RequestMatcher { get; set; } = default!;
 
+    public WsAuthorizationOptions? Authorization { get; set; }
+
     public Func<IWsConnection, Task>? OnConnected { get; set; }
     public Func<IWsConnection, Task>? OnDisconnected { get; set; }
 }

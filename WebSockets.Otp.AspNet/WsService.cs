@@ -11,12 +11,19 @@ namespace WebSockets.Otp.AspNet;
 
 public sealed partial class WsService(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageBufferFactory bufferFactory,
-    IMessageDispatcher dispatcher, ILoggerFactory loggerFactory) : IWsService
+    IMessageDispatcher dispatcher, IWsAuthorizationService authService, ILoggerFactory loggerFactory) : IWsService
 {
     private readonly ILogger<WsService> _logger = loggerFactory.CreateLogger<WsService>();
 
     public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
+        if (options.Authorization is not null)
+        {
+            var authResult = await authService.Auhtorize(context, options.Authorization);
+            if (!authResult)
+                return;
+        }
+
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         await AcceptSocket(context, webSocket, options);
     }
@@ -72,9 +79,6 @@ public sealed partial class WsService(
                     await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                     break;
                 }
-
-                if (wsMessage.MessageType is WebSocketMessageType.Binary)
-                    throw new NotSupportedException("Binary format message not supported yet.");
 
                 if (buffer.Length > maxMessageSize - wsMessage.Count)
                 {
