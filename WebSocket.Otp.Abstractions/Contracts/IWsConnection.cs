@@ -10,8 +10,4 @@ public interface IWsConnection : IDisposable
     HttpContext Context { get; }
 
     WebSocket Socket { get; }
-
-    Task SendAsync(ReadOnlyMemory<byte> payload, WebSocketMessageType type, CancellationToken token);
-
-    Task CloseAsync(WebSocketCloseStatus status, string? description, CancellationToken token);
 }

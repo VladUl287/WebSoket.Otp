@@ -34,7 +34,7 @@ public sealed partial class WsService(
         if (!connectionManager.TryAdd(connection))
         {
             logger.LogFailedToAddConnection(connection.Id);
-            await connection.CloseAsync(WebSocketCloseStatus.InternalServerError, "Unable to register connection", CancellationToken.None);
+            await connection.Socket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Unable to register connection", CancellationToken.None);
             return;
         }
 
@@ -94,14 +94,14 @@ public sealed partial class WsService(
                 if (wsMessage.MessageType is WebSocketMessageType.Close)
                 {
                     logger.LogCloseMessageReceived(connectionId);
-                    await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                    await connection.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
                     break;
                 }
 
                 if (buffer.Length > maxMessageSize - wsMessage.Count)
                 {
                     logger.LogMessageTooBig(connectionId, buffer.Length, wsMessage.Count, maxMessageSize);
-                    await connection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
+                    await connection.Socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
                     break;
                 }
 
