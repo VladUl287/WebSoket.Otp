@@ -28,12 +28,14 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IWsAuthorizationValidator, SchemeValidator>();
         services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
 
+        services.AddSingleton<IMethodResolver, DefaultMethodResolver>();
+        services.AddSingleton<IEndpointInvoker, EndpointInvoker>();
+
         services.AddSingleton<IClock, UtcClock>();
         services.AddSingleton<IIdProvider, GuidIdProvider>();
         services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
         services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
         services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
-        services.AddSingleton<EndpointInvoker>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
         services.AddEndpoints(assemblies);
