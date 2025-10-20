@@ -4,5 +4,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IWsRequestMatcher
 {
-    bool IsWebSocketRequest(HttpContext context);
+    bool IsRequestMatch(HttpContext context);
 }

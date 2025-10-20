@@ -57,6 +57,10 @@ public static class WsMiddlewareExtensions
         var options = new WsMiddlewareOptions();
         configure(options);
         options.RequestMatcher ??= new PathWsRequestMatcher(options.RequestPath);
+
+        if (options.Authorization is not null)
+            options.Authorization.RequestMatcher ??= new AuthRequestMatcher(options.Authorization.RequestPath);
+
         return builder.UseMiddleware<WsMiddleware>(options);
     }
 

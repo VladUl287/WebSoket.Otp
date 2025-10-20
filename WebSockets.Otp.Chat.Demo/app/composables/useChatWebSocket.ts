@@ -9,7 +9,8 @@ export const useChatWebSocket = (path: string = '/ws') => {
 
   const token = useCookie('token')
 
-  const url = computed(() => `${wsUrl}?token=${encodeURIComponent(token.value ?? '')}`)
+  const connectionToken = ref('')
+  const url = computed(() => `${wsUrl}?id=${encodeURIComponent(connectionToken.value ?? '')}`)
 
   const { status, data, send, open, close } = useWebSocket(wsUrl, {
     immediate: false,
@@ -40,7 +41,12 @@ export const useChatWebSocket = (path: string = '/ws') => {
     }
   })
 
-  const connect = () => {
+  const connect = async () => {
+    connectionToken.value = await $fetch<string>(config.public.apiUrl + '/ws_authorize', {
+      headers: {
+        Authorization: `Bearer ${token.value}`
+      }
+    })
     open()
     return true
   }

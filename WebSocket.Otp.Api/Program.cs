@@ -63,6 +63,7 @@ var app = builder.Build();
         opt.RequestPath = "/ws";
         opt.Authorization = new()
         {
+            RequestPath = "/ws_authorize",
             RequireAuthorization = true,
         };
         opt.OnConnected = async (connection) =>

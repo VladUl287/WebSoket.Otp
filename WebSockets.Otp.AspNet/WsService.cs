@@ -16,12 +16,12 @@ public sealed partial class WsService(
 {
     public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
-        var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
-        if (authResult.Failed)
-        {
-            await HandleAuthorizationFailureAsync(context, authResult.FailureReason);
-            return;
-        }
+        //var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
+        //if (authResult.Failed)
+        //{
+        //    await HandleAuthorizationFailureAsync(context, authResult.FailureReason);
+        //    return;
+        //}
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         await AcceptSocket(context, webSocket, options);

@@ -60,8 +60,6 @@ watch(messages, () => {
 
 <style scoped>
 .chat-container {
-  max-width: 800px;
-  margin: 0 auto;
   padding: 20px;
   height: 100vh;
   display: flex;
