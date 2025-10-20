@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
-using System.Net;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -12,17 +11,10 @@ namespace WebSockets.Otp.AspNet;
 
 public sealed partial class WsService(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageBufferFactory bufferFactory,
-    IMessageDispatcher dispatcher, IWsAuthorizationService authService, ILogger<WsService> logger) : IWsService
+    IMessageDispatcher dispatcher, ILogger<WsService> logger) : IWsService
 {
     public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
-        //var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
-        //if (authResult.Failed)
-        //{
-        //    await HandleAuthorizationFailureAsync(context, authResult.FailureReason);
-        //    return;
-        //}
-
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         await AcceptSocket(context, webSocket, options);
     }
@@ -134,13 +126,6 @@ public sealed partial class WsService(
             logger.LogMessageProcessingError(ex, connectionId);
             throw;
         }
-    }
-
-    private async Task HandleAuthorizationFailureAsync(HttpContext context, string failureReason)
-    {
-        logger.LogAuthorizationFailed(context.Connection.RemoteIpAddress.ToString(), failureReason);
-        context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
-        await context.Response.WriteAsync(failureReason);
     }
 
     private static async Task SafeExecuteAsync<TState>(Func<TState, Task> action, TState state, string operationName, ILogger<WsService> logger)

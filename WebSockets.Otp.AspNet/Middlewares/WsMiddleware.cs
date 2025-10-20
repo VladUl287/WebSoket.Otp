@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net;
 using System.Security.Claims;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Options;
@@ -12,15 +13,22 @@ public sealed class WsMiddleware(RequestDelegate next, IWsService wsService, WsM
     {
         if (options is { Authorization.RequireAuthorization: true } && options.Authorization.RequestMatcher.IsRequestMatch(context))
         {
+            var authService = context.RequestServices.GetRequiredService<IWsAuthorizationService>();
+
+            var authResult = authService.AuhtorizeAsync(context, options.Authorization).GetAwaiter().GetResult();
+            if (authResult.Failed)
+            {
+                return HandleAuthorizationFailureAsync(context, authResult.FailureReason);
+            }
+
             if (context is { User.Identity.IsAuthenticated: false })
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return context.Response.WriteAsync("User not authenticated");
             }
 
-            var authorizationService = context.RequestServices.GetRequiredService<IWsAuthorizationService>();
             var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var connectionToken = authorizationService.GenerateConnectionToken(userId);
+            var connectionToken = authService.GenerateConnectionToken(userId);
             context.Response.StatusCode = StatusCodes.Status200OK;
             return context.Response.WriteAsync(connectionToken);
         }
@@ -29,5 +37,11 @@ public sealed class WsMiddleware(RequestDelegate next, IWsService wsService, WsM
             return wsService.HandleWebSocketRequestAsync(context, options);
 
         return next(context);
+    }
+
+    private static async Task HandleAuthorizationFailureAsync(HttpContext context, string failureReason)
+    {
+        context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+        await context.Response.WriteAsync(failureReason);
     }
 }
