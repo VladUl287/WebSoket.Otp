@@ -7,15 +7,15 @@ using WebSockets.Otp.Core.Extensions;
 namespace WebSockets.Otp.AspNet;
 
 public class MessageDispatcher(
-    IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IMessageSerializer serializer, 
+    IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IMessageSerializer serializer,
     EndpointInvoker invoker) : IMessageDispatcher
 {
     private static readonly string KeyField = nameof(WsMessage.Key).ToLowerInvariant();
 
     public async Task DispatchMessage(IWsConnection connection, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
-        var endpointKey = string.Intern(serializer.ExtractStringField(KeyField, payload) ??
-            throw new MessageFormatException("Unable to determine message route from payload"));
+        var endpointKey = serializer.ExtractStringField(KeyField, payload) ??
+            throw new MessageFormatException("Unable to determine message route from payload");
 
         var endpointType = endpointRegistry.Resolve(endpointKey) ??
             throw new EndpointNotFoundException($"Endpoint for route '{endpointKey}' not found");
