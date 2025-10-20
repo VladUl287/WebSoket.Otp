@@ -63,7 +63,7 @@ public sealed partial class WsService(
         var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
         try
         {
-            await SocketMessageLoop(connection, options, buffer, tempBuffer);
+            await SequentialMessageProcessor(connection, options, buffer, tempBuffer);
         }
         finally
         {
@@ -72,42 +72,67 @@ public sealed partial class WsService(
         }
     }
 
-    private async Task SocketMessageLoop(IWsConnection connection, WsMiddlewareOptions options, IMessageBuffer buffer, byte[] tempBuffer)
+    private async Task SequentialMessageProcessor(IWsConnection connection, WsMiddlewareOptions options, IMessageBuffer buffer, byte[] tempBuffer)
     {
+        var connectionId = connection.Id;
+        logger.LogStartingMessageProcessing(connectionId);
+
         var maxMessageSize = options.MaxMessageSize;
         var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
 
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;
 
-        while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
+        try
         {
-            var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
-
-            if (wsMessage.MessageType is WebSocketMessageType.Close)
+            while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
             {
-                await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                break;
+                var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
+
+                logger.LogMessageChunkReceived(connectionId, wsMessage.Count, buffer.Length, wsMessage.EndOfMessage);
+
+                if (wsMessage.MessageType is WebSocketMessageType.Close)
+                {
+                    logger.LogCloseMessageReceived(connectionId);
+                    await connection.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                    break;
+                }
+
+                if (buffer.Length > maxMessageSize - wsMessage.Count)
+                {
+                    logger.LogMessageTooBig(connectionId, buffer.Length, wsMessage.Count, maxMessageSize);
+                    await connection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
+                    break;
+                }
+
+                buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
+
+                if (wsMessage.EndOfMessage)
+                {
+                    logger.LogProcessingCompleteMessage(connectionId, buffer.Length);
+
+                    using var manager = buffer.Manager;
+                    await dispatcher.DispatchMessage(connection, manager.Memory, token);
+
+                    buffer.SetLength(0);
+
+                    if (reclaimBufferAfterEachMessage)
+                    {
+                        var previousSize = buffer.Capacity;
+                        buffer.Shrink();
+                        logger.LogBufferReclaimed(connectionId, previousSize, buffer.Capacity);
+                    }
+                }
             }
-
-            if (buffer.Length > maxMessageSize - wsMessage.Count)
-            {
-                await connection.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
-                break;
-            }
-
-            buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
-
-            if (wsMessage.EndOfMessage)
-            {
-                using var manager = buffer.Manager;
-                await dispatcher.DispatchMessage(connection, manager.Memory, token);
-
-                buffer.SetLength(0);
-
-                if (reclaimBufferAfterEachMessage)
-                    buffer.Shrink();
-            }
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+            logger.LogMessageProcessingCompleted(connectionId, "Request cancelled");
+        }
+        catch (Exception ex)
+        {
+            logger.LogMessageProcessingError(ex, connectionId);
+            throw;
         }
     }
 

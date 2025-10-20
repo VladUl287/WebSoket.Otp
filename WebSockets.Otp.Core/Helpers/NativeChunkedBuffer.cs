@@ -14,6 +14,7 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
     private bool _disposed;
 
     public int Length => _length;
+    public int Capacity => _capacity;
 
     public ReadOnlySpan<byte> Span => new Span<byte>(_buffer, _length);
     public IMemoryOwner<byte> Manager => new MemoryManager(_buffer, _length);
