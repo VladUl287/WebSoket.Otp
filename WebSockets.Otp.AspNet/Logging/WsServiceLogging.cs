@@ -15,4 +15,7 @@ internal static partial class WsServiceLogging
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error executing {OperationName} handler")]
     internal static partial void LogHandlerFail(this ILogger logger, string operationName, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "WebSocket authorization failed for {RemoteIp}. Reason: {Reason}")]
+    internal static partial void LogAuthorizationFailed(this ILogger logger, string remoteIp, string reason);
 }

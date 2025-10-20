@@ -4,6 +4,7 @@ using System.Reflection;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.AspNet.Authorization;
 using WebSockets.Otp.AspNet.Middlewares;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
@@ -21,6 +22,10 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IWsService, WsService>();
 
+        services.AddSingleton<IWsAuthorizationValidator, AuthenticationValidator>();
+        services.AddSingleton<IWsAuthorizationValidator, PolicyValidator>();
+        services.AddSingleton<IWsAuthorizationValidator, RoleValidator>();
+        services.AddSingleton<IWsAuthorizationValidator, SchemeValidator>();
         services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
 
         services.AddSingleton<IClock, UtcClock>();

@@ -11,20 +11,17 @@ namespace WebSockets.Otp.AspNet;
 
 public sealed partial class WsService(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageBufferFactory bufferFactory,
-    IMessageDispatcher dispatcher, IWsAuthorizationService authService, ILoggerFactory loggerFactory) : IWsService
+    IMessageDispatcher dispatcher, IWsAuthorizationService authService, ILogger<WsService> logger) : IWsService
 {
-    private readonly ILogger<WsService> _logger = loggerFactory.CreateLogger<WsService>();
-
     public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
-        if (options is { Authorization.RequireAuthorization: true })
+        var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
+        if (authResult.Failed)
         {
-            var authResultSuccess = await authService.AuhtorizeAsync(context, options.Authorization);
-            if (!authResultSuccess)
-            {
-                _logger.LogWarning("WebSocket authorization failed for {RemoteIp}", context.Connection.RemoteIpAddress);
-                return;
-            }
+            logger.LogAuthorizationFailed(context.Connection.RemoteIpAddress.ToString(), authResult.FailureReason);
+            context.Response.StatusCode = authResult.StatusCode;
+            await context.Response.WriteAsync(authResult.FailureReason);
+            return;
         }
 
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
@@ -37,27 +34,27 @@ public sealed partial class WsService(
 
         if (!connectionManager.TryAdd(connection))
         {
-            _logger.LogFailedToAddConnection(connection.Id);
+            logger.LogFailedToAddConnection(connection.Id);
             await connection.CloseAsync(WebSocketCloseStatus.InternalServerError, "Unable to register connection", CancellationToken.None);
             return;
         }
 
         try
         {
-            _logger.LogConnectionEstablished(connection.Id);
+            logger.LogConnectionEstablished(connection.Id);
 
             if (options.OnConnected is not null)
-                await SafeExecuteAsync((conn) => options.OnConnected(conn), connection, "OnConnected", _logger);
+                await SafeExecuteAsync((conn) => options.OnConnected(conn), connection, "OnConnected", logger);
 
             await ProcessMessagesAsync(connection, options);
         }
         finally
         {
             connectionManager.TryRemove(connection.Id);
-            _logger.LogConnectionClosed(connection.Id);
+            logger.LogConnectionClosed(connection.Id);
 
             if (options.OnDisconnected is not null)
-                await SafeExecuteAsync((conn) => options.OnDisconnected(conn), connection, "OnDisconnected", _logger);
+                await SafeExecuteAsync((conn) => options.OnDisconnected(conn), connection, "OnDisconnected", logger);
         }
     }
 
