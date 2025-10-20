@@ -1,19 +1,17 @@
-﻿using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core;
 
 public sealed class WsExecutionContext(
-    string endpointKey, IServiceProvider serviceProvider, IWsConnection connection,
+    string endpointKey, Type endpointType, IWsConnection connection,
     ReadOnlyMemory<byte> rawPayload, IMessageSerializer serializer, CancellationToken cancellation) : IWsContext
 {
     public string Key => endpointKey;
     public IWsConnection Connection => connection;
-    public IServiceProvider RequestServices => serviceProvider;
     public IMessageSerializer Serializer => serializer;
     public ReadOnlyMemory<byte> RawPayload => rawPayload;
     public CancellationToken Cancellation => cancellation;
+    public Type Endpoint => endpointType;
 
-    public Type? Endpoint { get; set; }
     public object? RequestMessage { get; set; }
 }

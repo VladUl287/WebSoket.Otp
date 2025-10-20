@@ -26,11 +26,7 @@ public class MessageDispatcher(
         var endpointInstance = serviceProvider.GetService(endpointType) ??
             throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
 
-        var execCtx = new WsExecutionContext(endpointKey, serviceProvider, connection, payload, serializer, token)
-        {
-            Endpoint = endpointType
-        };
-
+        var execCtx = new WsExecutionContext(endpointKey, endpointType, connection, payload, serializer, token);
         if (endpointType.AcceptsRequestMessages())
         {
             var requestType = endpointType.GetRequestType();
