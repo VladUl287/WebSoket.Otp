@@ -24,8 +24,9 @@ public sealed class EndpointInvoker
 
                 return (endpointInst, execCtx, token) =>
                 {
-                    var reqObj = execCtx.RequestMessage;
-                    var invocation = handleMethod.Invoke(endpointInst, [reqObj, execCtx, token]) ??
+                    var requestType = endpointType.GetRequestType();
+                    var reqestData = execCtx.Serializer.Deserialize(requestType, execCtx.RawPayload);
+                    var invocation = handleMethod.Invoke(endpointInst, [reqestData, execCtx, token]) ??
                         throw new NullReferenceException();
                     return (Task)invocation;
                 };

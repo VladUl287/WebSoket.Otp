@@ -12,6 +12,4 @@ public sealed class WsExecutionContext(
     public ReadOnlyMemory<byte> RawPayload => rawPayload;
     public CancellationToken Cancellation => cancellation;
     public Type Endpoint => endpointType;
-
-    public object? RequestMessage { get; set; }
 }

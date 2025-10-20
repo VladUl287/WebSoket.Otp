@@ -8,5 +8,4 @@ public interface IWsExecutionContext
     public IMessageSerializer Serializer { get; }
     public ReadOnlyMemory<byte> RawPayload { get; }
     public Type Endpoint { get; }
-    public object? RequestMessage { get; set; }
 }
