@@ -14,14 +14,6 @@ public sealed class WsEndpointRegistry : IWsEndpointRegistry
 
     public IEnumerable<Type> Enumerate() => map.Values.AsEnumerable();
 
-    public void Register(Type type)
-    {
-        var attr = ValidateWithException(type);
-        var updated = map.ToDictionary();
-        updated[attr.Key] = type;
-        map = updated.ToFrozenDictionary();
-    }
-
     public void Register(IEnumerable<Type> types)
     {
         var mutated = map.ToDictionary();
