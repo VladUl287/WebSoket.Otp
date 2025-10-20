@@ -16,17 +16,19 @@ public static class WsMiddlewareExtensions
 {
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
+        services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
+        services.AddSingleton<IWsAuthorizationValidator, AuthenticationValidator>();
+        services.AddSingleton<IWsAuthorizationValidator, PolicyValidator>();
+        services.AddSingleton<IWsAuthorizationValidator, RoleValidator>();
+        services.AddSingleton<IWsAuthorizationValidator, SchemeValidator>();
+
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
         services.AddHostedService((sp) => new WsEndpointInitializer(sp, assemblies));
 
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IWsService, WsService>();
 
-        services.AddSingleton<IWsAuthorizationValidator, AuthenticationValidator>();
-        services.AddSingleton<IWsAuthorizationValidator, PolicyValidator>();
-        services.AddSingleton<IWsAuthorizationValidator, RoleValidator>();
-        services.AddSingleton<IWsAuthorizationValidator, SchemeValidator>();
-        services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
+        services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
 
         services.AddSingleton<IMethodResolver, DefaultMethodResolver>();
         services.AddSingleton<IEndpointInvoker, EndpointInvoker>();

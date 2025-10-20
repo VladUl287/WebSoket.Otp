@@ -5,7 +5,7 @@ using WebSockets.Otp.Abstractions.Results;
 
 namespace WebSockets.Otp.AspNet.Authorization;
 
-public sealed class WsAuthorizationService(IWsAuthorizationValidator[] validators) : IWsAuthorizationService
+public sealed class WsAuthorizationService(IEnumerable<IWsAuthorizationValidator> validators) : IWsAuthorizationService
 {
     public async Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, WsAuthorizationOptions options)
     {

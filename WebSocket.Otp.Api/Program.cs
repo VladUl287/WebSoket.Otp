@@ -21,10 +21,10 @@ var app = builder.Build();
     app.UseWsEndpoints((opt) =>
     {
         opt.RequestPath = "/ws";
-        opt.Authorization = new()
-        {
-            RequireAuthorization = true,
-        };
+        //opt.Authorization = new()
+        //{
+        //    RequireAuthorization = true,
+        //};
         opt.OnConnected = (connection) =>
         {
             Console.WriteLine($"Connection created {connection.Id}");
