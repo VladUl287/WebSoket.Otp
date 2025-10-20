@@ -5,10 +5,9 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      wsUrl: 'ws://localhost:5096'
+      wsUrl: 'ws://localhost:5096',
+      apiUrl: 'http://localhost:5096',
     }
   },
-  modules: [
-    '@vueuse/nuxt'
-  ]
+  modules: ['@vueuse/nuxt', '@nuxtjs/tailwindcss']
 })

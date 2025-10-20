@@ -5,8 +5,11 @@ export const useChatWebSocket = (path: string = '/ws') => {
   const wsUrl = `${config.public.wsUrl}${path}`
 
   const messages = ref<ChatMessage[]>([])
-  const username = ref('')
   const newMessage = ref('')
+
+  const token = useCookie('token')
+
+  const url = computed(() => `${wsUrl}?token=${encodeURIComponent(token.value ?? '')}`)
 
   const { status, data, send, open, close } = useWebSocket(wsUrl, {
     immediate: false,
@@ -38,10 +41,6 @@ export const useChatWebSocket = (path: string = '/ws') => {
   })
 
   const connect = () => {
-    if (!username.value.trim()) {
-      alert('Please enter a username')
-      return false
-    }
     open()
     return true
   }
@@ -50,7 +49,6 @@ export const useChatWebSocket = (path: string = '/ws') => {
     if (status.value === 'OPEN') {
       send(JSON.stringify({
         route: '/chat/leave',
-        username: username.value,
         timestamp: new Date().toISOString()
       }))
     }
@@ -62,7 +60,6 @@ export const useChatWebSocket = (path: string = '/ws') => {
 
     const message: ChatMessage = {
       key: 'chat/message',
-      username: username.value,
       content: newMessage.value.trim(),
       timestamp: new Date().toISOString()
     }
@@ -77,7 +74,6 @@ export const useChatWebSocket = (path: string = '/ws') => {
     isConnected: computed(() => status.value === 'OPEN'),
 
     messages,
-    username,
     newMessage,
 
     connect,

@@ -4,6 +4,5 @@ export type BaseMessage = {
 
 export type ChatMessage = BaseMessage & {
     content: string
-    username: string
     timestamp: string
 }
