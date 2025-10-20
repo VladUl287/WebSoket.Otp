@@ -7,5 +7,5 @@ namespace WebSockets.Otp.Abstractions;
 
 public interface IWsAuthorizationValidator
 {
-    public Task<AuthValidationResult> ValidateAsync(HttpContext context, WsAuthorizationOptions options);
+    public Task<WsAuthorizationResult> ValidateAsync(HttpContext context, WsAuthorizationOptions options);
 }

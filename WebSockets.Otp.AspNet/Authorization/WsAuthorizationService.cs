@@ -7,10 +7,10 @@ namespace WebSockets.Otp.AspNet.Authorization;
 
 public sealed class WsAuthorizationService(IWsAuthorizationValidator[] validators) : IWsAuthorizationService
 {
-    public async Task<AuthValidationResult> AuhtorizeAsync(HttpContext context, WsAuthorizationOptions options)
+    public async Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, WsAuthorizationOptions options)
     {
         if (options is null or { RequireAuthorization: false })
-            return AuthValidationResult.Success();
+            return WsAuthorizationResult.Success();
 
         foreach (var validator in validators)
         {
@@ -19,6 +19,6 @@ public sealed class WsAuthorizationService(IWsAuthorizationValidator[] validator
                 return result;
         }
 
-        return AuthValidationResult.Success();
+        return WsAuthorizationResult.Success();
     }
 }

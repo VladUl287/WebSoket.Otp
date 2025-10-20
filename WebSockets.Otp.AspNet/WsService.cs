@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
+using System.Net;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -18,9 +19,7 @@ public sealed partial class WsService(
         var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
         if (authResult.Failed)
         {
-            logger.LogAuthorizationFailed(context.Connection.RemoteIpAddress.ToString(), authResult.FailureReason);
-            context.Response.StatusCode = authResult.StatusCode;
-            await context.Response.WriteAsync(authResult.FailureReason);
+            await HandleAuthorizationFailureAsync(context, authResult.FailureReason);
             return;
         }
 
@@ -110,6 +109,13 @@ public sealed partial class WsService(
                     buffer.Shrink();
             }
         }
+    }
+
+    private async Task HandleAuthorizationFailureAsync(HttpContext context, string failureReason)
+    {
+        logger.LogAuthorizationFailed(context.Connection.RemoteIpAddress.ToString(), failureReason);
+        context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+        await context.Response.WriteAsync(failureReason);
     }
 
     private static async Task SafeExecuteAsync<TState>(Func<TState, Task> action, TState state, string operationName, ILogger<WsService> logger)

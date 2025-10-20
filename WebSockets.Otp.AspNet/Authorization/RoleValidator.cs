@@ -7,11 +7,11 @@ namespace WebSockets.Otp.AspNet.Authorization;
 
 public sealed class RoleValidator : IWsAuthorizationValidator
 {
-    public Task<AuthValidationResult> ValidateAsync(HttpContext context, WsAuthorizationOptions options)
+    public Task<WsAuthorizationResult> ValidateAsync(HttpContext context, WsAuthorizationOptions options)
     {
         if (options.Roles is { Length: 0 } || options.Roles.Any(context.User.IsInRole))
-            return Task.FromResult(AuthValidationResult.Success());
+            return Task.FromResult(WsAuthorizationResult.Success());
 
-        return Task.FromResult(AuthValidationResult.Failure(StatusCodes.Status403Forbidden, ""));
+        return Task.FromResult(WsAuthorizationResult.Failure(""));
     }
 }
