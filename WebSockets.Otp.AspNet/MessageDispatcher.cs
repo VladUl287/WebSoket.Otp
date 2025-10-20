@@ -1,39 +1,54 @@
 ﻿using WebSockets.Otp.Abstractions.Contracts;
 using Microsoft.Extensions.DependencyInjection;
-using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Exceptions;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Abstractions;
+using Microsoft.Extensions.Logging;
+using WebSockets.Otp.AspNet.Logging;
 
 namespace WebSockets.Otp.AspNet;
 
 public class MessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IMessageSerializer serializer,
-    EndpointInvoker invoker) : IMessageDispatcher
+    IExecutionContextFactory contextFactory, EndpointInvoker invoker, ILogger<MessageDispatcher> logger) : IMessageDispatcher
 {
     private static readonly string KeyField = nameof(WsMessage.Key).ToLowerInvariant();
 
     public async Task DispatchMessage(IWsConnection connection, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
-        var endpointKey = serializer.ExtractStringField(KeyField, payload) ??
-            throw new MessageFormatException("Unable to determine message route from payload");
+        var connectionId = connection.Id;
 
-        var endpointType = endpointRegistry.Resolve(endpointKey) ??
+        logger.LogDispatchingMessage(connectionId, "Unknown", payload.Length);
+
+        var endpointKey = serializer.ExtractStringField(KeyField, payload);
+        if (endpointKey is null)
+        {
+            logger.LogKeyExtractionFailed(connectionId);
+            throw new MessageFormatException("Unable to determine message route from payload");
+        }
+
+        var endpointType = endpointRegistry.Resolve(endpointKey);
+        if (endpointType is null)
+        {
+            logger.LogEndpointNotFound(connectionId, endpointKey);
             throw new EndpointNotFoundException($"Endpoint for route '{endpointKey}' not found");
+        }
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        var serviceProvider = scope.ServiceProvider;
-        var endpointInstance = serviceProvider.GetService(endpointType) ??
-            throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
-
-        var execCtx = new WsExecutionContext(endpointKey, endpointType, connection, payload, serializer, token);
-        if (endpointType.AcceptsRequestMessages())
+        var endpointInstance = scope.ServiceProvider.GetService(endpointType);
+        if (endpointInstance is null)
         {
-            var requestType = endpointType.GetRequestType();
-            var reqestData = serializer.Deserialize(requestType, payload);
-            execCtx.RequestMessage = reqestData;
+            logger.LogEndpointServiceNotFound(connectionId, endpointType.Name);
+            throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
         }
 
+        logger.LogEndpointResolved(connectionId, endpointType.Name, endpointType.AcceptsRequestMessages());
+
+        var execCtx = contextFactory.Create(endpointKey, endpointType, connection, payload, serializer, token);
+
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
+
+        logger.LogMessageDispatched(connectionId, endpointKey);
     }
 }

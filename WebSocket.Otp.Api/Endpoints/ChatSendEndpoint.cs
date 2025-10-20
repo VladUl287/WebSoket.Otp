@@ -8,7 +8,7 @@ namespace WebSockets.Otp.Api.Endpoints;
 [WsEndpoint("chat/message")]
 public sealed class ChatSendEndpoint(ILogger<ChatSendEndpoint> log, IWsConnectionManager connectionManager, IMessageSerializer messageSerializer) : WsEndpoint<ChatMessage>
 {
-    public override async Task HandleAsync(ChatMessage request, IWsContext ctx, CancellationToken token)
+    public override async Task HandleAsync(ChatMessage request, IWsExecutionContext ctx, CancellationToken token)
     {
         log.LogInformation("Received chat message: {Text}", request.Content);
         var reply = new ChatMessage

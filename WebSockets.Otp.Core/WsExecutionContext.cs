@@ -4,7 +4,7 @@ namespace WebSockets.Otp.Core;
 
 public sealed class WsExecutionContext(
     string endpointKey, Type endpointType, IWsConnection connection,
-    ReadOnlyMemory<byte> rawPayload, IMessageSerializer serializer, CancellationToken cancellation) : IWsContext
+    ReadOnlyMemory<byte> rawPayload, IMessageSerializer serializer, CancellationToken cancellation) : IWsExecutionContext
 {
     public string Key => endpointKey;
     public IWsConnection Connection => connection;
