@@ -11,7 +11,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
 
     public IWsConnection Get(string connectionId) => map[connectionId];
 
-    public IEnumerable<IWsConnection> GetAll() => map.Values;
+    public IEnumerable<string> EnumerateIds() => map.Keys.AsEnumerable();
 
     public bool TryRemove(string connectionId) => map.TryRemove(connectionId, out _);
 
@@ -19,5 +19,10 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         var connection = Get(connectionId);
         await connection.SendAsync(payload, default, token);
+    }
+
+    public Task SendAsync(IEnumerable<string> connectionIds, ReadOnlyMemory<byte> payload, CancellationToken token)
+    {
+        throw new NotImplementedException();
     }
 }
