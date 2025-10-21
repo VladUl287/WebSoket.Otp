@@ -61,9 +61,9 @@ var app = builder.Build();
     app.UseWsEndpoints((opt) =>
     {
         opt.RequestPath = "/ws";
+        opt.HandshakeRequestPath = "/_handshake";
         opt.Authorization = new()
         {
-            RequestPath = "/ws_authorize",
             RequireAuthorization = true,
         };
         opt.OnConnected = async (connection) =>

@@ -7,8 +7,4 @@ namespace WebSockets.Otp.Abstractions;
 public interface IWsAuthorizationService
 {
     Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, WsAuthorizationOptions options);
-
-    string GenerateConnectionToken(string userId);
-    (bool isValid, string? userId) ValidateConnectionToken(string connectionToken);
-    void RemoveConnectionToken(string connectionToken);
 }

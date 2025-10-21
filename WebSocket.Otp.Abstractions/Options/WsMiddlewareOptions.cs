@@ -5,6 +5,7 @@ namespace WebSockets.Otp.Abstractions.Options;
 public sealed class WsMiddlewareOptions
 {
     public string RequestPath { get; set; } = string.Empty;
+    public string HandshakeRequestPath { get; set; } = string.Empty;
 
     public int MaxMessageSize { get; set; } = 64 * 1024; //64kb
 
@@ -13,6 +14,8 @@ public sealed class WsMiddlewareOptions
     public bool ReclaimBufferAfterEachMessage { get; set; } = true;
 
     public IWsRequestMatcher RequestMatcher { get; set; } = default!;
+
+    public IWsRequestMatcher HandshakeRequestMatcher { get; set; } = default!;
 
     public WsAuthorizationOptions Authorization { get; set; } = new();
 

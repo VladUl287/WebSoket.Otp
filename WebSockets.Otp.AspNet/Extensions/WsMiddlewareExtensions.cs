@@ -40,6 +40,8 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
+        services.AddSingleton<IRequestState<WsConnectionOptions>, RequestState>();
+
         services.AddEndpoints(assemblies);
 
         return services;
@@ -57,10 +59,7 @@ public static class WsMiddlewareExtensions
         var options = new WsMiddlewareOptions();
         configure(options);
         options.RequestMatcher ??= new PathWsRequestMatcher(options.RequestPath);
-
-        if (options.Authorization is not null)
-            options.Authorization.RequestMatcher ??= new AuthRequestMatcher(options.Authorization.RequestPath);
-
+        options.HandshakeRequestMatcher ??= new HandshakeRequestMatcher(options.HandshakeRequestPath);
         return builder.UseMiddleware<WsMiddleware>(options);
     }
 

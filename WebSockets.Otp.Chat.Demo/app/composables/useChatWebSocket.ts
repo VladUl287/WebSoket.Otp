@@ -12,7 +12,7 @@ export const useChatWebSocket = (path: string = '/ws') => {
   const connectionToken = ref('')
   const url = computed(() => `${wsUrl}?id=${encodeURIComponent(connectionToken.value ?? '')}`)
 
-  const { status, data, send, open, close } = useWebSocket(wsUrl, {
+  const { status, data, send, open, close } = useWebSocket(url, {
     immediate: false,
     autoReconnect: {
       retries: 3,
@@ -42,7 +42,7 @@ export const useChatWebSocket = (path: string = '/ws') => {
   })
 
   const connect = async () => {
-    connectionToken.value = await $fetch<string>(config.public.apiUrl + '/ws_authorize', {
+    connectionToken.value = await $fetch<string>(config.public.apiUrl + '/_handshake', {
       headers: {
         Authorization: `Bearer ${token.value}`
       }
