@@ -14,6 +14,7 @@
 
 	<ItemGroup>
     <ProjectReference Include="..\WebSocket.Otp.Abstractions\WebSockets.Otp.Abstractions.csproj" />
+    <ProjectReference Include="..\WebSockets.Otp.Abstractions.AspNet\WebSockets.Otp.Abstractions.AspNet.csproj" />
     <ProjectReference Include="..\WebSockets.Otp.Core\WebSockets.Otp.Core.csproj" />
   </ItemGroup>
 
