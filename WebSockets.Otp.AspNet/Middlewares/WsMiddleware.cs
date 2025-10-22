@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
+using System.Security.Claims;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
@@ -73,9 +74,9 @@ public sealed class WsMiddleware(
         var connectionToken = idValues.ToString();
         var connectionOptions = requestState.Get(connectionToken);
 
-        if (connectionOptions?.User != null)
+        if (connectionOptions?.Claims is not null)
         {
-            context.User = connectionOptions.User;
+            context.User = new ClaimsPrincipal(new ClaimsIdentity(connectionOptions.Claims, "WsOtp"));
         }
 
         return connectionOptions;
