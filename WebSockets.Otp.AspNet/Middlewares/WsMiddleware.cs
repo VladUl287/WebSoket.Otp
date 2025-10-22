@@ -58,7 +58,7 @@ public sealed class WsMiddleware(
 
     private async Task HandleWebSocketRequestAsync(HttpContext context)
     {
-        var connectionTokenId = connectionFactory.ResolveId(context);
+        var connectionTokenId = connectionFactory.GetConnectionToken(context);
         if (string.IsNullOrEmpty(connectionTokenId))
         {
             logger.MissingConnectionToken(context.Connection.Id);

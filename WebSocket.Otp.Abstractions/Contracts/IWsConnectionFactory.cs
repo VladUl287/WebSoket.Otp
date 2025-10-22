@@ -8,5 +8,5 @@ public interface IWsConnectionFactory
 {
     IWsConnection Create(HttpContext context, WebSocket socket);
     WsConnectionOptions CreateOptions(HttpContext context, WsMiddlewareOptions options);
-    string ResolveId(HttpContext context);
+    string GetConnectionToken(HttpContext context);
 }

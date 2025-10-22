@@ -21,7 +21,7 @@ public sealed class WsConnectionFactory(IIdProvider idProvider) : IWsConnectionF
         };
     }
 
-    public string ResolveId(HttpContext context)
+    public string GetConnectionToken(HttpContext context)
     {
         const string queryKey = "id";
 
