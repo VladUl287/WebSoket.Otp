@@ -8,22 +8,20 @@ public sealed class RequestState : IRequestState<WsConnectionOptions>
 {
     private static readonly ConcurrentDictionary<string, WsConnectionOptions> _store = new();
 
-    public string GenerateKey()
-    {
-        return Guid.NewGuid().ToString();
-    }
+    public string GenerateKey() => Guid.CreateVersion7().ToString();
 
-    public void Remove(string key)
+    public Task Remove(string key)
     {
         _store.TryRemove(key, out _);
+        return Task.CompletedTask;
     }
 
-    public WsConnectionOptions Get(string key)
+    public Task<WsConnectionOptions> Get(string key)
     {
         if (_store.TryGetValue(key, out var value))
-            return value;
+            return Task.FromResult(value);
 
-        return default;
+        return Task.FromResult<WsConnectionOptions>(null);
     }
 
     public Task Save(string key, WsConnectionOptions state, CancellationToken token)

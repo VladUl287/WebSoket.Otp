@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
-using System.Security.Claims;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
@@ -36,13 +35,13 @@ public sealed class WsMiddleware(
     {
         var connectionOptions = connectionFactory.CreateOptions(context, options);
 
-        var connectionToken = requestState.GenerateKey();
-        await requestState.Save(connectionToken, connectionOptions, context.RequestAborted);
+        var connectionIdToken = requestState.GenerateKey();
+        await requestState.Save(connectionIdToken, connectionOptions, context.RequestAborted);
 
-        logger.ConnectionTokenGenerated(connectionToken);
+        logger.ConnectionTokenGenerated(connectionIdToken);
 
         context.Response.StatusCode = StatusCodes.Status200OK;
-        await context.Response.WriteAsync(connectionToken, context.RequestAborted);
+        await context.Response.WriteAsync(connectionIdToken, context.RequestAborted);
     }
 
 
@@ -72,12 +71,10 @@ public sealed class WsMiddleware(
             return null;
 
         var connectionToken = idValues.ToString();
-        var connectionOptions = requestState.Get(connectionToken);
+        var connectionOptions = await requestState.Get(connectionToken);
 
-        if (connectionOptions?.Claims is not null)
-        {
-            context.User = new ClaimsPrincipal(new ClaimsIdentity(connectionOptions.Claims, "WsOtp"));
-        }
+        if (connectionOptions is { User: not null })
+            context.User = connectionOptions.User;
 
         return connectionOptions;
     }

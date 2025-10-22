@@ -24,7 +24,7 @@ public sealed class WsConnectionFactory(IIdProvider idProvider, IWsAuthorization
             if (authResult.Failed)
                 throw new Exception(authResult.FailureReason);
 
-            connectionOptions.Claims = context.User.Claims;
+            connectionOptions.User = context.User;
         }
 
         return connectionOptions;
