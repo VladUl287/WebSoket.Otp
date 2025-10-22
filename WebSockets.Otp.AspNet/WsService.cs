@@ -11,7 +11,7 @@ namespace WebSockets.Otp.AspNet;
 
 public sealed partial class WsService(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageBufferFactory bufferFactory,
-    IMessageDispatcher dispatcher, ILogger<WsService> logger) : IWsService
+    IMessageDispatcher dispatcher, ISerializerFactory serializerFactory, ILogger<WsService> logger) : IWsService
 {
     public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
@@ -75,6 +75,7 @@ public sealed partial class WsService(
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;
 
+        var serializer = serializerFactory.Create(options.Connection.Protocol);
         try
         {
             while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
@@ -104,7 +105,7 @@ public sealed partial class WsService(
                     logger.LogProcessingCompleteMessage(connectionId, buffer.Length);
 
                     using var manager = buffer.Manager;
-                    await dispatcher.DispatchMessage(connection, manager.Memory, token);
+                    await dispatcher.DispatchMessage(connection, serializer, manager.Memory, token);
 
                     buffer.SetLength(0);
 

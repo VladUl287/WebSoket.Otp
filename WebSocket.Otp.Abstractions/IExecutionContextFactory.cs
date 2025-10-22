@@ -4,6 +4,6 @@ namespace WebSockets.Otp.Abstractions
 {
     public interface IExecutionContextFactory
     {
-        IWsExecutionContext Create(string endpointKey, Type endpointType, IWsConnection connection, ReadOnlyMemory<byte> payload, IMessageSerializer serializer, CancellationToken token);
+        IWsExecutionContext Create(string endpointKey, Type endpointType, IWsConnection connection, ReadOnlyMemory<byte> payload, ISerializer serializer, CancellationToken token);
     }
 }

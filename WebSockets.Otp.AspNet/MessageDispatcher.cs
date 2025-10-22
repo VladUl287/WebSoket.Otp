@@ -9,12 +9,12 @@ using WebSockets.Otp.AspNet.Logging;
 namespace WebSockets.Otp.AspNet;
 
 public class MessageDispatcher(
-    IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IMessageSerializer serializer,
-    IExecutionContextFactory contextFactory, IEndpointInvoker invoker, ILogger<MessageDispatcher> logger) : IMessageDispatcher
+    IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory, 
+    IEndpointInvoker invoker, ILogger<MessageDispatcher> logger) : IMessageDispatcher
 {
     private static readonly string KeyField = nameof(WsMessage.Key).ToLowerInvariant();
 
-    public async Task DispatchMessage(IWsConnection connection, ReadOnlyMemory<byte> payload, CancellationToken token)
+    public async Task DispatchMessage(IWsConnection connection, ISerializer serializer, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         var connectionId = connection.Id;
 

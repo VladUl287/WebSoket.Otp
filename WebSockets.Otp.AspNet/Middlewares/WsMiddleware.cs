@@ -25,10 +25,7 @@ public sealed class WsMiddleware(RequestDelegate next, IWsService wsService, IRe
                 connectionOptions.User = context.User;
             }
 
-            connectionOptions.Protocol = "JSON";
-
             var connectionToken = requestState.GenerateKey();
-
             requestState.Save(connectionToken, connectionOptions);
 
             context.Response.StatusCode = StatusCodes.Status200OK;
@@ -41,10 +38,11 @@ public sealed class WsMiddleware(RequestDelegate next, IWsService wsService, IRe
             {
                 var connectionToken = context.Request.Query["id"];
                 var state = requestState.Get(connectionToken);
-                if (state is { User: not null})
+                if (state is { User: not null })
                 {
                     context.User = state.User;
                 }
+                options.Connection = state;
             }
 
             if (options is { Authorization.RequireAuthorization: true } && context is { User.Identity.IsAuthenticated: false })

@@ -19,6 +19,8 @@ public sealed class WsMiddlewareOptions
 
     public WsAuthorizationOptions Authorization { get; set; } = new();
 
+    public WsConnectionOptions Connection { get; set; } = new();
+
     public Func<IWsConnection, Task>? OnConnected { get; set; }
     public Func<IWsConnection, Task>? OnDisconnected { get; set; }
 }

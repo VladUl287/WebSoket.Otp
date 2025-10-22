@@ -35,16 +35,23 @@ public static class WsMiddlewareExtensions
 
         services.AddSingleton<IClock, UtcClock>();
         services.AddSingleton<IIdProvider, GuidIdProvider>();
-        services.AddSingleton<IMessageSerializer, JsonMessageSerializer>();
         services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
         services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
+
+        services.AddSerializers();
 
         services.AddSingleton<IRequestState<WsConnectionOptions>, RequestState>();
 
         services.AddEndpoints(assemblies);
 
         return services;
+    }
+
+    private static void AddSerializers(this IServiceCollection services)
+    {
+        services.AddSingleton<ISerializerFactory, SerializerFactory>();
+        services.AddSingleton<ISerializer, JsonMessageSerializer>();
     }
 
     private static void AddEndpoints(this IServiceCollection services, Assembly[] assemblies)

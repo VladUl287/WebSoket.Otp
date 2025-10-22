@@ -5,7 +5,7 @@ using WebSockets.Otp.Core.Exceptions;
 
 namespace WebSockets.Otp.Core;
 
-public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null) : IMessageSerializer
+public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null) : ISerializer
 {
     private static readonly JsonSerializerOptions Default = new()
     {
@@ -14,6 +14,9 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
     private readonly JsonSerializerOptions Options = options ?? Default;
+
+    private const string _format = "JSON";
+    public string Format => _format;
 
     public object Deserialize(Type type, ReadOnlyMemory<byte> payload)
     {
@@ -42,12 +45,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
 
     public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8)
     {
-        return ExtractStringField(field, jsonUtf8.Span);
-    }
-
-    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8)
-    {
-        var reader = new Utf8JsonReader(jsonUtf8);
+        var reader = new Utf8JsonReader(jsonUtf8.Span);
         var keyField = field.AsSpan();
         while (reader.Read())
         {
