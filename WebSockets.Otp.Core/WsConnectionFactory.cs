@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core;
 
-public sealed class WsConnectionFactory(IIdProvider idProvider, IWsAuthorizationService authService) : IWsConnectionFactory
+public sealed class WsConnectionFactory(IIdProvider idProvider) : IWsConnectionFactory
 {
     public IWsConnection Create(HttpContext context, WebSocket socket)
     {
@@ -16,17 +15,19 @@ public sealed class WsConnectionFactory(IIdProvider idProvider, IWsAuthorization
 
     public WsConnectionOptions CreateOptions(HttpContext context, WsMiddlewareOptions options)
     {
-        var connectionOptions = new WsConnectionOptions();
-
-        if (options is { Authorization.RequireAuthorization: true })
+        return new WsConnectionOptions
         {
-            var authResult = authService.AuhtorizeAsync(context, options.Authorization).GetAwaiter().GetResult();
-            if (authResult.Failed)
-                throw new Exception(authResult.FailureReason);
+            User = context.User
+        };
+    }
 
-            connectionOptions.User = context.User;
-        }
+    public string ResolveId(HttpContext context)
+    {
+        const string queryKey = "id";
 
-        return connectionOptions;
+        if (!context.Request.Query.TryGetValue(queryKey, out var idValues) || idValues.Count == 0)
+            return string.Empty;
+
+        return idValues.ToString();
     }
 }

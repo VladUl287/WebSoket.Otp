@@ -10,7 +10,7 @@ namespace WebSockets.Otp.AspNet.Middlewares;
 
 public sealed class WsMiddleware(
     RequestDelegate next, IWsService wsService, IConnectionStateService requestState,
-    IWsConnectionFactory connectionFactory, ILogger<WsMiddleware> logger,
+    IWsConnectionFactory connectionFactory, IWsAuthorizationService authService, ILogger<WsMiddleware> logger,
     WsMiddlewareOptions options)
 {
     public Task InvokeAsync(HttpContext context)
@@ -34,32 +34,55 @@ public sealed class WsMiddleware(
 
     private async Task HandleHandshakeRequestAsync(HttpContext context)
     {
-        var sessionId = context.Session.Id;
-        logger.HandshakeRequestStarted(sessionId);
+        logger.HandshakeRequestStarted(context.Connection.Id);
+
+        if (options is { Authorization.RequireAuthorization: true })
+        {
+            var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
+            if (authResult.Failed)
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync(authResult.FailureReason, context.RequestAborted);
+                return;
+            }
+        }
 
         var connectionOptions = connectionFactory.CreateOptions(context, options);
         var connectionTokenId = await requestState.GenerateTokenId(context, connectionOptions, context.RequestAborted);
 
-        logger.ConnectionTokenGenerated(connectionTokenId, sessionId);
+        logger.ConnectionTokenGenerated(connectionTokenId, context.Connection.Id);
 
         context.Response.StatusCode = StatusCodes.Status200OK;
         await context.Response.WriteAsync(connectionTokenId, context.RequestAborted);
     }
 
-
     private async Task HandleWebSocketRequestAsync(HttpContext context)
     {
-        var connectionOptions = await GetConnectionOptionsAsync(context);
-        if (connectionOptions is null)
+        var connectionTokenId = connectionFactory.ResolveId(context);
+        if (string.IsNullOrEmpty(connectionTokenId))
         {
+            logger.MissingConnectionToken(context.Connection.Id);
+            context.Response.StatusCode = StatusCodes.Status400BadRequest;
+            await context.Response.WriteAsync("Missing connection token");
+            return;
+        }
+
+        options.Connection = await requestState.GetAsync(connectionTokenId, context.RequestAborted);
+        if (options is { Connection: null })
+        {
+            logger.InvalidConnectionToken(connectionTokenId);
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync("Invalid connection token");
             return;
         }
 
-        options.Connection = connectionOptions;
+        if (options is { Connection.User: not null })
+        {
+            context.User = options.Connection.User;
+            logger.UserContextSet(options.Connection.User.Identity?.Name ?? "Unknown");
+        }
 
-        if (options is { Authorization.RequireAuthorization: true } && context is { User.Identity.IsAuthenticated: false })
+        if (options is { Authorization.RequireAuthorization: true, Connection.User.Identity.IsAuthenticated: false })
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsync("Unauthorized");
@@ -67,22 +90,6 @@ public sealed class WsMiddleware(
         }
 
         await wsService.HandleWebSocketRequestAsync(context, options);
-    }
-
-    private async Task<WsConnectionOptions?> GetConnectionOptionsAsync(HttpContext context)
-    {
-        const string queryKey = "id";
-
-        if (!context.Request.Query.TryGetValue(queryKey, out var idValues) || idValues.Count == 0)
-            return null;
-
-        var connectionTokenId = idValues.ToString();
-        var connectionOptions = await requestState.GetAsync(connectionTokenId, context.RequestAborted);
-
-        if (connectionOptions is { User: not null })
-            context.User = connectionOptions.User;
-
-        return connectionOptions;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
