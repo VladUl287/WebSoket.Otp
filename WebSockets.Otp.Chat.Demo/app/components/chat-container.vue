@@ -18,7 +18,7 @@
 
     <div class="chat-controls">
       <div class="message-input-group" :class="{ disabled: !isConnected }">
-        <input v-model="newMessage" placeholder="Type your message..." class="message-input" @keyup.enter="sendMessage"
+        <input v-model="newMessage" placeholder="Type your message..." class="message-input" @keyup.enter="sendMessage({ chatId })"
           :disabled="!isConnected" />
         <button @click="sendMessage({ chatId })" :disabled="!isConnected || !newMessage.trim()" class="send-btn">
           Send
