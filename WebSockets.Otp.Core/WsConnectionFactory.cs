@@ -18,7 +18,8 @@ public sealed class WsConnectionFactory(IIdProvider idProvider, IClock clock, IW
     {
         var connectionOptions = new WsConnectionOptions
         {
-            CreatedAt = clock.UtcNow
+            CreatedAt = clock.UtcNow,
+            LifeTime = options.ConnectionTokenLifeTime
         };
 
         if (options is { Authorization.RequireAuthorization: true })

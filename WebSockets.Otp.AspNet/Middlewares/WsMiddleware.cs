@@ -9,7 +9,7 @@ using WebSockets.Otp.AspNet.Logging;
 namespace WebSockets.Otp.AspNet.Middlewares;
 
 public sealed class WsMiddleware(
-    RequestDelegate next, IWsService wsService, IRequestState<WsConnectionOptions> requestState,
+    RequestDelegate next, IWsService wsService, IConnectionStateService requestState,
     IWsConnectionFactory connectionFactory, ILogger<WsMiddleware> logger, WsMiddlewareOptions options)
 {
     public Task InvokeAsync(HttpContext context)
@@ -34,13 +34,12 @@ public sealed class WsMiddleware(
     private async Task HandleHandshakeRequestAsync(HttpContext context)
     {
         var connectionOptions = connectionFactory.CreateOptions(context, options);
-        var connectionIdToken = requestState.GenerateKey();
-        await requestState.SaveAsync(connectionIdToken, connectionOptions, context.RequestAborted);
+        var connectionTokenId = await requestState.GenerateTokenId(context, connectionOptions, context.RequestAborted);
 
-        logger.ConnectionTokenGenerated(connectionIdToken);
+        logger.ConnectionTokenGenerated(connectionTokenId);
 
         context.Response.StatusCode = StatusCodes.Status200OK;
-        await context.Response.WriteAsync(connectionIdToken, context.RequestAborted);
+        await context.Response.WriteAsync(connectionTokenId, context.RequestAborted);
     }
 
 

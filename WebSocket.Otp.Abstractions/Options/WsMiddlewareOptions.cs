@@ -13,6 +13,8 @@ public sealed class WsMiddlewareOptions
 
     public bool ReclaimBufferAfterEachMessage { get; set; } = true;
 
+    public TimeSpan ConnectionTokenLifeTime { get; set; } = TimeSpan.FromMinutes(1);
+
     public IWsRequestMatcher RequestMatcher { get; set; } = default!;
 
     public IWsRequestMatcher HandshakeRequestMatcher { get; set; } = default!;

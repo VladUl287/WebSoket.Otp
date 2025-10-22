@@ -41,7 +41,7 @@ public static class WsMiddlewareExtensions
 
         services.AddSerializers();
 
-        services.AddSingleton<IRequestState<WsConnectionOptions>, RequestState>();
+        services.AddSingleton<IConnectionStateService, InMemoryConnectionStateService>();
 
         services.AddEndpoints(assemblies);
 
