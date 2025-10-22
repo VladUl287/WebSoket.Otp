@@ -3,7 +3,7 @@
 public interface IRequestState<T>
 {
     string GenerateKey();
-    public Task<T> Get(string key);
-    public Task Save(string key, T state, CancellationToken token);
-    public Task Remove(string key);
+    public Task<T> GetAsync(string key);
+    public Task SaveAsync(string key, T state, CancellationToken token);
+    public Task RevokeAsync(string key);
 }

@@ -34,9 +34,8 @@ public sealed class WsMiddleware(
     private async Task HandleHandshakeRequestAsync(HttpContext context)
     {
         var connectionOptions = connectionFactory.CreateOptions(context, options);
-
         var connectionIdToken = requestState.GenerateKey();
-        await requestState.Save(connectionIdToken, connectionOptions, context.RequestAborted);
+        await requestState.SaveAsync(connectionIdToken, connectionOptions, context.RequestAborted);
 
         logger.ConnectionTokenGenerated(connectionIdToken);
 
@@ -71,7 +70,7 @@ public sealed class WsMiddleware(
             return null;
 
         var connectionToken = idValues.ToString();
-        var connectionOptions = await requestState.Get(connectionToken);
+        var connectionOptions = await requestState.GetAsync(connectionToken);
 
         if (connectionOptions is { User: not null })
             context.User = connectionOptions.User;

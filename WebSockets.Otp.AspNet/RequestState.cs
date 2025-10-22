@@ -10,13 +10,13 @@ public sealed class RequestState : IRequestState<WsConnectionOptions>
 
     public string GenerateKey() => Guid.CreateVersion7().ToString();
 
-    public Task Remove(string key)
+    public Task RevokeAsync(string key)
     {
         _store.TryRemove(key, out _);
         return Task.CompletedTask;
     }
 
-    public Task<WsConnectionOptions> Get(string key)
+    public Task<WsConnectionOptions> GetAsync(string key)
     {
         if (_store.TryGetValue(key, out var value))
             return Task.FromResult(value);
@@ -24,7 +24,7 @@ public sealed class RequestState : IRequestState<WsConnectionOptions>
         return Task.FromResult<WsConnectionOptions>(null);
     }
 
-    public Task Save(string key, WsConnectionOptions state, CancellationToken token)
+    public Task SaveAsync(string key, WsConnectionOptions state, CancellationToken token)
     {
         _store[key] = state;
         return Task.CompletedTask;
