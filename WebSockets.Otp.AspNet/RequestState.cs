@@ -26,8 +26,9 @@ public sealed class RequestState : IRequestState<WsConnectionOptions>
         return default;
     }
 
-    public void Save(string key, WsConnectionOptions state)
+    public Task Save(string key, WsConnectionOptions state, CancellationToken token)
     {
         _store[key] = state;
+        return Task.CompletedTask;
     }
 }

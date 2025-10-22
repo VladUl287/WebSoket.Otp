@@ -2,7 +2,7 @@
 
 namespace WebSockets.Otp.AspNet.Logging;
 
-internal static partial class MessageDispatcherLogger
+internal static partial class MessageDispatcherLogging
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "Dispatching message for connection {ConnectionId}. Endpoint key: {EndpointKey}, Payload size: {PayloadSize}")]
     internal static partial void LogDispatchingMessage(this ILogger logger, string connectionId, string endpointKey, int payloadSize);

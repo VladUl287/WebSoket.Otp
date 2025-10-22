@@ -2,7 +2,7 @@
 
 namespace WebSockets.Otp.AspNet.Logging;
 
-public static partial class EndpointInvokerLogger
+public static partial class EndpointInvokerLogging
 {
     [LoggerMessage(Level = LogLevel.Debug, Message = "Invoking endpoint {EndpointType} for connection {ConnectionId}")]
     public static partial void LogInvokingEndpoint(this ILogger logger, string endpointType, string connectionId);
