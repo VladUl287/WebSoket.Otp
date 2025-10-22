@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
 using WebSockets.Otp.Abstractions;
-using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.AspNet;
 
-public sealed class InMemoryConnectionStateService(IClock clock) : IConnectionStateService
+public sealed class InMemoryConnectionStateService : IConnectionStateService
 {
     private static readonly ConcurrentDictionary<string, WsConnectionOptions> _store = new();
 
@@ -17,17 +16,12 @@ public sealed class InMemoryConnectionStateService(IClock clock) : IConnectionSt
         return Task.FromResult(tokenId);
     }
 
-    public Task<WsConnectionOptions> GetAsync(string key, CancellationToken token = default)
+    public Task<WsConnectionOptions?> GetAsync(string key, CancellationToken token = default)
     {
         if (_store.TryGetValue(key, out var value))
-        {
-            if (value.CreatedAt.Add(value.LifeTime) <= clock.UtcNow)
-            {
-                return Task.FromResult(value);
-            }
-        }
+            return Task.FromResult<WsConnectionOptions?>(value);
 
-        return Task.FromResult<WsConnectionOptions>(null);
+        return Task.FromResult<WsConnectionOptions?>(null);
     }
 
     public Task RevokeAsync(string key, CancellationToken token = default)

@@ -6,7 +6,7 @@ using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core;
 
-public sealed class WsConnectionFactory(IIdProvider idProvider, IClock clock, IWsAuthorizationService authService) : IWsConnectionFactory
+public sealed class WsConnectionFactory(IIdProvider idProvider, IWsAuthorizationService authService) : IWsConnectionFactory
 {
     public IWsConnection Create(HttpContext context, WebSocket socket)
     {
@@ -16,11 +16,7 @@ public sealed class WsConnectionFactory(IIdProvider idProvider, IClock clock, IW
 
     public WsConnectionOptions CreateOptions(HttpContext context, WsMiddlewareOptions options)
     {
-        var connectionOptions = new WsConnectionOptions
-        {
-            CreatedAt = clock.UtcNow,
-            LifeTime = options.ConnectionTokenLifeTime
-        };
+        var connectionOptions = new WsConnectionOptions();
 
         if (options is { Authorization.RequireAuthorization: true })
         {
