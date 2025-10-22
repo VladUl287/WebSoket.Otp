@@ -20,7 +20,7 @@
       <div class="message-input-group" :class="{ disabled: !isConnected }">
         <input v-model="newMessage" placeholder="Type your message..." class="message-input" @keyup.enter="sendMessage"
           :disabled="!isConnected" />
-        <button @click="sendMessage" :disabled="!isConnected || !newMessage.trim()" class="send-btn">
+        <button @click="sendMessage({ chatId })" :disabled="!isConnected || !newMessage.trim()" class="send-btn">
           Send
         </button>
       </div>
@@ -30,12 +30,25 @@
 
 <script setup lang="ts">
 import { useChatWebSocket } from '~/composables/useChatWebSocket'
+import type { ChatMessage } from '~/types/message';
 
-defineProps<{
+const props = defineProps<{
   chatId: string
 }>()
 
 const { status, isConnected, messages, newMessage, connect, disconnect, sendMessage } = useChatWebSocket()
+
+const token = useCookie('token')
+const config = useRuntimeConfig()
+const messagesUrl = `${config.public.apiUrl}/chats/GetMessages/`
+watch(() => props.chatId, async (chatId) => {
+  messages.value = []
+  messages.value = await $fetch<ChatMessage[]>(messagesUrl + chatId, {
+    headers: {
+      Authorization: `Bearer ${token.value}`
+    }
+  })
+})
 
 const messagesContainer = ref<HTMLElement>()
 

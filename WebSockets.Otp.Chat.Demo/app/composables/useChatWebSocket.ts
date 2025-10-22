@@ -33,7 +33,6 @@ export const useChatWebSocket = (path: string = '/ws') => {
     onMessage: (ws, event) => {
       try {
         const message = JSON.parse(event.data)
-        console.log(message)
         messages.value.push(message)
       } catch (error) {
         console.error('Error parsing message:', error, event.data)
@@ -61,13 +60,14 @@ export const useChatWebSocket = (path: string = '/ws') => {
     close()
   }
 
-  const sendChatMessage = () => {
+  const sendChatMessage = (data: any) => {
     if (!newMessage.value.trim() || status.value !== 'OPEN') return
 
     const message: ChatMessage = {
-      key: 'chat/message',
+      key: 'chat/message/send',
       content: newMessage.value.trim(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...data
     }
 
     send(JSON.stringify(message))
