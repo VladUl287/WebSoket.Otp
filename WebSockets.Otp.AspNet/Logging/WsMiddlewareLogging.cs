@@ -30,4 +30,13 @@ internal static partial class WsMiddlewareLogging
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "User context set from connection options: {UserName}")]
     internal static partial void UserContextSet(this ILogger logger, string userName);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Handshake authorization failed: {ConnectionId} - {Reason}")]
+    internal static partial void HandshakeAuthorizationFailed(this ILogger logger, string connectionId, string reason);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Handshake completed successfully: {ConnectionId}")]
+    internal static partial void HandshakeCompleted(this ILogger logger, string connectionId);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Handshake request failed: {ConnectionId}")]
+    internal static partial void HandshakeRequestFailed(this ILogger logger, string connectionId, Exception ex);
 }

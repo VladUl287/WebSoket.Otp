@@ -34,7 +34,8 @@ public sealed class WsMiddleware(
 
     private async Task HandleHandshakeRequestAsync(HttpContext context)
     {
-        logger.HandshakeRequestStarted(context.Connection.Id);
+        var connectionId = context.Connection.Id;
+        logger.HandshakeRequestStarted(connectionId);
 
         if (options is { Authorization.RequireAuthorization: true })
         {
@@ -50,10 +51,12 @@ public sealed class WsMiddleware(
         var connectionOptions = connectionFactory.CreateOptions(context, options);
         var connectionTokenId = await requestState.GenerateTokenId(context, connectionOptions, context.RequestAborted);
 
-        logger.ConnectionTokenGenerated(connectionTokenId, context.Connection.Id);
+        logger.ConnectionTokenGenerated(connectionTokenId, connectionId);
 
         context.Response.StatusCode = StatusCodes.Status200OK;
         await context.Response.WriteAsync(connectionTokenId, context.RequestAborted);
+
+        logger.HandshakeCompleted(connectionId);
     }
 
     private async Task HandleWebSocketRequestAsync(HttpContext context)
