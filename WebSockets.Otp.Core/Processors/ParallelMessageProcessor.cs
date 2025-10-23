@@ -21,11 +21,11 @@ public sealed class ParallelMessageProcessor(
         ArgumentNullException.ThrowIfNull(options, nameof(options));
         ArgumentNullException.ThrowIfNull(options.Connection, nameof(options.Connection));
 
-        var pool = new AsyncObjectPool<IMessageBuffer>(options.MaxParallelProcessingPerConnection, () => bufferFactory.Create(options.InitialBufferSize));
+        var pool = new AsyncObjectPool<IMessageBuffer>(options.MaxParallelProcessingPerConnection, () => bufferFactory.Create(options.Memory.InitialBufferSize));
         await pool.Initilize();
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(options.Memory.InitialBufferSize);
 
-        var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
+        var reclaimBuffer = options.Memory.ReclaimBuffersImmediately;
 
         var serializer = serializerFactory.Create(options.Connection.Protocol);
         try
@@ -42,7 +42,7 @@ public sealed class ParallelMessageProcessor(
 
                 buffer.SetLength(0);
 
-                if (reclaimBufferAfterEachMessage)
+                if (reclaimBuffer)
                     buffer.Shrink();
 
                 await pool.Return(buffer);
@@ -60,7 +60,7 @@ public sealed class ParallelMessageProcessor(
     {
         var connectionId = connection.Id;
 
-        var maxMessageSize = options.MaxMessageSize;
+        var maxMessageSize = options.Memory.MaxMessageSize;
 
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;

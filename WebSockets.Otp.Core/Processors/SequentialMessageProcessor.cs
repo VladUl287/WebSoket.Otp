@@ -19,8 +19,8 @@ public sealed class SequentialMessageProcessor(
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(options);
 
-        var buffer = bufferFactory.Create(options.InitialBufferSize);
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
+        var buffer = bufferFactory.Create(options.Memory.InitialBufferSize);
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(options.Memory.InitialBufferSize);
         try
         {
             await SequentialMessageProcessoLoop(connection, options, buffer, tempBuffer);
@@ -38,8 +38,8 @@ public sealed class SequentialMessageProcessor(
 
         var connectionId = connection.Id;
 
-        var maxMessageSize = options.MaxMessageSize;
-        var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
+        var maxMessageSize = options.Memory.MaxMessageSize;
+        var reclaimBuffer = options.Memory.ReclaimBuffersImmediately;
 
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;
@@ -77,7 +77,7 @@ public sealed class SequentialMessageProcessor(
 
                     buffer.SetLength(0);
 
-                    if (reclaimBufferAfterEachMessage)
+                    if (reclaimBuffer)
                     {
                         var previousSize = buffer.Capacity;
                         buffer.Shrink();
