@@ -14,6 +14,7 @@ export const useChatWebSocket = (path: string = '/ws') => {
 
   const { status, data, send, open, close } = useWebSocket(url, {
     immediate: false,
+    autoConnect: false,
     autoReconnect: {
       retries: 3,
       delay: 1000,
