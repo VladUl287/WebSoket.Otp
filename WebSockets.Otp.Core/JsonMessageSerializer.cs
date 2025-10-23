@@ -1,7 +1,6 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Core.Exceptions;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core;
 
@@ -15,36 +14,30 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
     };
     private readonly JsonSerializerOptions Options = options ?? Default;
 
-    private const string _format = "json";
-    public string Format => _format;
+    public string Format => WsProtocol.Json;
 
-    public object Deserialize(Type type, ReadOnlyMemory<byte> payload)
+    public object? Deserialize(Type type, ReadOnlyMemory<byte> payload)
     {
-        try
-        {
-            var span = Encoding.UTF8.GetString(payload.Span);
-            return JsonSerializer.Deserialize(span, type, Options);
-        }
-        catch (Exception ex)
-        {
-            throw new MessageSerializationException("Invalid message format", ex);
-        }
+        ArgumentNullException.ThrowIfNull(type, nameof(type));
+
+        if (payload.IsEmpty)
+            return null;
+
+        return JsonSerializer.Deserialize(payload.Span, type, Options);
     }
 
-    public ReadOnlyMemory<byte> Serialize<T>(T message) where T : IWsMessage
+    public ReadOnlyMemory<byte> Serialize<T>(T message)
     {
-        var json = JsonSerializer.Serialize(message, Options);
-        return Encoding.UTF8.GetBytes(json);
-    }
+        ArgumentNullException.ThrowIfNull(message, nameof(message));
 
-    public T? Deserialize<T>(ReadOnlyMemory<byte> payload) where T : class, IWsMessage
-    {
-        var span = Encoding.UTF8.GetString(payload.Span);
-        return JsonSerializer.Deserialize<T>(span, Options);
+        return JsonSerializer.SerializeToUtf8Bytes(message, Options);
     }
 
     public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8)
     {
+        if (string.IsNullOrEmpty(field))
+            throw new ArgumentException("Field name cannot be null or empty", nameof(field));
+
         var reader = new Utf8JsonReader(jsonUtf8.Span);
         var keyField = field.AsSpan();
         while (reader.Read())
