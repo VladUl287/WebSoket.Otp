@@ -9,31 +9,32 @@ public sealed class AsyncObjectPool<T>(int size, Func<T> objectFactory) : IAsync
         new BoundedChannelOptions(size)
         {
             FullMode = BoundedChannelFullMode.Wait,
+            AllowSynchronousContinuations = false,
             SingleReader = false,
             SingleWriter = false,
+            Capacity = size,
         });
 
     private int _disposed;
-    private int _initialized;
-
-    public async ValueTask Initilize()
-    {
-        ThrowIfDisposed();
-
-        if (Interlocked.CompareExchange(ref _initialized, 1, 0) != 0)
-            return;
-
-        for (int i = 0; i < size; i++)
-        {
-            var obj = objectFactory.Invoke();
-            await _channel.Writer.WriteAsync(obj);
-        }
-    }
+    private int _created;
+    private readonly Lock _creationLock = new();
 
     public ValueTask<T> Rent()
     {
         ThrowIfDisposed();
-        ThrowIfNotInitilized();
+
+        if (Volatile.Read(ref _created) >= size)
+            return _channel.Reader.ReadAsync();
+
+        lock (_creationLock)
+        {
+            if (_created < size)
+            {
+                _created++;
+                return new ValueTask<T>(objectFactory.Invoke());
+            }
+        }
+
         return _channel.Reader.ReadAsync();
     }
 
@@ -41,19 +42,12 @@ public sealed class AsyncObjectPool<T>(int size, Func<T> objectFactory) : IAsync
     {
         ArgumentNullException.ThrowIfNull(obj);
         ThrowIfDisposed();
-        ThrowIfNotInitilized();
 
         return _channel.Writer.WriteAsync(obj);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed == 1, this);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ThrowIfNotInitilized()
-    {
-        if (_initialized == 0) throw new InvalidOperationException();
-    }
 
     public async ValueTask DisposeAsync()
     {
@@ -65,11 +59,8 @@ public sealed class AsyncObjectPool<T>(int size, Func<T> objectFactory) : IAsync
         while (_channel.Reader.TryRead(out var obj))
         {
             if (obj is IAsyncDisposable asyncDisposable)
-            {
                 await asyncDisposable.DisposeAsync();
-                continue;
-            }
-            if (obj is IDisposable disposable)
+            else if (obj is IDisposable disposable)
                 disposable.Dispose();
         }
     }

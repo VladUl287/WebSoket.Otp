@@ -20,7 +20,6 @@ public sealed class ParallelMessageProcessor(
         ArgumentNullException.ThrowIfNull(options, nameof(options));
 
         var pool = new AsyncObjectPool<IMessageBuffer>(options.Memory.MaxBufferPoolSize, () => bufferFactory.Create(options.Memory.InitialBufferSize));
-        await pool.Initilize();
         var tempBuffer = ArrayPool<byte>.Shared.Rent(options.Memory.InitialBufferSize);
 
         var reclaimBuffer = options.Memory.ReclaimBuffersImmediately;
