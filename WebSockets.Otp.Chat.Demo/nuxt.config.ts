@@ -9,5 +9,12 @@ export default defineNuxtConfig({
       apiUrl: 'http://localhost:5096',
     }
   },
-  modules: ['@vueuse/nuxt', '@nuxtjs/tailwindcss']
+  modules: [
+    '@vueuse/nuxt',
+    '@nuxtjs/tailwindcss'
+  ],
+  tailwindcss: {
+    configPath: '~/tailwind.config.js',
+    exposeConfig: false,
+  }
 })

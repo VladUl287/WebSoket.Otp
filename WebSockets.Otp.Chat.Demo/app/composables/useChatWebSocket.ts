@@ -1,40 +1,51 @@
-import type { ChatMessage } from "~/types/message"
+import type { WsMessage, ChatMessage } from "~/types/message"
 
-export const useChatWebSocket = (path: string = '/ws') => {
-  const config = useRuntimeConfig()
-  const wsUrl = `${config.public.wsUrl}${path}`
+export type WsHandler = (message: WsMessage) => void
+export type WsOptions = {
+  path: MaybeRefOrGetter<string>
+  handshakePath: MaybeRefOrGetter<string>
+  token?: MaybeRefOrGetter<string>
+  handlers: Map<string, WsHandler>
+  autoReconnect?: {
+    retries?: number
+    delay?: number
+    onFailed?: () => void
+  }
+  onMessage?: (ws: WebSocket, event: MessageEvent) => void
+  onConnected?: (ws: WebSocket) => void
+  onDisconnected?: (ws: WebSocket, event: CloseEvent) => void
+  onError?: (ws: WebSocket, event: Event) => void
+}
 
-  const messages = ref<ChatMessage[]>([])
-  const newMessage = ref('')
+interface WsReturn {
+  status: Ref<string>
+  send: (data: any) => void
+  connect: () => Promise<boolean>
+  disconnect: () => void
+}
 
-  const token = useCookie('token')
+export const useOtpWebSocket = (options: WsOptions): WsReturn => {
+  const connectionTokenId = ref('')
+  const requestUrl = computed(() => {
+    const url = toValue(options.path)
+    const urlObj = new URL(url)
+    urlObj.searchParams.set('id', encodeURIComponent(connectionTokenId.value))
+    return urlObj.href
+  })
 
-  const connectionToken = ref('')
-  const url = computed(() => `${wsUrl}?id=${encodeURIComponent(connectionToken.value ?? '')}`)
-
-  const { status, data, send, open, close } = useWebSocket(url, {
+  const { status, send, open, close } = useWebSocket(requestUrl, {
+    ...options,
     immediate: false,
     autoConnect: false,
-    autoReconnect: {
-      retries: 3,
-      delay: 1000,
-      onFailed() {
-        console.error('Failed to connect after 3 retries')
-      }
-    },
-    onConnected: (ws) => {
-      console.log('WebSocket connected successfully')
-    },
-    onDisconnected: (ws, event) => {
-      console.log('WebSocket disconnected', event)
-    },
-    onError: (ws, event) => {
-      console.error('WebSocket error:', event)
-    },
     onMessage: (ws, event) => {
       try {
-        const message = JSON.parse(event.data)
-        messages.value.push(message)
+        const message = JSON.parse(event.data) as WsMessage
+        const key = message.key
+        const handler = options.handlers.get(key)
+        if (handler) {
+          return handler(message)
+        }
+        options.onMessage?.(ws, event)
       } catch (error) {
         console.error('Error parsing message:', error, event.data)
       }
@@ -42,50 +53,23 @@ export const useChatWebSocket = (path: string = '/ws') => {
   })
 
   const connect = async () => {
-    connectionToken.value = await $fetch<string>(config.public.apiUrl + '/ws/_handshake', {
+    connectionTokenId.value = await $fetch<string>(toValue(options.handshakePath), {
       headers: {
-        Authorization: `Bearer ${token.value}`
+        Authorization: toValue(options.token) ?? ''
       }
     })
+    await nextTick()
     open()
     return true
   }
 
-  const disconnect = () => {
-    if (status.value === 'OPEN') {
-      send(JSON.stringify({
-        route: '/chat/leave',
-        timestamp: new Date().toISOString()
-      }))
-    }
-    close()
-  }
-
-  const sendChatMessage = (data: any) => {
-    if (!newMessage.value.trim() || status.value !== 'OPEN') return
-
-    const message: ChatMessage = {
-      key: 'chat/message/send',
-      content: newMessage.value.trim(),
-      timestamp: new Date().toISOString(),
-      ...data
-    }
-
-    send(JSON.stringify(message))
-
-    newMessage.value = ''
-  }
+  const disconnect = () => close()
 
   return {
     status,
-    isConnected: computed(() => status.value === 'OPEN'),
 
-    messages,
-    newMessage,
-
+    send,
     connect,
-    disconnect,
-    sendMessage: sendChatMessage,
-    sendRaw: send
+    disconnect
   }
 }

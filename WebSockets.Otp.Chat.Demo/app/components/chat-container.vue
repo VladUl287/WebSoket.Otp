@@ -1,13 +1,17 @@
 <template>
-  <div class="chat-container">
-    <div class="chat-header">
+  <div class="p-5 flex flex-col h-full bg-gray-900">
+    <header class="flex justify-between items-center mb-5 p-4 bg-gray-800 text-white rounded-lg shadow-md">
       <h2>WebSocket Chat</h2>
-      <div class="connection-status" :class="status.toLowerCase()">
+      <div class="px-3 py-1.5 rounded-full text-xs font-bold uppercase" :class="{
+        'bg-green-800': status.toLowerCase() === 'open',
+        'bg-red-800': status.toLowerCase() === 'closed',
+        'bg-yellow-800': status.toLowerCase() === 'connecting'
+      }">
         {{ status }}
       </div>
-    </div>
+    </header>
 
-    <div class="chat-messages" ref="messagesContainer">
+    <div class="flex-1 overflow-y-auto p-4 bg-gray-800 rounded-lg shadow-md mb-5" ref="messagesContainer">
       <div v-for="(message, index) in messages" :key="index" class="message">
         <div class="message-header">
           <span class="timestamp">{{ formatTimestamp(message.timestamp) }}</span>
@@ -16,10 +20,10 @@
       </div>
     </div>
 
-    <div class="chat-controls">
+    <div class="p-5 rounded-lg bg-gray-800 shadow-md">
       <div class="message-input-group" :class="{ disabled: !isConnected }">
-        <input v-model="newMessage" placeholder="Type your message..." class="message-input" @keyup.enter="sendMessage({ chatId })"
-          :disabled="!isConnected" />
+        <input v-model="newMessage" placeholder="Type your message..." class="message-input"
+          @keyup.enter="sendMessage({ chatId })" :disabled="!isConnected" />
         <button @click="sendMessage({ chatId })" :disabled="!isConnected || !newMessage.trim()" class="send-btn">
           Send
         </button>
@@ -29,17 +33,36 @@
 </template>
 
 <script setup lang="ts">
-import { useChatWebSocket } from '~/composables/useChatWebSocket'
+import { type WsHandler } from '~/composables/useChatWebSocket'
 import type { ChatMessage } from '~/types/message';
 
 const props = defineProps<{
   chatId: string
 }>()
 
-const { status, isConnected, messages, newMessage, connect, disconnect, sendMessage } = useChatWebSocket()
+const handlers = new Map<string, WsHandler>()
+handlers.set('chat/message/receive', (message) => {
+  messages.value.push(message as ChatMessage)
+})
 
 const token = useCookie('token')
+
 const config = useRuntimeConfig()
+const wsUrl = `${config.public.wsUrl}/ws`
+const handshakeUrl = `${config.public.apiUrl}/ws/_handshake`
+
+const { status, connect, disconnect, send } = useOtpWebSocket({
+  path: wsUrl,
+  handshakePath: handshakeUrl,
+  handlers: handlers,
+  token: () => `Bearer ${token.value}`
+})
+
+const newMessage = ref('')
+
+const isConnected = computed(() => status.value === 'OPEN')
+
+const messages = ref<ChatMessage[]>([])
 const messagesUrl = `${config.public.apiUrl}/chats/GetMessages/`
 watch(() => props.chatId, async (chatId) => {
   messages.value = []
@@ -49,6 +72,21 @@ watch(() => props.chatId, async (chatId) => {
     }
   })
 })
+
+const sendMessage = (data: any) => {
+  if (!newMessage.value.trim() || status.value !== 'OPEN') return
+
+  const message: ChatMessage = {
+    key: 'chat/message/send',
+    content: newMessage.value.trim(),
+    timestamp: new Date().toISOString(),
+    ...data
+  }
+
+  send(JSON.stringify(message))
+
+  newMessage.value = ''
+}
 
 const messagesContainer = ref<HTMLElement>()
 
@@ -72,71 +110,12 @@ watch(messages, () => {
 </script>
 
 <style scoped>
-.chat-container {
-  padding: 20px;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background-color: #f5f5f5;
-}
-
-.chat-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  padding: 15px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.connection-status {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: bold;
-  text-transform: uppercase;
-}
-
-.connection-status.open {
-  background-color: #4caf50;
-  color: white;
-}
-
-.connection-status.connecting {
-  background-color: #ff9800;
-  color: white;
-}
-
-.connection-status.closed {
-  background-color: #f44336;
-  color: white;
-}
-
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 15px;
-  background: white;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .message {
   margin-bottom: 15px;
   padding: 12px;
   border-radius: 8px;
   background-color: #e3f2fd;
   border-left: 4px solid #2196f3;
-}
-
-.message.system {
-  background-color: #fff3e0;
-  border-left-color: #ff9800;
-  text-align: center;
-  font-style: italic;
 }
 
 .message-header {
@@ -147,60 +126,16 @@ watch(messages, () => {
   color: #666;
 }
 
-.username {
-  font-weight: bold;
-  color: #1976d2;
-}
-
 .message-content {
   font-size: 14px;
   line-height: 1.4;
   color: #333;
 }
 
-.chat-controls {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
 .connection-controls {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
-}
-
-.username-input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.connection-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.connection-btn.connect {
-  background-color: #4caf50;
-  color: white;
-}
-
-.connection-btn.disconnect {
-  background-color: #f44336;
-  color: white;
-}
-
-.connection-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
 }
 
 .message-input-group {
