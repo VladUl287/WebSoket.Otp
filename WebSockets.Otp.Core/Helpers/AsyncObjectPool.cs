@@ -55,24 +55,22 @@ public sealed class AsyncObjectPool<T>(int size, Func<T> objectFactory) : IAsync
         if (_initialized == 0) throw new InvalidOperationException();
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-            return ValueTask.CompletedTask;
+            return;
 
         _channel.Writer.Complete();
 
-        //while (_channel.Reader.TryRead(out var obj))
-        //{
-        //    if (obj is IAsyncDisposable asyncDisposable)
-        //    {
-        //        await asyncDisposable.DisposeAsync();
-        //        continue;
-        //    }
-        //    if (obj is IDisposable disposable)
-        //        disposable.Dispose();
-        //}
-
-        return ValueTask.CompletedTask;
+        while (_channel.Reader.TryRead(out var obj))
+        {
+            if (obj is IAsyncDisposable asyncDisposable)
+            {
+                await asyncDisposable.DisposeAsync();
+                continue;
+            }
+            if (obj is IDisposable disposable)
+                disposable.Dispose();
+        }
     }
 }
