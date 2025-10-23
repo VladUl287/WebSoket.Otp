@@ -17,54 +17,14 @@ public static class WsMiddlewareExtensions
 {
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
-        services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
-
-        services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
-        services.AddHostedService((sp) => new WsEndpointInitializer(sp, assemblies));
-
-        services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
-        services.AddSingleton<IWsService, WsService>();
-
-        services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
-
-        services.AddSingleton<IMethodResolver, DefaultMethodResolver>();
-        services.AddSingleton<IEndpointInvoker, EndpointInvoker>();
-
-        services.AddSingleton<IClock, UtcClock>();
-        services.AddSingleton<IIdProvider, GuidIdProvider>();
-        services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
-        services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
-        services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
-
-        services.AddSerializers();
-
-        services.AddProcessors();
-
-        services.AddSingleton<IConnectionStateService, InMemoryConnectionStateService>();
-
-        services.AddEndpoints(assemblies);
+        services.AddCoreServices();
+        services.AddConnectionServices();
+        services.AddMessageProcessingServices();
+        services.AddSerializationServices();
+        services.AddUtilityServices();
+        services.AddEndpointServices(assemblies);
 
         return services;
-    }
-
-    private static void AddProcessors(this IServiceCollection services)
-    {
-        services.AddSingleton<IMessageProcessorFactory, MessageProcessorFactory>();
-        services.AddSingleton<IMessageProcessor, SequentialMessageProcessor>();
-        services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
-    }
-
-    private static void AddSerializers(this IServiceCollection services)
-    {
-        services.AddSingleton<ISerializerFactory, SerializerFactory>();
-        services.AddSingleton<ISerializer, JsonMessageSerializer>();
-    }
-
-    private static void AddEndpoints(this IServiceCollection services, Assembly[] assemblies)
-    {
-        var endpointsTypes = assemblies.GetEndpoints();
-        foreach (var endpointType in endpointsTypes)
-            services.AddScoped(endpointType);
     }
 
     public static IApplicationBuilder UseWsEndpoints(this IApplicationBuilder builder, Action<WsMiddlewareOptions> configure)
@@ -73,7 +33,68 @@ public static class WsMiddlewareExtensions
         configure(options);
         options.RequestMatcher ??= new PathWsRequestMatcher(options.RequestPath);
         options.HandshakeRequestMatcher ??= new HandshakeRequestMatcher(options.HandshakeRequestPath);
+
         return builder.UseMiddleware<WsMiddleware>(options);
+    }
+
+    private static IServiceCollection AddCoreServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
+        services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
+        services.AddSingleton<IWsService, WsService>();
+        services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddConnectionServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
+        services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
+        services.AddSingleton<IConnectionStateService, InMemoryConnectionStateService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddMessageProcessingServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
+        services.AddSingleton<IMethodResolver, DefaultMethodResolver>();
+        services.AddSingleton<IEndpointInvoker, EndpointInvoker>();
+        services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
+
+        services.AddSingleton<IMessageProcessorFactory, MessageProcessorFactory>();
+        services.AddSingleton<IMessageProcessor, SequentialMessageProcessor>();
+        services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddSerializationServices(this IServiceCollection services)
+    {
+        services.AddSingleton<ISerializerFactory, SerializerFactory>();
+        services.AddSingleton<ISerializer, JsonMessageSerializer>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddUtilityServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IClock, UtcClock>();
+        services.AddSingleton<IIdProvider, GuidIdProvider>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddEndpointServices(this IServiceCollection services, params Assembly[] assemblies)
+    {
+        services.AddHostedService((sp) => new WsEndpointInitializer(sp, assemblies));
+
+        var endpointsTypes = assemblies.GetEndpoints();
+        foreach (var endpointType in endpointsTypes)
+            services.AddScoped(endpointType);
+
+        return services;
     }
 
     public static IEnumerable<Type> GetEndpoints(this IEnumerable<Assembly> assemblies)
