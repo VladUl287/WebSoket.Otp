@@ -21,7 +21,7 @@ public sealed class ParallelMessageProcessor(
         ArgumentNullException.ThrowIfNull(options, nameof(options));
         ArgumentNullException.ThrowIfNull(options.Connection, nameof(options.Connection));
 
-        var pool = new AsyncObjectPool<IMessageBuffer>(options.MaxParallelProcessingPerConnection, () => bufferFactory.Create(options.Memory.InitialBufferSize));
+        var pool = new AsyncObjectPool<IMessageBuffer>(options.Memory.MaxBufferPoolSize, () => bufferFactory.Create(options.Memory.InitialBufferSize));
         await pool.Initilize();
         var tempBuffer = ArrayPool<byte>.Shared.Rent(options.Memory.InitialBufferSize);
 
