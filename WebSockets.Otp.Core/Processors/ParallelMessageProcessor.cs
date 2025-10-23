@@ -16,14 +16,12 @@ public sealed class ParallelMessageProcessor(
 
     public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
     {
-        ArgumentNullException.ThrowIfNull(connection, nameof(connection));
-        ArgumentNullException.ThrowIfNull(options, nameof(options));
+        var memoryOpt = options.Memory;
 
-        var pool = new AsyncObjectPool<IMessageBuffer>(options.Memory.MaxBufferPoolSize, () => bufferFactory.Create(options.Memory.InitialBufferSize));
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(options.Memory.InitialBufferSize);
+        var pool = new AsyncObjectPool<IMessageBuffer>(memoryOpt.MaxBufferPoolSize, () => bufferFactory.Create(memoryOpt.InitialBufferSize));
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(memoryOpt.InitialBufferSize);
 
-        var reclaimBuffer = options.Memory.ReclaimBuffersImmediately;
-
+        var reclaimBuffer = memoryOpt.ReclaimBuffersImmediately;
         var serializer = serializerFactory.Create(options.Connection.Protocol);
         try
         {
