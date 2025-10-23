@@ -1,5 +1,4 @@
 ﻿using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions;
 
 namespace WebSockets.Otp.Core;
 

@@ -1,6 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
-
-namespace WebSockets.Otp.Abstractions;
+﻿namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IEndpointInvoker
 {

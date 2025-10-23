@@ -2,7 +2,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Core.Exceptions;
 using WebSockets.Otp.Core.Extensions;
-using WebSockets.Otp.Abstractions;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.AspNet.Logging;
 

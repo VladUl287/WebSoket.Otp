@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 
-namespace WebSockets.Otp.Abstractions;
+namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IMethodResolver
 {

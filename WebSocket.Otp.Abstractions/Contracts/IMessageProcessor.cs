@@ -1,7 +1,6 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Options;
+﻿using WebSockets.Otp.Abstractions.Options;
 
-namespace WebSockets.Otp.Abstractions;
+namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IMessageProcessor
 {

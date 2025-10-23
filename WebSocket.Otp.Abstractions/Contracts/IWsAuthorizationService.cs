@@ -2,7 +2,7 @@
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Results;
 
-namespace WebSockets.Otp.Abstractions;
+namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IWsAuthorizationService
 {

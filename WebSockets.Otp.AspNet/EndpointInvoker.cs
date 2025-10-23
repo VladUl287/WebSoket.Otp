@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Reflection;
-using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.AspNet.Logging;
 using WebSockets.Otp.Core.Extensions;

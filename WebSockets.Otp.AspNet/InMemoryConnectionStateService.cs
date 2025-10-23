@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Collections.Concurrent;
-using WebSockets.Otp.Abstractions;
+using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.AspNet;

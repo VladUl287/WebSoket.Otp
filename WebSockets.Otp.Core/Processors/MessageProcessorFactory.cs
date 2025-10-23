@@ -1,5 +1,5 @@
 ﻿using System.Collections.Frozen;
-using WebSockets.Otp.Abstractions;
+using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Processors;
 
