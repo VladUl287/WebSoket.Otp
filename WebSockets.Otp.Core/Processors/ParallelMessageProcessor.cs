@@ -26,11 +26,12 @@ public sealed class ParallelMessageProcessor(
         try
         {
             var enumerable = EnumerateMessagesAsync(connection, options, pool, tempBuffer);
-            await Parallel.ForEachAsync(enumerable, new ParallelOptions
+            var parallelOptions = new ParallelOptions
             {
                 MaxDegreeOfParallelism = options.Processing.MaxParallelOperations,
                 CancellationToken = connection.Context.RequestAborted
-            }, async (buffer, token) =>
+            };
+            await Parallel.ForEachAsync(enumerable, parallelOptions, async (buffer, token) =>
             {
                 using var manager = buffer.Manager;
                 await dispatcher.DispatchMessage(connection, serializer, manager.Memory, token);
@@ -64,11 +65,6 @@ public sealed class ParallelMessageProcessor(
         while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
         {
             var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
-            if (wsMessage.MessageType is WebSocketMessageType.Close)
-            {
-                await connection.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                break;
-            }
 
             if (wsMessage.MessageType is WebSocketMessageType.Close)
             {
