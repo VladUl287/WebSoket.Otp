@@ -41,7 +41,7 @@ export const useChatWebSocket = (path: string = '/ws') => {
   })
 
   const connect = async () => {
-    connectionToken.value = await $fetch<string>(config.public.apiUrl + '/_handshake', {
+    connectionToken.value = await $fetch<string>(config.public.apiUrl + '/ws/_handshake', {
       headers: {
         Authorization: `Bearer ${token.value}`
       }

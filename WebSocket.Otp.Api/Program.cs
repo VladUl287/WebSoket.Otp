@@ -60,12 +60,9 @@ var app = builder.Build();
     app.UseWebSockets();
     app.UseWsEndpoints((opt) =>
     {
-        opt.RequestPath = "/ws";
-        opt.HandshakeRequestPath = "/_handshake";
-        opt.Authorization = new()
-        {
-            RequireAuthorization = true,
-        };
+        opt.Paths.RequestPath = "/ws";
+        opt.Paths.HandshakePath = "/ws/_handshake";
+        opt.Authorization.RequireAuthorization = true;
         opt.OnConnected = async (connection) =>
         {
             var userId = connection.Context.User.GetUserId<long>();

@@ -71,8 +71,8 @@ public sealed class WsMiddleware(
             return;
         }
 
-        options.Connection = await requestState.GetAsync(connectionTokenId, context.RequestAborted);
-        if (options is { Connection: null })
+        var connOptions = await requestState.GetAsync(connectionTokenId, context.RequestAborted);
+        if (connOptions is null)
         {
             logger.InvalidConnectionToken(connectionTokenId);
 
@@ -80,6 +80,8 @@ public sealed class WsMiddleware(
             await context.Response.WriteAsync("Invalid connection token");
             return;
         }
+
+        options.Connection = connOptions;
 
         if (options is { Connection.User: not null })
         {
@@ -102,9 +104,9 @@ public sealed class WsMiddleware(
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsHandshakeRequest(HttpContext context, WsMiddlewareOptions options) =>
-        options?.HandshakeRequestMatcher?.IsRequestMatch(context) is true;
+        options?.Paths.HandshakeRequestMatcher?.IsRequestMatch(context) is true;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsWebSocketRequest(HttpContext context, WsMiddlewareOptions options) =>
-        options?.RequestMatcher?.IsRequestMatch(context) is true;
+         options?.Paths.RequestMatcher?.IsRequestMatch(context) is true;
 }
