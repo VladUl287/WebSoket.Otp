@@ -4,6 +4,7 @@ using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.AspNet.Logging;
 using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.Core.Processors;
@@ -16,18 +17,20 @@ public sealed class ParallelMessageProcessor(
 
     public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
     {
-        var pool = new AsyncObjectPool<IMessageBuffer>(10, () =>
-        {
-            return bufferFactory.Create(options.InitialBufferSize);
-        });
+        ArgumentNullException.ThrowIfNull(connection, nameof(connection));
+        ArgumentNullException.ThrowIfNull(options, nameof(options));
+        ArgumentNullException.ThrowIfNull(options.Connection, nameof(options.Connection));
+
+        var pool = new AsyncObjectPool<IMessageBuffer>(options.MaxParallelProcessingPerConnection, () => bufferFactory.Create(options.InitialBufferSize));
         await pool.Initilize();
         var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
 
-        var serializer = serializerFactory.Create(options.Connection.Protocol);
         var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
+
+        var serializer = serializerFactory.Create(options.Connection.Protocol);
         try
         {
-            var enumerable = ParallelMessageProcessorLoop(connection, options, pool, tempBuffer);
+            var enumerable = EnumerateMessagesAsync(connection, options, pool, tempBuffer);
             await Parallel.ForEachAsync(enumerable, new ParallelOptions
             {
                 MaxDegreeOfParallelism = 10,
@@ -52,9 +55,13 @@ public sealed class ParallelMessageProcessor(
         }
     }
 
-    private async IAsyncEnumerable<IMessageBuffer> ParallelMessageProcessorLoop(
+    private async IAsyncEnumerable<IMessageBuffer> EnumerateMessagesAsync(
         IWsConnection connection, WsMiddlewareOptions options, AsyncObjectPool<IMessageBuffer> pool, byte[] tempBuffer)
     {
+        var connectionId = connection.Id;
+
+        var maxMessageSize = options.MaxMessageSize;
+
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;
 
@@ -68,16 +75,29 @@ public sealed class ParallelMessageProcessor(
                 break;
             }
 
+            if (wsMessage.MessageType is WebSocketMessageType.Close)
+            {
+                logger.LogCloseMessageReceived(connectionId);
+                await connection.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
+                break;
+            }
+
             buffer ??= await pool.Rent();
+
+            if (buffer.Length > maxMessageSize - wsMessage.Count)
+            {
+                logger.LogMessageTooBig(connectionId, buffer.Length, wsMessage.Count, maxMessageSize);
+                await connection.Socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
+                break;
+            }
+
             buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
 
             if (wsMessage.EndOfMessage)
             {
-                var result = buffer;
+                yield return buffer;
                 buffer = null;
-                yield return result;
             }
         }
     }
-
 }
