@@ -35,17 +35,17 @@ public sealed class WsMiddleware(
     private async Task HandleHandshakeRequestAsync(HttpContext context)
     {
         var connectionId = context.Connection.Id;
+
         logger.HandshakeRequestStarted(connectionId);
 
-        if (options is { Authorization.RequireAuthorization: true })
+        var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
+        if (authResult.Failed)
         {
-            var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
-            if (authResult.Failed)
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsync(authResult.FailureReason, context.RequestAborted);
-                return;
-            }
+            logger.HandshakeRequestAuthFailed(connectionId);
+
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context.Response.WriteAsync(authResult.FailureReason, context.RequestAborted);
+            return;
         }
 
         var connectionOptions = connectionFactory.CreateOptions(context, options);
