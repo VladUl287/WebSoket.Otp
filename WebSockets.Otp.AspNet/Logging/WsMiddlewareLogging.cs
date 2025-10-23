@@ -7,8 +7,8 @@ internal static partial class WsMiddlewareLogging
     [LoggerMessage(Level = LogLevel.Information, Message = "WebSocket handshake request started for {ConnectionId}")]
     internal static partial void HandshakeRequestStarted(this ILogger logger, string connectionId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "WebSocket handshake request authorization failed for {ConnectionId}")]
-    internal static partial void HandshakeRequestAuthFailed(this ILogger logger, string connectionId);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "WebSocket request authorization failed for {ConnectionId}")]
+    internal static partial void WebSocketRequestAuthFailed(this ILogger logger, string connectionId);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "WebSocket request matched")]
     internal static partial void WebSocketRequestMatched(this ILogger logger);

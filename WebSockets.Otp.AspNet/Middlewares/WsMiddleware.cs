@@ -41,7 +41,7 @@ public sealed class WsMiddleware(
         var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
         if (authResult.Failed)
         {
-            logger.HandshakeRequestAuthFailed(connectionId);
+            logger.WebSocketRequestAuthFailed(connectionId);
 
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsync(authResult.FailureReason, context.RequestAborted);
@@ -65,6 +65,7 @@ public sealed class WsMiddleware(
         if (string.IsNullOrEmpty(connectionTokenId))
         {
             logger.MissingConnectionToken(context.Connection.Id);
+
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync("Missing connection token");
             return;
@@ -74,6 +75,7 @@ public sealed class WsMiddleware(
         if (options is { Connection: null })
         {
             logger.InvalidConnectionToken(connectionTokenId);
+
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             await context.Response.WriteAsync("Invalid connection token");
             return;
@@ -81,12 +83,15 @@ public sealed class WsMiddleware(
 
         if (options is { Connection.User: not null })
         {
-            context.User = options.Connection.User;
             logger.UserContextSet(options.Connection.User.Identity?.Name ?? "Unknown");
+
+            context.User = options.Connection.User;
         }
 
         if (options is { Authorization.RequireAuthorization: true, Connection.User.Identity.IsAuthenticated: false })
         {
+            logger.WebSocketRequestAuthFailed(context.Connection.Id);
+
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context.Response.WriteAsync("Unauthorized");
             return;
