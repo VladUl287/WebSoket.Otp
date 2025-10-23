@@ -15,7 +15,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
     };
     private readonly JsonSerializerOptions Options = options ?? Default;
 
-    private const string _format = "JSON";
+    private const string _format = "json";
     public string Format => _format;
 
     public object Deserialize(Type type, ReadOnlyMemory<byte> payload)
