@@ -7,6 +7,6 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 public interface IWsConnectionFactory
 {
     IWsConnection Create(HttpContext context, WebSocket socket);
-    WsConnectionOptions CreateOptions(HttpContext context, WsMiddlewareOptions options);
+    ConnectionSettings CreateOptions(HttpContext context, WsMiddlewareOptions options);
     string GetConnectionToken(HttpContext context);
 }

@@ -13,13 +13,12 @@ public sealed class ParallelMessageProcessor(
     IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory, ISerializerFactory serializerFactory,
     ILogger<SequentialMessageProcessor> logger) : IMessageProcessor
 {
-    public string Name => MessageProcessingModes.Parallel;
+    public string Name => ProcessingMode.Parallel;
 
     public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
     {
         ArgumentNullException.ThrowIfNull(connection, nameof(connection));
         ArgumentNullException.ThrowIfNull(options, nameof(options));
-        ArgumentNullException.ThrowIfNull(options.Connection, nameof(options.Connection));
 
         var pool = new AsyncObjectPool<IMessageBuffer>(options.Memory.MaxBufferPoolSize, () => bufferFactory.Create(options.Memory.InitialBufferSize));
         await pool.Initilize();
@@ -33,7 +32,7 @@ public sealed class ParallelMessageProcessor(
             var enumerable = EnumerateMessagesAsync(connection, options, pool, tempBuffer);
             await Parallel.ForEachAsync(enumerable, new ParallelOptions
             {
-                MaxDegreeOfParallelism = 10,
+                MaxDegreeOfParallelism = options.Processing.MaxParallelOperations,
                 CancellationToken = connection.Context.RequestAborted
             }, async (buffer, token) =>
             {

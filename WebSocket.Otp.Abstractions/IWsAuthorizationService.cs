@@ -6,5 +6,5 @@ namespace WebSockets.Otp.Abstractions;
 
 public interface IWsAuthorizationService
 {
-    Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, WsAuthorizationOptions options);
+    Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, AuthorizationSettings options);
 }

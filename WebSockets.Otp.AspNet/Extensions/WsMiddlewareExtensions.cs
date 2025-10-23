@@ -29,10 +29,15 @@ public static class WsMiddlewareExtensions
 
     public static IApplicationBuilder UseWsEndpoints(this IApplicationBuilder builder, Action<WsMiddlewareOptions> configure)
     {
+        ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentNullException.ThrowIfNull(configure, nameof(configure));
+
         var options = new WsMiddlewareOptions();
         configure(options);
-        options.RequestMatcher ??= new DefaltWsRequestMatcher(options.RequestPath);
-        options.HandshakeRequestMatcher ??= new DefaultHandshakeRequestMatcher(options.HandshakeRequestPath);
+        options.Paths.RequestMatcher ??= new DefaltWsRequestMatcher(options.Paths.RequestPath);
+        options.Paths.HandshakeRequestMatcher ??= new DefaultHandshakeRequestMatcher(options.Paths.HandshakePath);
+
+        options.Validate();
 
         return builder.UseMiddleware<WsMiddleware>(options);
     }

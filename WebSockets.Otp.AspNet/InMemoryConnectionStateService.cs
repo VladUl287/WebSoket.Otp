@@ -7,21 +7,21 @@ namespace WebSockets.Otp.AspNet;
 
 public sealed class InMemoryConnectionStateService : IConnectionStateService
 {
-    private static readonly ConcurrentDictionary<string, WsConnectionOptions> _store = new();
+    private static readonly ConcurrentDictionary<string, ConnectionSettings> _store = new();
 
-    public Task<string> GenerateTokenId(HttpContext context, WsConnectionOptions options, CancellationToken token = default)
+    public Task<string> GenerateTokenId(HttpContext context, ConnectionSettings options, CancellationToken token = default)
     {
         var tokenId = Guid.CreateVersion7().ToString();
         _store[tokenId] = options;
         return Task.FromResult(tokenId);
     }
 
-    public Task<WsConnectionOptions?> GetAsync(string key, CancellationToken token = default)
+    public Task<ConnectionSettings?> GetAsync(string key, CancellationToken token = default)
     {
         if (_store.TryGetValue(key, out var value))
-            return Task.FromResult<WsConnectionOptions?>(value);
+            return Task.FromResult<ConnectionSettings?>(value);
 
-        return Task.FromResult<WsConnectionOptions?>(null);
+        return Task.FromResult<ConnectionSettings?>(null);
     }
 
     public Task RevokeAsync(string key, CancellationToken token = default)

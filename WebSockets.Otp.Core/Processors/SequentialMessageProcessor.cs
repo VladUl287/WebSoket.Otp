@@ -12,7 +12,7 @@ public sealed class SequentialMessageProcessor(
     IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory, ISerializerFactory serializerFactory,
     ILogger<SequentialMessageProcessor> logger) : IMessageProcessor
 {
-    public string Name => MessageProcessingModes.Sequential;
+    public string Name => ProcessingMode.Sequential;
 
     public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
     {
@@ -34,8 +34,6 @@ public sealed class SequentialMessageProcessor(
 
     private async Task SequentialMessageProcessoLoop(IWsConnection connection, WsMiddlewareOptions options, IMessageBuffer buffer, byte[] tempBuffer)
     {
-        ArgumentNullException.ThrowIfNull(options.Connection);
-
         var connectionId = connection.Id;
 
         var maxMessageSize = options.Memory.MaxMessageSize;

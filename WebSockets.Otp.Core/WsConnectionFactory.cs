@@ -13,9 +13,9 @@ public sealed class WsConnectionFactory(IIdProvider idProvider) : IWsConnectionF
         return new WsConnection(connectionId, context, socket);
     }
 
-    public WsConnectionOptions CreateOptions(HttpContext context, WsMiddlewareOptions options)
+    public ConnectionSettings CreateOptions(HttpContext context, WsMiddlewareOptions options)
     {
-        return new WsConnectionOptions
+        return new ConnectionSettings
         {
             User = context.User
         };

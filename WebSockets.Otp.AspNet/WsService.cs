@@ -36,7 +36,7 @@ public sealed partial class WsService(
             if (options.OnConnected is not null)
                 await SafeExecuteAsync((conn) => options.OnConnected(conn), connection, "OnConnected", logger);
 
-            var processor = processorFactory.Create(options.ProcessingMode);
+            var processor = processorFactory.Create(options.Processing.Mode);
             await processor.Process(connection, options);
         }
         finally

@@ -10,7 +10,7 @@ namespace WebSockets.Otp.AspNet.Authorization;
 
 public class WsAuthorizationService(IAuthorizationService authorizationService, ILogger<WsAuthorizationService> logger) : IWsAuthorizationService
 {
-    public virtual async Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, WsAuthorizationOptions options)
+    public virtual async Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, Abstractions.Options.AuthorizationSettings options)
     {
         if (options is null or { RequireAuthorization: false })
         {
