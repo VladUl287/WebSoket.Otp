@@ -9,6 +9,7 @@ using WebSockets.Otp.AspNet.Middlewares;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Helpers;
+using WebSockets.Otp.Core.Processors;
 
 namespace WebSockets.Otp.AspNet.Extensions;
 
@@ -41,11 +42,20 @@ public static class WsMiddlewareExtensions
 
         services.AddSerializers();
 
+        services.AddProcessors();
+
         services.AddSingleton<IConnectionStateService, InMemoryConnectionStateService>();
 
         services.AddEndpoints(assemblies);
 
         return services;
+    }
+
+    private static void AddProcessors(this IServiceCollection services)
+    {
+        services.AddSingleton<IMessageProcessorFactory, MessageProcessorFactory>();
+        services.AddSingleton<IMessageProcessor, SequentialMessageProcessor>();
+        services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
     }
 
     private static void AddSerializers(this IServiceCollection services)

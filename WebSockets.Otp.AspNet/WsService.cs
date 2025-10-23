@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -10,8 +9,8 @@ using WebSockets.Otp.AspNet.Logging;
 namespace WebSockets.Otp.AspNet;
 
 public sealed partial class WsService(
-    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageBufferFactory bufferFactory,
-    IMessageDispatcher dispatcher, ISerializerFactory serializerFactory, ILogger<WsService> logger) : IWsService
+    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageProcessorFactory processorFactory,
+    ILogger<WsService> logger) : IWsService
 {
     public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
@@ -37,7 +36,8 @@ public sealed partial class WsService(
             if (options.OnConnected is not null)
                 await SafeExecuteAsync((conn) => options.OnConnected(conn), connection, "OnConnected", logger);
 
-            await ProcessMessagesAsync(connection, options);
+            var processor = processorFactory.Create(options.ProcessingMode);
+            await processor.Process(connection, options);
         }
         finally
         {
@@ -46,86 +46,6 @@ public sealed partial class WsService(
 
             if (options.OnDisconnected is not null)
                 await SafeExecuteAsync((conn) => options.OnDisconnected(conn), connection, "OnDisconnected", logger);
-        }
-    }
-
-    public async Task ProcessMessagesAsync(IWsConnection connection, WsMiddlewareOptions options)
-    {
-        var buffer = bufferFactory.Create(options.InitialBufferSize);
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(options.InitialBufferSize);
-        try
-        {
-            await SequentialMessageProcessor(connection, options, buffer, tempBuffer);
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(tempBuffer);
-            buffer.Dispose();
-        }
-    }
-
-    private async Task SequentialMessageProcessor(IWsConnection connection, WsMiddlewareOptions options, IMessageBuffer buffer, byte[] tempBuffer)
-    {
-        var connectionId = connection.Id;
-        logger.LogStartingMessageProcessing(connectionId);
-
-        var maxMessageSize = options.MaxMessageSize;
-        var reclaimBufferAfterEachMessage = options.ReclaimBufferAfterEachMessage;
-
-        var socket = connection.Socket;
-        var token = connection.Context.RequestAborted;
-
-        var serializer = serializerFactory.Create(options.Connection.Protocol);
-        try
-        {
-            while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
-            {
-                var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
-
-                logger.LogMessageChunkReceived(connectionId, wsMessage.Count, buffer.Length, wsMessage.EndOfMessage);
-
-                if (wsMessage.MessageType is WebSocketMessageType.Close)
-                {
-                    logger.LogCloseMessageReceived(connectionId);
-                    await connection.Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
-                    break;
-                }
-
-                if (buffer.Length > maxMessageSize - wsMessage.Count)
-                {
-                    logger.LogMessageTooBig(connectionId, buffer.Length, wsMessage.Count, maxMessageSize);
-                    await connection.Socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
-                    break;
-                }
-
-                buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
-
-                if (wsMessage.EndOfMessage)
-                {
-                    logger.LogProcessingCompleteMessage(connectionId, buffer.Length);
-
-                    using var manager = buffer.Manager;
-                    await dispatcher.DispatchMessage(connection, serializer, manager.Memory, token);
-
-                    buffer.SetLength(0);
-
-                    if (reclaimBufferAfterEachMessage)
-                    {
-                        var previousSize = buffer.Capacity;
-                        buffer.Shrink();
-                        logger.LogBufferReclaimed(connectionId, previousSize, buffer.Capacity);
-                    }
-                }
-            }
-        }
-        catch (OperationCanceledException) when (token.IsCancellationRequested)
-        {
-            logger.LogMessageProcessingCompleted(connectionId, "Request cancelled");
-        }
-        catch (Exception ex)
-        {
-            logger.LogMessageProcessingError(ex, connectionId);
-            throw;
         }
     }
 
