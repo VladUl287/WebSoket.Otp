@@ -31,8 +31,8 @@ public static class WsMiddlewareExtensions
     {
         var options = new WsMiddlewareOptions();
         configure(options);
-        options.RequestMatcher ??= new PathWsRequestMatcher(options.RequestPath);
-        options.HandshakeRequestMatcher ??= new HandshakeRequestMatcher(options.HandshakeRequestPath);
+        options.RequestMatcher ??= new DefaltWsRequestMatcher(options.RequestPath);
+        options.HandshakeRequestMatcher ??= new DefaultHandshakeRequestMatcher(options.HandshakeRequestPath);
 
         return builder.UseMiddleware<WsMiddleware>(options);
     }
