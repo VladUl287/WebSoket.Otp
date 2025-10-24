@@ -37,7 +37,6 @@ public static class WsMiddlewareExtensions
         var options = new WsMiddlewareOptions();
         configure(options);
         options.Paths.RequestMatcher ??= new DefaltWsRequestMatcher(options.Paths.RequestPath);
-        options.Paths.HandshakeRequestMatcher ??= new DefaultHandshakeRequestMatcher(options.Paths.HandshakePath);
 
         options.Validate();
 

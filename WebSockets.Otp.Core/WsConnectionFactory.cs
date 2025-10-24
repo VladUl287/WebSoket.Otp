@@ -13,15 +13,7 @@ public sealed class WsConnectionFactory(IIdProvider idProvider) : IWsConnectionF
         return new WsConnection(connectionId, context, socket);
     }
 
-    public ConnectionSettings CreateOptions(HttpContext context, WsMiddlewareOptions options)
-    {
-        return new ConnectionSettings
-        {
-            User = context.User
-        };
-    }
-
-    public string GetConnectionToken(HttpContext context)
+    public string GetConnectionTokenId(HttpContext context)
     {
         const string queryKey = "id";
 

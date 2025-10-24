@@ -15,12 +15,11 @@ public sealed class SerializerFactory : ISerializerFactory
         _store = store.ToFrozenDictionary();
     }
 
-    public ISerializer Create(string format)
+    public ISerializer? Create(string format)
     {
         if (_store.TryGetValue(format, out var serializer))
-        {
             return serializer;
-        }
-        throw new NotImplementedException();
+
+        return null;
     }
 }

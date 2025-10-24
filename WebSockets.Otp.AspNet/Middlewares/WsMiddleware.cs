@@ -9,15 +9,15 @@ namespace WebSockets.Otp.AspNet.Middlewares;
 
 public sealed class WsMiddleware(
     RequestDelegate next, IWsService wsService, IConnectionStateService requestState,
-    IWsConnectionFactory connectionFactory, IWsAuthorizationService authService, ILogger<WsMiddleware> logger,
-    WsMiddlewareOptions options)
+    IWsConnectionFactory connectionFactory, ILogger<WsMiddleware> logger,
+    IHandshakeRequestProcessor handshakeProcessor, WsMiddlewareOptions options)
 {
     public Task InvokeAsync(HttpContext context)
     {
         try
         {
-            if (IsHandshakeRequest(context, options))
-                return HandleHandshakeRequestAsync(context);
+            if (handshakeProcessor.IsHandshakeRequest(context, options))
+                return handshakeProcessor.HandleRequestAsync(context, options);
 
             if (IsWebSocketRequest(context, options))
                 return HandleWebSocketRequestAsync(context);
@@ -31,36 +31,9 @@ public sealed class WsMiddleware(
         }
     }
 
-    private async Task HandleHandshakeRequestAsync(HttpContext context)
-    {
-        var connectionId = context.Connection.Id;
-
-        logger.HandshakeRequestStarted(connectionId);
-
-        var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
-        if (authResult.Failed)
-        {
-            logger.WebSocketRequestAuthFailed(connectionId);
-
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-            await context.Response.WriteAsync(authResult.FailureReason, context.RequestAborted);
-            return;
-        }
-
-        var connectionOptions = connectionFactory.CreateOptions(context, options);
-        var connectionTokenId = await requestState.GenerateTokenId(context, connectionOptions, context.RequestAborted);
-
-        logger.ConnectionTokenGenerated(connectionTokenId, connectionId);
-
-        context.Response.StatusCode = StatusCodes.Status200OK;
-        await context.Response.WriteAsync(connectionTokenId, context.RequestAborted);
-
-        logger.HandshakeCompleted(connectionId);
-    }
-
     private async Task HandleWebSocketRequestAsync(HttpContext context)
     {
-        var connectionTokenId = connectionFactory.GetConnectionToken(context);
+        var connectionTokenId = connectionFactory.GetConnectionTokenId(context);
         if (string.IsNullOrEmpty(connectionTokenId))
         {
             logger.MissingConnectionToken(context.Connection.Id);
@@ -100,10 +73,6 @@ public sealed class WsMiddleware(
 
         await wsService.HandleWebSocketRequestAsync(context, options);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsHandshakeRequest(HttpContext context, WsMiddlewareOptions options) =>
-        options?.Paths.HandshakeRequestMatcher?.IsRequestMatch(context) is true;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsWebSocketRequest(HttpContext context, WsMiddlewareOptions options) =>

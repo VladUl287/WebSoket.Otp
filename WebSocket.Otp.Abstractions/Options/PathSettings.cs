@@ -9,5 +9,4 @@ public sealed class PathSettings
     public PathString HandshakePath { get; set; } = "/ws/_handshake";
 
     public IWsRequestMatcher RequestMatcher { get; set; } = default!;
-    public IWsRequestMatcher HandshakeRequestMatcher { get; set; } = default!;
 }
