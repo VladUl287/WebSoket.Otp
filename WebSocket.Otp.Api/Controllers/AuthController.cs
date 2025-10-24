@@ -28,7 +28,7 @@ public class AuthController(DatabaseContext database) : ControllerBase
                 new Claim(ClaimTypes.NameIdentifier.ToString(), user.Id.ToString()),
                 new Claim(ClaimTypes.Name.ToString(), user.Name)
             ]),
-            Expires = DateTime.UtcNow.AddHours(1),
+            Expires = DateTime.UtcNow.AddDays(10),
             SigningCredentials = new SigningCredentials(
                 new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256Signature)
