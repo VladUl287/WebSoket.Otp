@@ -3,11 +3,11 @@
     <header class="flex justify-between items-center mb-5 p-4 bg-gray-800 text-white rounded-lg shadow-md">
       <h2>WebSocket Chat</h2>
       <div class="px-3 py-1.5 rounded-full text-xs font-bold uppercase" :class="{
-        'bg-green-800': status.toLowerCase() === 'open',
-        'bg-red-800': status.toLowerCase() === 'closed',
-        'bg-yellow-800': status.toLowerCase() === 'connecting'
+        'bg-green-800': wsStatus === 'OPEN',
+        'bg-red-800': wsStatus === 'CLOSED',
+        'bg-yellow-800': wsStatus === 'CONNECTING'
       }">
-        {{ status }}
+        {{ wsStatus }}
       </div>
     </header>
 
@@ -51,12 +51,25 @@ const config = useRuntimeConfig()
 const wsUrl = `${config.public.wsUrl}/ws`
 const handshakeUrl = `${config.public.apiUrl}/ws/_handshake`
 
+const debounce = <T extends (...args: any[]) => any>(fn: T, delay: number) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => fn(...args), delay)
+  }
+}
+
 const { status, connect, disconnect, send } = useOtpWebSocket({
   path: wsUrl,
   handshakePath: handshakeUrl,
   handlers: handlers,
   token: () => `Bearer ${token.value}`
 })
+
+const wsStatus = ref<WebSocketStatus>('CLOSED')
+const setStatus = (status: WebSocketStatus) => (wsStatus.value = status)
+const debounceStatus = debounce(setStatus, 200)
+watch(() => status.value, debounceStatus)
 
 const newMessage = ref('')
 

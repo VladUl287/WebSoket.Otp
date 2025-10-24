@@ -1,5 +1,7 @@
 import type { WsMessage, ChatMessage } from "~/types/message"
 
+export type WebSocketStatus = 'OPEN' | 'CONNECTING' | 'CLOSED';
+
 export type WsHandler = (message: WsMessage) => void
 export type WsOptions = {
   path: MaybeRefOrGetter<string>
@@ -18,7 +20,7 @@ export type WsOptions = {
 }
 
 interface WsReturn {
-  status: Ref<string>
+  status: Ref<WebSocketStatus>
   send: (data: any) => void
   connect: () => Promise<boolean>
   disconnect: () => void
