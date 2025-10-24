@@ -72,8 +72,8 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
             {
                 reader.Read();
                 return reader.HasValueSequence ?
-                    stringIntern.Intern(reader.ValueSequence) :
-                    stringIntern.Intern(reader.ValueSpan);
+                    stringIntern.Get(reader.ValueSequence) :
+                    stringIntern.Get(reader.ValueSpan);
             }
 
             reader.Skip();

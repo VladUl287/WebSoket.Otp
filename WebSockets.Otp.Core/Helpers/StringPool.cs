@@ -1,5 +1,4 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Collections.Frozen;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
@@ -32,7 +31,7 @@ public sealed class StringPool : IStringPool
         _map = map.ToFrozenDictionary();
     }
 
-    public string Intern(ReadOnlySpan<byte> bytes)
+    public string Get(ReadOnlySpan<byte> bytes)
     {
         var hashCode = GetHashCode(bytes);
 
@@ -42,10 +41,10 @@ public sealed class StringPool : IStringPool
         return _encoding.GetString(bytes);
     }
 
-    public string Intern(ReadOnlySequence<byte> bytes)
+    public string Get(ReadOnlySequence<byte> bytes)
     {
         if (bytes.IsSingleSegment)
-            return Intern(bytes.FirstSpan);
+            return Get(bytes.FirstSpan);
 
         var hashCode = GetHashCode(bytes);
 

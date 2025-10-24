@@ -92,7 +92,7 @@ public class ExtractFieldBenchmark
             if (reader.ValueTextEquals(keyField))
             {
                 reader.Read();
-                return pool.Intern(reader.ValueSpan);
+                return pool.Get(reader.ValueSpan);
             }
 
             reader.Skip();
