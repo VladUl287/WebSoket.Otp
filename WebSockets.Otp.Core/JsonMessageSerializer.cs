@@ -55,4 +55,29 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         }
         return null;
     }
+
+    public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8, IStringIntern stringIntern)
+    {
+        if (string.IsNullOrEmpty(field))
+            throw new ArgumentException("Field name cannot be null or empty", nameof(field));
+
+        var reader = new Utf8JsonReader(jsonUtf8.Span);
+        var keyField = field.AsSpan();
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(keyField))
+            {
+                reader.Read();
+                return reader.HasValueSequence ?
+                    stringIntern.Intern(reader.ValueSequence) :
+                    stringIntern.Intern(reader.ValueSpan);
+            }
+
+            reader.Skip();
+        }
+        return null;
+    }
 }

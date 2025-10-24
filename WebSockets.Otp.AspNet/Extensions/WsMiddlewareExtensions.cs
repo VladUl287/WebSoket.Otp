@@ -1,10 +1,13 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using System.Data;
 using System.Reflection;
+using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.AspNet.Authorization;
 using WebSockets.Otp.AspNet.Middlewares;
+using WebSockets.Otp.AspNet.Validators;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Helpers;
@@ -21,7 +24,7 @@ public static class WsMiddlewareExtensions
         services.AddMessageProcessingServices();
         services.AddSerializationServices();
         services.AddUtilityServices();
-        services.AddEndpointServices(assemblies);
+        services.AddEndpointServices(WsEndpointAttributeOptions.Default, assemblies);
 
         return services;
     }
@@ -90,31 +93,45 @@ public static class WsMiddlewareExtensions
         return services;
     }
 
-    private static IServiceCollection AddEndpointServices(this IServiceCollection services, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpointServices(this IServiceCollection services, WsEndpointAttributeOptions options, params Assembly[] assemblies)
     {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(assemblies);
+
         services.AddHostedService((sp) => new WsEndpointInitializer(sp, assemblies));
+        services.AddSingleton(options);
 
         var endpointsTypes = assemblies.GetEndpoints();
+        var endpointsKeys = new HashSet<string>(StringComparer.Ordinal);
         foreach (var endpointType in endpointsTypes)
-            services.AddScoped(endpointType);
+        {
+            var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
+                throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
+
+            var key = attribute.Validate(options).Key;
+
+            if (!endpointsKeys.Add(attribute.Key))
+                throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {key} in type {endpointType.Name}");
+
+            _ = attribute.Scope switch
+            {
+                ServiceLifetime.Singleton => services.AddSingleton(endpointType),
+                ServiceLifetime.Transient => services.AddTransient(endpointType),
+                _ => services.AddScoped(endpointType)
+            };
+        }
+        services.AddSingleton<IStringIntern>(new StringIntern(endpointsKeys, System.Text.Encoding.UTF8));
 
         return services;
     }
 
     public static IEnumerable<Type> GetEndpoints(this IEnumerable<Assembly> assemblies)
     {
-        ArgumentNullException.ThrowIfNull(assemblies, nameof(assemblies));
+        ArgumentNullException.ThrowIfNull(assemblies);
 
-        foreach (var assembly in assemblies)
-        {
-            var types = assembly
-                .GetTypes()
-                .Where(t => t.IsWsEndpoint());
-
-            foreach (var type in types)
-            {
-                yield return type;
-            }
-        }
+        return assemblies
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => type.IsWsEndpoint());
     }
 }

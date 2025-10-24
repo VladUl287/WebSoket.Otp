@@ -1,7 +1,8 @@
 ﻿using BenchmarkDotNet.Attributes;
-using System.Buffers;
+using CommunityToolkit.HighPerformance.Buffers;
 using System.Text;
 using System.Text.Json;
+using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.Benchmark;
@@ -25,34 +26,35 @@ public class ExtractFieldBenchmark
     public const string KeyField = "key";
     public ReadOnlyMemory<char> KeyFieldMemory = "key".AsMemory();
 
-    [Benchmark]
-    public string? Small_ExtractField_Parse()
-    {
-        using var doc = JsonDocument.Parse(SmallMessageBytes);
-        doc.RootElement.TryGetProperty(KeyField, out var element);
-        return element.GetString();
-    }
 
-    [Benchmark]
-    public string? Small_ExtractField_Reader_Optimized()
-    {
-        var reader = new Utf8JsonReader(SmallMessageBytes.Span);
-        var keyField = KeyFieldMemory.Span;
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
+    //[Benchmark]
+    //public string? Small_ExtractField_Parse()
+    //{
+    //    using var doc = JsonDocument.Parse(SmallMessageBytes);
+    //    doc.RootElement.TryGetProperty(KeyField, out var element);
+    //    return element.GetString();
+    //}
 
-            if (reader.ValueTextEquals(keyField))
-            {
-                reader.Read();
-                return reader.GetString();
-            }
+    //[Benchmark]
+    //public string? Small_ExtractField_Reader_Optimized()
+    //{
+    //    var reader = new Utf8JsonReader(SmallMessageBytes.Span);
+    //    var keyField = KeyFieldMemory.Span;
+    //    while (reader.Read())
+    //    {
+    //        if (reader.TokenType is not JsonTokenType.PropertyName)
+    //            continue;
 
-            reader.Skip();
-        }
-        return null;
-    }
+    //        if (reader.ValueTextEquals(keyField))
+    //        {
+    //            reader.Read();
+    //            return reader.GetString();
+    //        }
+
+    //        reader.Skip();
+    //    }
+    //    return null;
+    //}
 
     [Benchmark]
     public string? Small_ExtractField_Reader_Interned_Custom()
@@ -67,7 +69,7 @@ public class ExtractFieldBenchmark
             if (reader.ValueTextEquals(keyField))
             {
                 reader.Read();
-                return StringIntern.Intern(reader.ValueSpan);
+                //return StringIntern.Intern(reader.ValueSpan);
             }
 
             reader.Skip();
@@ -75,65 +77,13 @@ public class ExtractFieldBenchmark
         return null;
     }
 
+    private static readonly IStringIntern pool = new StringIntern(["chat-message"], Encoding.UTF8);
+
     [Benchmark]
-    public string? Small_ExtractField_Reader()
+    public string? Small_ExtractField_Reader_Interned_IStringIntern()
     {
         var reader = new Utf8JsonReader(SmallMessageBytes.Span);
-
-        string? property = null;
-        while (reader.Read())
-        {
-            var tokenType = reader.TokenType;
-            switch (tokenType)
-            {
-                case JsonTokenType.PropertyName:
-                    property = reader.GetString();
-                    break;
-                case JsonTokenType.String when property == KeyField:
-                    return reader.GetString();
-            }
-        }
-
-        return null;
-    }
-
-    [Benchmark]
-    public string? Worst_ExtractField_Parse()
-    {
-        using var doc = JsonDocument.Parse(WorstOrderMessageBytes);
-        doc.RootElement.TryGetProperty(KeyField, out var element);
-        return element.GetString();
-    }
-
-    [Benchmark]
-    public string? Worst_ExtractField_Reader()
-    {
-        var reader = new Utf8JsonReader(WorstOrderMessageBytes.Span);
-
-        string? property = null;
-        while (reader.Read())
-        {
-            var tokenType = reader.TokenType;
-            switch (tokenType)
-            {
-                case JsonTokenType.PropertyName:
-                    property = reader.GetString();
-                    break;
-                case JsonTokenType.String when property == KeyField:
-                    return reader.GetString();
-            }
-        }
-
-        return null;
-    }
-
-    [Benchmark]
-    public string? Worst_ExtractField_Reader_Optimized()
-    {
-        var reader = new Utf8JsonReader(WorstOrderMessageBytes.Span);
-
-        ReadOnlySpan<char> keyField = KeyFieldMemory.Span;
-
+        var keyField = KeyFieldMemory.Span;
         while (reader.Read())
         {
             if (reader.TokenType is not JsonTokenType.PropertyName)
@@ -142,22 +92,21 @@ public class ExtractFieldBenchmark
             if (reader.ValueTextEquals(keyField))
             {
                 reader.Read();
-                return reader.GetString();
+                return pool.Intern(reader.ValueSpan);
             }
 
             reader.Skip();
         }
-
         return null;
     }
 
+    private static readonly StringPool stringPool = new(10);
+
     [Benchmark]
-    public ReadOnlySpan<byte> Worst_ExtractField_Reader_Optimized_AsBytes()
+    public string? Small_ExtractField_Reader_Interned_StringPool()
     {
-        var reader = new Utf8JsonReader(WorstOrderMessageBytes.Span);
-
-        ReadOnlySpan<char> keyField = KeyFieldMemory.Span;
-
+        var reader = new Utf8JsonReader(SmallMessageBytes.Span);
+        var keyField = KeyFieldMemory.Span;
         while (reader.Read())
         {
             if (reader.TokenType is not JsonTokenType.PropertyName)
@@ -166,15 +115,114 @@ public class ExtractFieldBenchmark
             if (reader.ValueTextEquals(keyField))
             {
                 reader.Read();
-
-                return reader.HasValueSequence ?
-                    reader.ValueSequence.ToArray() :
-                    reader.ValueSpan;
+                return stringPool.GetOrAdd(reader.ValueSpan, Encoding.UTF8);
             }
 
             reader.Skip();
         }
-
         return null;
     }
+
+    //[Benchmark]
+    //public string? Small_ExtractField_Reader()
+    //{
+    //    var reader = new Utf8JsonReader(SmallMessageBytes.Span);
+
+    //    string? property = null;
+    //    while (reader.Read())
+    //    {
+    //        var tokenType = reader.TokenType;
+    //        switch (tokenType)
+    //        {
+    //            case JsonTokenType.PropertyName:
+    //                property = reader.GetString();
+    //                break;
+    //            case JsonTokenType.String when property == KeyField:
+    //                return reader.GetString();
+    //        }
+    //    }
+
+    //    return null;
+    //}
+
+    //[Benchmark]
+    //public string? Worst_ExtractField_Parse()
+    //{
+    //    using var doc = JsonDocument.Parse(WorstOrderMessageBytes);
+    //    doc.RootElement.TryGetProperty(KeyField, out var element);
+    //    return element.GetString();
+    //}
+
+    //[Benchmark]
+    //public string? Worst_ExtractField_Reader()
+    //{
+    //    var reader = new Utf8JsonReader(WorstOrderMessageBytes.Span);
+
+    //    string? property = null;
+    //    while (reader.Read())
+    //    {
+    //        var tokenType = reader.TokenType;
+    //        switch (tokenType)
+    //        {
+    //            case JsonTokenType.PropertyName:
+    //                property = reader.GetString();
+    //                break;
+    //            case JsonTokenType.String when property == KeyField:
+    //                return reader.GetString();
+    //        }
+    //    }
+
+    //    return null;
+    //}
+
+    //[Benchmark]
+    //public string? Worst_ExtractField_Reader_Optimized()
+    //{
+    //    var reader = new Utf8JsonReader(WorstOrderMessageBytes.Span);
+
+    //    ReadOnlySpan<char> keyField = KeyFieldMemory.Span;
+
+    //    while (reader.Read())
+    //    {
+    //        if (reader.TokenType is not JsonTokenType.PropertyName)
+    //            continue;
+
+    //        if (reader.ValueTextEquals(keyField))
+    //        {
+    //            reader.Read();
+    //            return reader.GetString();
+    //        }
+
+    //        reader.Skip();
+    //    }
+
+    //    return null;
+    //}
+
+    //[Benchmark]
+    //public ReadOnlySpan<byte> Worst_ExtractField_Reader_Optimized_AsBytes()
+    //{
+    //    var reader = new Utf8JsonReader(WorstOrderMessageBytes.Span);
+
+    //    ReadOnlySpan<char> keyField = KeyFieldMemory.Span;
+
+    //    while (reader.Read())
+    //    {
+    //        if (reader.TokenType is not JsonTokenType.PropertyName)
+    //            continue;
+
+    //        if (reader.ValueTextEquals(keyField))
+    //        {
+    //            reader.Read();
+
+    //            return reader.HasValueSequence ?
+    //                reader.ValueSequence.ToArray() :
+    //                reader.ValueSpan;
+    //        }
+
+    //        reader.Skip();
+    //    }
+
+    //    return null;
+    //}
 }

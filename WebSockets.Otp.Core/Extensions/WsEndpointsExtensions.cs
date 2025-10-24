@@ -10,7 +10,9 @@ public static class WsEndpointsExtensions
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsWsEndpoint(this Type type) =>
-        !type.IsAbstract && type.IsAssignableTo(typeof(IWsEndpoint)) && type.GetCustomAttribute<WsEndpointAttribute>() is not null;
+        type is { IsAbstract: false } && 
+        type.IsAssignableTo(typeof(IWsEndpoint)) && 
+        type.GetCustomAttribute<WsEndpointAttribute>() is not null;
 
     public static bool AcceptsRequestMessages(this Type type)
     {

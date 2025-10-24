@@ -1,22 +1,70 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Buffers;
+using System.Collections.Frozen;
 using System.IO.Hashing;
+using System.Runtime.CompilerServices;
 using System.Text;
+using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Helpers;
 
-public static class StringIntern
+public sealed class StringIntern : IStringIntern
 {
-    private static readonly ConcurrentDictionary<ulong, string> map = new();
+    private readonly FrozenDictionary<ulong, string> _map;
+    private readonly Encoding _encoding;
 
-    public static string Intern(ReadOnlySpan<byte> utf8Bytes)
+    public StringIntern(IEnumerable<string> knownStrings, Encoding encoding)
     {
-        var hashCode = XxHash64.HashToUInt64(utf8Bytes);
+        _encoding = encoding;
 
-        if (map.TryGetValue(hashCode, out var internedValue))
+        var map = new Dictionary<ulong, string>();
+        foreach (var precomputed in knownStrings)
+        {
+            var precomputedBytes = _encoding.GetBytes(precomputed);
+            var hashCode = GetHashCode(precomputedBytes);
+
+            if (map.TryGetValue(hashCode, out var stored))
+                throw new InvalidOperationException($"Collision detected for: {precomputed} and {stored}");
+
+            map[hashCode] = precomputed;
+        }
+
+        _map = map.ToFrozenDictionary();
+    }
+
+    public string Intern(ReadOnlySpan<byte> bytes)
+    {
+        var hashCode = GetHashCode(bytes);
+
+        if (_map.TryGetValue(hashCode, out var internedValue))
             return internedValue;
 
-        internedValue = Encoding.UTF8.GetString(utf8Bytes);
-        map[hashCode] = internedValue;
-        return internedValue;
+        return _encoding.GetString(bytes);
+    }
+
+    public string Intern(ReadOnlySequence<byte> bytes)
+    {
+        if (bytes.IsSingleSegment)
+            return Intern(bytes.FirstSpan);
+
+        var hashCode = GetHashCode(bytes);
+
+        if (_map.TryGetValue(hashCode, out var internedValue))
+            return internedValue;
+
+        return _encoding.GetString(bytes);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ulong GetHashCode(ReadOnlySpan<byte> bytes) => XxHash3.HashToUInt64(bytes);
+
+    private static ulong GetHashCode(ReadOnlySequence<byte> bytes)
+    {
+        if (bytes.IsSingleSegment)
+            return GetHashCode(bytes.FirstSpan);
+
+        var hasher = new XxHash3();
+        foreach (var segment in bytes)
+            hasher.Append(segment.Span);
+        return hasher.GetCurrentHashAsUInt64();
     }
 }
