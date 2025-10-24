@@ -1,7 +1,7 @@
 <template>
   <div class="p-5 flex flex-col h-full bg-gray-900">
     <header class="flex justify-between items-center mb-5 p-4 bg-gray-800 text-white rounded-lg shadow-md">
-      <h2>WebSocket Chat</h2>
+      <h2 class="text-xl font-semibold">WebSocket Chat</h2>
       <div class="px-3 py-1.5 rounded-full text-xs font-bold uppercase" :class="{
         'bg-green-800': wsStatus === 'OPEN',
         'bg-red-800': wsStatus === 'CLOSED',
@@ -12,19 +12,22 @@
     </header>
 
     <div class="flex-1 overflow-y-auto p-4 bg-gray-800 rounded-lg shadow-md mb-5" ref="messagesContainer">
-      <div v-for="(message, index) in messages" :key="index" class="message">
-        <div class="message-header">
-          <span class="timestamp">{{ formatTimestamp(message.timestamp) }}</span>
+      <div v-for="(message, index) in messages" :key="index"
+        class="mb-4 p-3 rounded-lg bg-blue-50 border-l-4 border-blue-500">
+        <div class="flex justify-between mb-1">
+          <span class="text-xs text-gray-600">{{ formatTimestamp(message.timestamp) }}</span>
         </div>
-        <div class="message-content">{{ message.content }}</div>
+        <div class="text-sm text-gray-800 leading-relaxed">{{ message.content }}</div>
       </div>
     </div>
 
     <div class="p-5 rounded-lg bg-gray-800 shadow-md">
-      <div class="message-input-group" :class="{ disabled: !isConnected }">
-        <input v-model="newMessage" placeholder="Type your message..." class="message-input"
+      <div class="flex gap-3" :class="{ 'opacity-60': !isConnected }">
+        <input v-model="newMessage" placeholder="Type your message..."
+          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           @keyup.enter="sendMessage({ chatId })" :disabled="!isConnected" />
-        <button @click="sendMessage({ chatId })" :disabled="!isConnected || !newMessage.trim()" class="send-btn">
+        <button @click="sendMessage({ chatId })" :disabled="!isConnected || !newMessage.trim()"
+          class="px-4 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
           Send
         </button>
       </div>
@@ -121,69 +124,3 @@ watch(messages, () => {
   })
 }, { deep: true })
 </script>
-
-<style scoped>
-.message {
-  margin-bottom: 15px;
-  padding: 12px;
-  border-radius: 8px;
-  background-color: #e3f2fd;
-  border-left: 4px solid #2196f3;
-}
-
-.message-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-  font-size: 12px;
-  color: #666;
-}
-
-.message-content {
-  font-size: 14px;
-  line-height: 1.4;
-  color: #333;
-}
-
-.connection-controls {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.message-input-group {
-  display: flex;
-  gap: 10px;
-}
-
-.message-input-group.disabled {
-  opacity: 0.6;
-}
-
-.message-input {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-.send-btn {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 6px;
-  background-color: #2196f3;
-  color: white;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.send-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.send-btn:hover:not(:disabled) {
-  background-color: #1976d2;
-}
-</style>
