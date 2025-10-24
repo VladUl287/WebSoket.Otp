@@ -9,7 +9,7 @@ namespace WebSockets.Otp.AspNet;
 
 public class MessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory, 
-    IEndpointInvoker invoker, IStringIntern keyStringIntern, ILogger<MessageDispatcher> logger) : IMessageDispatcher
+    IEndpointInvoker invoker, IStringPool keyStringIntern, ILogger<MessageDispatcher> logger) : IMessageDispatcher
 {
     private static readonly string KeyField = nameof(WsMessage.Key).ToLowerInvariant();
 

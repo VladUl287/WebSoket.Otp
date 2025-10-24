@@ -121,7 +121,7 @@ public static class WsMiddlewareExtensions
                 _ => services.AddScoped(endpointType)
             };
         }
-        services.AddSingleton<IStringIntern>(new StringIntern(endpointsKeys, System.Text.Encoding.UTF8));
+        services.AddSingleton<IStringPool>(new StringPool(endpointsKeys, System.Text.Encoding.UTF8));
 
         return services;
     }

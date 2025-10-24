@@ -56,7 +56,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return null;
     }
 
-    public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8, IStringIntern stringIntern)
+    public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8, IStringPool stringIntern)
     {
         if (string.IsNullOrEmpty(field))
             throw new ArgumentException("Field name cannot be null or empty", nameof(field));

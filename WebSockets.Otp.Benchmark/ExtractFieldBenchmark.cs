@@ -77,7 +77,7 @@ public class ExtractFieldBenchmark
         return null;
     }
 
-    private static readonly IStringIntern pool = new StringIntern(["chat-message"], Encoding.UTF8);
+    private static readonly IStringPool pool = new Core.Helpers.StringPool(["chat-message"], Encoding.UTF8);
 
     [Benchmark]
     public string? Small_ExtractField_Reader_Interned_IStringIntern()
@@ -100,7 +100,7 @@ public class ExtractFieldBenchmark
         return null;
     }
 
-    private static readonly StringPool stringPool = new(10);
+    private static readonly CommunityToolkit.HighPerformance.Buffers.StringPool stringPool = new(10);
 
     [Benchmark]
     public string? Small_ExtractField_Reader_Interned_StringPool()

@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
 using System.Collections.Frozen;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
@@ -7,12 +8,12 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Helpers;
 
-public sealed class StringIntern : IStringIntern
+public sealed class StringPool : IStringPool
 {
     private readonly FrozenDictionary<ulong, string> _map;
     private readonly Encoding _encoding;
 
-    public StringIntern(IEnumerable<string> knownStrings, Encoding encoding)
+    public StringPool(IEnumerable<string> knownStrings, Encoding encoding)
     {
         _encoding = encoding;
 

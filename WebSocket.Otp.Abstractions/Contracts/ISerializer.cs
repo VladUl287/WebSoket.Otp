@@ -9,5 +9,5 @@ public interface ISerializer
     object? Deserialize(Type type, ReadOnlyMemory<byte> jsonUtf8);
 
     string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8);
-    string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8, IStringIntern stringIntern);
+    string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8, IStringPool stringIntern);
 }
