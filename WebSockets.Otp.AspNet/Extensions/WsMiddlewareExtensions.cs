@@ -36,8 +36,6 @@ public static class WsMiddlewareExtensions
 
         var options = new WsMiddlewareOptions();
         configure(options);
-        options.Paths.RequestMatcher ??= new DefaltWsRequestMatcher(options.Paths.RequestPath);
-
         options.Validate();
 
         return builder.UseMiddleware<WsMiddleware>(options);
@@ -48,6 +46,8 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
         services.AddSingleton<IWsService, WsService>();
+        services.AddSingleton<IHandshakeRequestProcessor, HandshakeRequestProcessor>();
+        services.AddSingleton<IWsRequestProcessor, WsRequestProcessor>();
         services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
 
         return services;

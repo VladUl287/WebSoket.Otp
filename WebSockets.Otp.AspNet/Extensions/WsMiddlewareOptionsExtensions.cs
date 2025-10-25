@@ -21,8 +21,6 @@ public static class WsMiddlewareOptionsExtensions
         if (options.Paths.RequestPath == options.Paths.HandshakePath)
             throw new ValidationException("Request path and handshake path cannot be the same");
 
-        ArgumentNullException.ThrowIfNull(options.Paths.RequestMatcher, nameof(options.Paths.RequestMatcher));
-
         ArgumentNullException.ThrowIfNull(options.Memory, nameof(options.Memory));
 
         if (options.Memory.MaxMessageSize <= 0)
