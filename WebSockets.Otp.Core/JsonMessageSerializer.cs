@@ -1,6 +1,5 @@
 ﻿using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core;
 
@@ -14,7 +13,8 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
     };
     private readonly JsonSerializerOptions Options = options ?? Default;
 
-    public string Format => WsProtocol.Json;
+    private static readonly string _format = string.Intern("json");
+    public string Format => _format;
 
     public object? Deserialize(Type type, ReadOnlyMemory<byte> payload)
     {
