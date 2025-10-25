@@ -17,7 +17,7 @@ const props = defineProps<{
 
 const useHandlers = useChatWebSocketHandlers({
   onMessageReceived: (message) => {
-    messages.value.push(message as ChatMessage)
+    addMessage(message)
   }
 })
 
@@ -39,7 +39,7 @@ onMounted(() => {
 
 const isConnected = computed(() => status.value === 'OPEN')
 
-const { messages, createMessage, clearMessages, loadMessages } = useChat({
+const { messages, createMessage, clearMessages, addMessage, loadMessages } = useChat({
   chatId: props.chatId,
   fetchUrl: () => `${config.public.apiUrl}/chats/getmessages/${props.chatId}`,
   token: () => token.value ?? ''
@@ -47,7 +47,7 @@ const { messages, createMessage, clearMessages, loadMessages } = useChat({
 watch(() => props.chatId, loadMessages, { flush: 'post' })
 
 const sendMessage = (content: string) => {
-  if (status.value !== 'OPEN') return
+  if (status.value !== 'OPEN' || content.trim().length === 0) return
   const message = createMessage(content, 'chat/message/send')
   send(JSON.stringify(message))
 }

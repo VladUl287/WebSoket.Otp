@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Services;
@@ -62,7 +63,11 @@ var app = builder.Build();
     {
         opt.Paths.RequestPath = "/ws";
         opt.Paths.HandshakePath = "/ws/_handshake";
+
+        opt.Processing.Mode = ProcessingMode.Parallel;
+
         opt.Authorization.RequireAuthorization = true;
+
         opt.OnConnected = async (connection) =>
         {
             var userId = connection.Context.User.GetUserId<long>();

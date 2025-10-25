@@ -45,7 +45,8 @@ export function useChat(options: UseChatOptions) {
     }
 
     return {
-        messages: readonly(messages) as Readonly<Ref<ChatMessage[]>>,
+        // messages: readonly(messages) as Readonly<Ref<ChatMessage[]>>,
+        messages: messages,
         newMessage,
         isLoading: readonly(isLoading),
 

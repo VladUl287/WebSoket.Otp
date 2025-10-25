@@ -58,6 +58,10 @@ export const useOtpWebSocket = (options: WsOptions): WsReturn => {
     connectionTokenId.value = await $fetch<string>(toValue(options.handshakePath), {
       headers: {
         Authorization: toValue(options.token) ?? ''
+      },
+      method: 'POST',
+      body: {
+        protocol: 'json'
       }
     })
     await nextTick()
