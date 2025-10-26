@@ -23,6 +23,9 @@ public sealed class AsyncObjectPool<TState, TObject>(int size, Func<TState, TObj
     {
         ThrowIfDisposed();
 
+        if (_channel.Reader.TryRead(out var obj))
+            return new ValueTask<TObject>(obj);
+
         if (Volatile.Read(ref _created) >= size)
             return _channel.Reader.ReadAsync();
 
