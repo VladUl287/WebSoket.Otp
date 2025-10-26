@@ -61,7 +61,7 @@ public sealed class WsRequestProcessor(
             context.User = options.Connection.User;
         }
 
-        if (options.Authorization.RequireAuthorization && options.Connection.User?.Identity?.IsAuthenticated != true)
+        if (options is { Authorization.RequireAuthorization: true, Connection.User.Identity.IsAuthenticated: false })
         {
             logger.WebSocketRequestAuthFailed(context.Connection.Id);
             await WriteErrorResponseAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", cancellationToken);
