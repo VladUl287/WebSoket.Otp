@@ -3,7 +3,7 @@
 //using Moq;
 //using System.Net.WebSockets;
 //using WebSockets.Otp.Abstractions.Contracts;
-//using WebSockets.Otp.AspNet.Middlewares;
+//using WebSockets.Otp.Core.Middlewares;
 
 //namespace WebSockets.Otp.Benchmark;
 

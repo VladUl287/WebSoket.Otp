@@ -3,9 +3,9 @@ using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Core.Exceptions;
 using WebSockets.Otp.Core.Extensions;
 using Microsoft.Extensions.Logging;
-using WebSockets.Otp.AspNet.Logging;
+using WebSockets.Otp.Core.Logging;
 
-namespace WebSockets.Otp.AspNet;
+namespace WebSockets.Otp.Core;
 
 public class MessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory, 

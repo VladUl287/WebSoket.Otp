@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 
-namespace WebSockets.Otp.AspNet;
+namespace WebSockets.Otp.Core;
 
 public sealed class InMemoryConnectionStateService : IConnectionStateService
 {

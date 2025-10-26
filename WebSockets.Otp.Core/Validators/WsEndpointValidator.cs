@@ -1,7 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using WebSockets.Otp.Abstractions.Attributes;
 
-namespace WebSockets.Otp.AspNet.Validators;
+namespace WebSockets.Otp.Core.Validators;
 
 public sealed class WsEndpointAttributeOptions
 {

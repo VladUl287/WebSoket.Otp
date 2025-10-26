@@ -5,15 +5,15 @@ using System.Reflection;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.AspNet.Authorization;
-using WebSockets.Otp.AspNet.Middlewares;
-using WebSockets.Otp.AspNet.Validators;
+using WebSockets.Otp.Core.Authorization;
+using WebSockets.Otp.Core.Middlewares;
+using WebSockets.Otp.Core.Validators;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Helpers;
 using WebSockets.Otp.Core.Processors;
 
-namespace WebSockets.Otp.AspNet.Extensions;
+namespace WebSockets.Otp.Core.Extensions;
 
 public static class WsMiddlewareExtensions
 {

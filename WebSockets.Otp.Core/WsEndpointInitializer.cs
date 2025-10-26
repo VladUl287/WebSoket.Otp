@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.AspNet.Extensions;
+using WebSockets.Otp.Core.Extensions;
 
-namespace WebSockets.Otp.AspNet;
+namespace WebSockets.Otp.Core;
 
 public sealed class WsEndpointInitializer(IServiceProvider sp, Assembly[] assemblies) : IHostedService
 {

@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using WebSockets.Otp.Abstractions.Options;
 
-namespace WebSockets.Otp.AspNet.Extensions;
+namespace WebSockets.Otp.Core.Extensions;
 
 public static class WsMiddlewareOptionsExtensions
 {

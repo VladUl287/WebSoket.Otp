@@ -3,9 +3,9 @@ using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.AspNet.Logging;
+using WebSockets.Otp.Core.Logging;
 
-namespace WebSockets.Otp.AspNet;
+namespace WebSockets.Otp.Core;
 
 public sealed class WsRequestProcessor(
     IConnectionStateService requestState, IWsConnectionFactory connectionFactory, IWsService wsService,

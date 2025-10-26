@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 
-namespace WebSockets.Otp.AspNet.Logging;
+namespace WebSockets.Otp.Core.Logging;
 
 public static partial class EndpointInvokerLogging
 {

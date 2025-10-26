@@ -2,11 +2,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Results;
-using WebSockets.Otp.AspNet.Logging;
+using WebSockets.Otp.Core.Logging;
 
-namespace WebSockets.Otp.AspNet.Authorization;
+namespace WebSockets.Otp.Core.Authorization;
 
 public class WsAuthorizationService(IAuthorizationService authorizationService, ILogger<WsAuthorizationService> logger) : IWsAuthorizationService
 {

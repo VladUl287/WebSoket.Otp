@@ -2,9 +2,9 @@
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.AspNet.Logging;
+using WebSockets.Otp.Core.Logging;
 
-namespace WebSockets.Otp.AspNet.Middlewares;
+namespace WebSockets.Otp.Core.Middlewares;
 
 public sealed class WsMiddleware(
     RequestDelegate next, IHandshakeRequestProcessor handshakeProcessor, IWsRequestProcessor wsProcessor,

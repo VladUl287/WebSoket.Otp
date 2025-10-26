@@ -8,7 +8,7 @@ using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Services;
 using WebSockets.Otp.Api.Services.Contracts;
-using WebSockets.Otp.AspNet.Extensions;
+using WebSockets.Otp.Core.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 {

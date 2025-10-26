@@ -2,10 +2,10 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.AspNet.Logging;
+using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Core.Extensions;
 
-namespace WebSockets.Otp.AspNet;
+namespace WebSockets.Otp.Core;
 
 public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<EndpointInvoker> _logger) : IEndpointInvoker
 {

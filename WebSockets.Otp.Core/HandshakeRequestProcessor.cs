@@ -6,11 +6,11 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.AspNet.Logging;
+using WebSockets.Otp.Core.Logging;
 
 using OutFailure = (int Code, string Reason);
 
-namespace WebSockets.Otp.AspNet;
+namespace WebSockets.Otp.Core;
 
 public sealed class HandshakeRequestProcessor(
     IWsAuthorizationService authService,
