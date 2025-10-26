@@ -41,7 +41,7 @@ public sealed class SequentialMessageProcessor(
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;
 
-        var serializer = serializerFactory.Create(options.Connection.Protocol);
+        var serializer = serializerFactory.TryResolve(options.Connection.Protocol);
         try
         {
             while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)

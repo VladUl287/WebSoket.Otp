@@ -22,7 +22,7 @@ public sealed class ParallelMessageProcessor(
         var tempBuffer = ArrayPool<byte>.Shared.Rent(memoryOpt.InitialBufferSize);
 
         var reclaimBuffer = memoryOpt.ReclaimBuffersImmediately;
-        var serializer = serializerFactory.Create(options.Connection.Protocol);
+        var serializer = serializerFactory.TryResolve(options.Connection.Protocol);
         try
         {
             var enumerable = EnumerateMessagesAsync(connection, options, pool, tempBuffer);

@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -7,8 +6,6 @@ using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Logging;
-
-using OutFailure = (int Code, string Reason);
 
 namespace WebSockets.Otp.Core;
 
@@ -18,10 +15,19 @@ public sealed class HandshakeRequestProcessor(
     ISerializerFactory serializerFactory,
     ILogger<HandshakeRequestProcessor> logger) : IHandshakeRequestProcessor
 {
+    private static readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    private const string JsonContentType = "application/json";
+    private const string TextContentType = "text/plain; charset=utf-8";
+
     public bool IsHandshakeRequest(HttpContext context, WsMiddlewareOptions options)
     {
         ArgumentNullException.ThrowIfNull(context, nameof(context));
         ArgumentNullException.ThrowIfNull(options, nameof(options));
+
         return IsHandshakeRequestPath(context, options);
     }
 
@@ -35,11 +41,9 @@ public sealed class HandshakeRequestProcessor(
 
         logger.HandshakeRequestStarted(connectionId);
 
-        var requestValid = ValidateRequest(context, options, out var failureReason);
-        if (!requestValid)
+        if (!ValidateRequest(context, options, out var statusCode, out var errorMessage))
         {
-            var (code, reason) = failureReason.Value;
-            await WriteErrorResponseAsync(context, code, reason, cancellationToken);
+            await WriteResponseAsync(context, statusCode, errorMessage, cancellationToken);
             return;
         }
 
@@ -49,25 +53,22 @@ public sealed class HandshakeRequestProcessor(
             return;
         }
 
-        var protocolValid = ValidateProtocolAsync(handshakeRequest.Protocol, out var protocolFailure);
-        if (!protocolValid)
+        if (!ValidateConnection(handshakeRequest.Protocol, out statusCode, out errorMessage))
         {
-            var (code, reason) = protocolFailure.Value;
-            await WriteErrorResponseAsync(context, code, reason, cancellationToken);
+            await WriteResponseAsync(context, statusCode, errorMessage, cancellationToken);
             return;
         }
 
         var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
         if (authResult.Failed)
         {
-            await WriteErrorResponseAsync(context, StatusCodes.Status401Unauthorized, authResult.FailureReason, cancellationToken);
+            await WriteResponseAsync(context, StatusCodes.Status401Unauthorized, authResult.FailureReason, cancellationToken);
             logger.WebSocketRequestAuthFailed(connectionId);
             return;
         }
 
         var connectionTokenId = await CreateConnectionAsync(context, options, handshakeRequest.Protocol, cancellationToken);
-
-        await WriteSuccessResponseAsync(context, connectionTokenId, cancellationToken);
+        await WriteResponseAsync(context, StatusCodes.Status200OK, connectionTokenId, cancellationToken);
 
         logger.HandshakeCompleted(connectionId);
     }
@@ -75,80 +76,74 @@ public sealed class HandshakeRequestProcessor(
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsHandshakeRequestPath(HttpContext context, WsMiddlewareOptions options) => context.Request.Path.Equals(options.Paths.HandshakePath);
 
-    private static bool ValidateRequest(HttpContext context, WsMiddlewareOptions options, [NotNullWhen(false)] out OutFailure? failureReason)
+    private static bool ValidateRequest(HttpContext context, WsMiddlewareOptions options, out int statusCode, [NotNullWhen(false)] out string? errorMessage)
     {
-        failureReason = null;
+        statusCode = 0;
+        errorMessage = null;
 
         if (!IsHandshakeRequestPath(context, options))
         {
-            const string errorMessage = "Not hahdshake request path";
-            //logger.RequestValidationFailed(connectionId, "Method", context.Request.Method);
-            failureReason = (StatusCodes.Status403Forbidden, errorMessage);
+            statusCode = StatusCodes.Status403Forbidden;
+            errorMessage = "Not handshake request path";
             return false;
         }
 
         var request = context.Request;
         if (!HttpMethods.IsPost(request.Method))
         {
-            const string errorMessage = "Method not allowed";
-            //logger.RequestValidationFailed(connectionId, "Method", context.Request.Method);
-            failureReason = (StatusCodes.Status405MethodNotAllowed, errorMessage);
+            statusCode = StatusCodes.Status405MethodNotAllowed;
+            errorMessage = "Method not allowed";
             return false;
         }
 
-        const string JSON_CONTENT_TYPE = "application/json";
-        if (request.ContentType.Contains(JSON_CONTENT_TYPE, StringComparison.OrdinalIgnoreCase) is false)
+        if (!request.ContentType?.Contains(JsonContentType, StringComparison.OrdinalIgnoreCase) ?? true)
         {
-            const string errorMessage = "Invalid content type. Only supported application/json";
-            //logger.RequestValidationFailed(connectionId, "ContentType", context.Request.ContentType ?? "null");
-            failureReason = (StatusCodes.Status415UnsupportedMediaType, errorMessage);
+            statusCode = StatusCodes.Status415UnsupportedMediaType;
+            errorMessage = "Invalid content type. Only supported application/json";
             return false;
         }
 
         return true;
     }
 
-    private static readonly JsonSerializerOptions _opitons = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
-    private static async Task<ConnectionSettings?> DeserializeHandshakeRequestAsync(HttpContext context, CancellationToken token)
+    private async Task<ConnectionSettings?> DeserializeHandshakeRequestAsync(HttpContext context, CancellationToken token)
     {
         try
         {
             var handshakeRequest = await JsonSerializer.DeserializeAsync<ConnectionSettings>(
                 context.Request.Body,
-                _opitons,
+                _jsonOptions,
                 token);
 
             if (handshakeRequest is null)
             {
-                //logger.HandshakeRequestDeserializationFailed(connectionId, "Null request body");
-                await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Invalid request body", token);
+                await WriteResponseAsync(context, StatusCodes.Status400BadRequest, "Invalid request body", token);
+                return null;
             }
 
             return handshakeRequest;
         }
         catch (Exception ex)
         {
-            //logger.HandshakeRequestDeserializationFailed(connectionId, ex.Message);
-            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Invalid JSON format", token);
+            logger.HandshakeRequestDeserializationFailed(context.Connection.Id, ex);
+            await WriteResponseAsync(context, StatusCodes.Status400BadRequest, "Invalid JSON format", token);
             return null;
         }
     }
 
-    private bool ValidateProtocolAsync(string protocolName, [NotNullWhen(false)] out OutFailure? failure)
+    private bool ValidateConnection(string protocolName, out int statusCode, [NotNullWhen(false)] out string? errorMessage)
     {
-        failure = null;
+        statusCode = 0;
+        errorMessage = null;
 
-        var protocol = serializerFactory.Create(protocolName);
+        var protocol = serializerFactory.TryResolve(protocolName);
         if (protocol is null)
         {
-            //logger.ProtocolValidationFailed(connectionId, protocolName);
-            failure = (StatusCodes.Status400BadRequest, $"Protocol '{protocolName}' not supported");
+            statusCode = StatusCodes.Status400BadRequest;
+            errorMessage = $"Protocol '{protocolName}' not supported";
             return false;
         }
+
         return true;
     }
 
@@ -164,22 +159,10 @@ public sealed class HandshakeRequestProcessor(
         return connectionTokenId;
     }
 
-    private static async Task WriteSuccessResponseAsync(
-        HttpContext context, string responseContent, CancellationToken cancellationToken)
-    {
-        context.Response.StatusCode = StatusCodes.Status200OK;
-        context.Response.ContentType = "text/plain; charset=utf-8";
-        await context.Response.WriteAsync(responseContent, cancellationToken);
-    }
-
-    private static async Task WriteErrorResponseAsync(HttpContext context, int statusCode, string message, CancellationToken cancellationToken)
+    private static Task WriteResponseAsync(HttpContext context, int statusCode, string message, CancellationToken token)
     {
         context.Response.StatusCode = statusCode;
-        context.Response.ContentType = "text/plain; charset=utf-8";
-
-        if (!string.IsNullOrEmpty(message))
-        {
-            await context.Response.WriteAsync(message, cancellationToken);
-        }
+        context.Response.ContentType = TextContentType;
+        return context.Response.WriteAsync(message, token);
     }
 }
