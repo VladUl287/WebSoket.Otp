@@ -6,6 +6,6 @@ public interface IWsExecutionContext
     IWsConnection Connection { get; }
     CancellationToken Cancellation { get; }
     public ISerializer Serializer { get; }
-    public ReadOnlyMemory<byte> RawPayload { get; }
+    public IMessageBuffer RawPayload { get; }
     public Type Endpoint { get; }
 }

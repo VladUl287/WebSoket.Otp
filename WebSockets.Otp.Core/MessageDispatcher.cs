@@ -13,9 +13,11 @@ public class MessageDispatcher(
 {
     private static readonly string KeyField = nameof(WsMessage.Key).ToLowerInvariant();
 
-    public async Task DispatchMessage(IWsConnection connection, ISerializer serializer, ReadOnlyMemory<byte> payload, CancellationToken token)
+    public async Task DispatchMessage(IWsConnection connection, ISerializer serializer, IMessageBuffer buffer, CancellationToken token)
     {
         var connectionId = connection.Id;
+
+        var payload = buffer.Span;
 
         logger.LogDispatchingMessage(connectionId, "Unknown", payload.Length);
 
@@ -44,7 +46,7 @@ public class MessageDispatcher(
 
         logger.LogEndpointResolved(connectionId, endpointType.Name, endpointType.AcceptsRequestMessages());
 
-        var execCtx = contextFactory.Create(endpointKey, endpointType, connection, payload, serializer, token);
+        var execCtx = contextFactory.Create(endpointKey, endpointType, connection, buffer, serializer, token);
 
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
 

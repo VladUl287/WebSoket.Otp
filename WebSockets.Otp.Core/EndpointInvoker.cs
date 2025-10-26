@@ -80,7 +80,7 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
         return (endpointInst, execCtx, token) =>
         {
             var requestType = endpointType.GetRequestType();
-            var requestData = execCtx.Serializer.Deserialize(requestType, execCtx.RawPayload);
+            var requestData = execCtx.Serializer.Deserialize(requestType, execCtx.RawPayload.Span);
             var invocation = handleMethod.Invoke(endpointInst, [requestData, execCtx, token])
                 ?? throw new InvalidOperationException("HandleAsync method returned null");
 

@@ -69,8 +69,7 @@ public sealed class SequentialMessageProcessor(
                 {
                     logger.LogProcessingCompleteMessage(connectionId, buffer.Length);
 
-                    using var manager = buffer.Manager;
-                    await dispatcher.DispatchMessage(connection, serializer, manager.Memory, token);
+                    await dispatcher.DispatchMessage(connection, serializer, buffer, token);
 
                     buffer.SetLength(0);
 

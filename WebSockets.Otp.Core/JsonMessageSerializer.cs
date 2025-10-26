@@ -80,4 +80,37 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         }
         return null;
     }
+
+    public object? Deserialize(Type type, ReadOnlySpan<byte> jsonUtf8)
+    {
+        ArgumentNullException.ThrowIfNull(type, nameof(type));
+
+        if (jsonUtf8.IsEmpty)
+            return null;
+
+        return JsonSerializer.Deserialize(jsonUtf8, type, Options);
+    }
+
+    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringIntern)
+    {
+        if (string.IsNullOrEmpty(field))
+            throw new ArgumentException("Field name cannot be null or empty", nameof(field));
+
+        var reader = new Utf8JsonReader(jsonUtf8);
+        var keyField = field.AsSpan();
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(keyField))
+            {
+                reader.Read();
+                return reader.GetString();
+            }
+
+            reader.Skip();
+        }
+        return null;
+    }
 }
