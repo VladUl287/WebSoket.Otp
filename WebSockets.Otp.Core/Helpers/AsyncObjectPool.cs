@@ -3,9 +3,9 @@ using System.Threading.Channels;
 
 namespace WebSockets.Otp.Core.Helpers;
 
-public sealed class AsyncObjectPool<T>(int size, Func<T> objectFactory) : IAsyncDisposable
+public sealed class AsyncObjectPool<TState, TObject>(int size, Func<TState, TObject> objectFactory) : IAsyncDisposable
 {
-    private readonly Channel<T> _channel = Channel.CreateBounded<T>(
+    private readonly Channel<TObject> _channel = Channel.CreateBounded<TObject>(
         new BoundedChannelOptions(size)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -19,7 +19,7 @@ public sealed class AsyncObjectPool<T>(int size, Func<T> objectFactory) : IAsync
     private int _created;
     private readonly Lock _creationLock = new();
 
-    public ValueTask<T> Rent()
+    public ValueTask<TObject> Rent(TState state)
     {
         ThrowIfDisposed();
 
@@ -31,14 +31,14 @@ public sealed class AsyncObjectPool<T>(int size, Func<T> objectFactory) : IAsync
             if (_created < size)
             {
                 _created++;
-                return new ValueTask<T>(objectFactory.Invoke());
+                return new ValueTask<TObject>(objectFactory.Invoke(state));
             }
         }
 
         return _channel.Reader.ReadAsync();
     }
 
-    public ValueTask Return(T obj)
+    public ValueTask Return(TObject obj)
     {
         ArgumentNullException.ThrowIfNull(obj);
         ThrowIfDisposed();

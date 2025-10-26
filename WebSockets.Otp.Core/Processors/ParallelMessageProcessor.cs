@@ -18,7 +18,7 @@ public sealed class ParallelMessageProcessor(
     {
         var memoryOpt = options.Memory;
 
-        var pool = new AsyncObjectPool<IMessageBuffer>(memoryOpt.MaxBufferPoolSize, () => bufferFactory.Create(memoryOpt.InitialBufferSize));
+        var pool = new AsyncObjectPool<int, IMessageBuffer>(memoryOpt.MaxBufferPoolSize, bufferFactory.Create);
         var tempBuffer = ArrayPool<byte>.Shared.Rent(memoryOpt.InitialBufferSize);
 
         var reclaimBuffer = memoryOpt.ReclaimBuffersImmediately;
@@ -52,11 +52,12 @@ public sealed class ParallelMessageProcessor(
     }
 
     private async IAsyncEnumerable<IMessageBuffer> EnumerateMessagesAsync(
-        IWsConnection connection, WsMiddlewareOptions options, AsyncObjectPool<IMessageBuffer> pool, byte[] tempBuffer)
+        IWsConnection connection, WsMiddlewareOptions options, AsyncObjectPool<int, IMessageBuffer> pool, byte[] tempBuffer)
     {
         var connectionId = connection.Id;
 
         var maxMessageSize = options.Memory.MaxMessageSize;
+        var bufferSize = options.Memory.InitialBufferSize;
 
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;
@@ -73,7 +74,7 @@ public sealed class ParallelMessageProcessor(
                 break;
             }
 
-            buffer ??= await pool.Rent();
+            buffer ??= await pool.Rent(bufferSize);
 
             if (buffer.Length > maxMessageSize - wsMessage.Count)
             {
