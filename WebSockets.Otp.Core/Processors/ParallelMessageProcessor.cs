@@ -17,35 +17,42 @@ public sealed class ParallelMessageProcessor(
     public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
     {
         var memoryOptions = options.Memory;
+        var processingOptions = options.Processing;
+        var cancellationToken = connection.Context.RequestAborted;
 
-        var pool = new AsyncObjectPool<int, IMessageBuffer>(memoryOptions.MaxBufferPoolSize, bufferFactory.Create);
+        var bufferPool = new AsyncObjectPool<int, IMessageBuffer>(memoryOptions.MaxBufferPoolSize, bufferFactory.Create);
         var tempBuffer = ArrayPool<byte>.Shared.Rent(memoryOptions.InitialBufferSize);
 
-        var reclaimBuffer = memoryOptions.ReclaimBuffersImmediately;
-        var serializer = serializerFactory.Resolve(options.Connection.Protocol);
         try
         {
-            var enumerable = EnumerateMessages(connection, options, pool, tempBuffer);
+            var serializer = serializerFactory.Resolve(options.Connection.Protocol);
+            var enumerable = EnumerateMessages(connection, options, bufferPool, tempBuffer);
+
             var parallelOptions = new ParallelOptions
             {
-                MaxDegreeOfParallelism = options.Processing.MaxParallelOperations,
-                CancellationToken = connection.Context.RequestAborted
+                MaxDegreeOfParallelism = processingOptions.MaxParallelOperations,
+                CancellationToken = cancellationToken
             };
+
             await Parallel.ForEachAsync(enumerable, parallelOptions, async (buffer, token) =>
             {
-                await dispatcher.DispatchMessage(connection, serializer, buffer, token);
+                try
+                {
+                    await dispatcher.DispatchMessage(connection, serializer, buffer, token);
+                }
+                finally
+                {
+                    buffer.SetLength(0);
+                    if (memoryOptions.ReclaimBuffersImmediately)
+                        buffer.Shrink();
 
-                buffer.SetLength(0);
-
-                if (reclaimBuffer)
-                    buffer.Shrink();
-
-                await pool.Return(buffer);
+                    await bufferPool.Return(buffer);
+                }
             });
         }
         finally
         {
-            await pool.DisposeAsync();
+            await bufferPool.DisposeAsync();
             ArrayPool<byte>.Shared.Return(tempBuffer);
         }
     }
@@ -54,14 +61,12 @@ public sealed class ParallelMessageProcessor(
         IWsConnection connection, WsMiddlewareOptions options, AsyncObjectPool<int, IMessageBuffer> pool, byte[] tempBuffer)
     {
         var connectionId = connection.Id;
-
+        var socket = connection.Socket;
+        var token = connection.Context.RequestAborted;
         var maxMessageSize = options.Memory.MaxMessageSize;
         var bufferSize = options.Memory.InitialBufferSize;
 
-        var socket = connection.Socket;
-        var token = connection.Context.RequestAborted;
-
-        IMessageBuffer? buffer = null;
+        IMessageBuffer? currentBuffer = null;
         while (socket.State is WebSocketState.Open && !token.IsCancellationRequested)
         {
             var wsMessage = await socket.ReceiveAsync(tempBuffer, token);
@@ -73,21 +78,21 @@ public sealed class ParallelMessageProcessor(
                 break;
             }
 
-            buffer ??= await pool.Rent(bufferSize);
+            currentBuffer ??= await pool.Rent(bufferSize);
 
-            if (buffer.Length > maxMessageSize - wsMessage.Count)
+            if (currentBuffer.Length > maxMessageSize - wsMessage.Count)
             {
-                logger.LogMessageTooBig(connectionId, buffer.Length, wsMessage.Count, maxMessageSize);
+                logger.LogMessageTooBig(connectionId, currentBuffer.Length, wsMessage.Count, maxMessageSize);
                 await connection.Socket.CloseAsync(WebSocketCloseStatus.MessageTooBig, "Message exceeds size limit", CancellationToken.None);
                 break;
             }
 
-            buffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
+            currentBuffer.Write(tempBuffer.AsSpan(0, wsMessage.Count));
 
             if (wsMessage.EndOfMessage)
             {
-                yield return buffer;
-                buffer = null;
+                yield return currentBuffer;
+                currentBuffer = null;
             }
         }
     }
