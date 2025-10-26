@@ -136,7 +136,7 @@ public sealed class HandshakeRequestProcessor(
         statusCode = 0;
         errorMessage = null;
 
-        var protocol = serializerFactory.TryResolve(protocolName);
+        var protocol = serializerFactory.Resolve(protocolName);
         if (protocol is null)
         {
             statusCode = StatusCodes.Status400BadRequest;

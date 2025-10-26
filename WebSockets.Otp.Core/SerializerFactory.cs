@@ -15,11 +15,11 @@ public sealed class SerializerFactory : ISerializerFactory
         _store = store.ToFrozenDictionary();
     }
 
-    public ISerializer? TryResolve(string format)
+    public ISerializer Resolve(string format)
     {
         if (_store.TryGetValue(format, out var serializer))
             return serializer;
 
-        return null;
+        throw new InvalidOperationException($"Data format {format} not supported");
     }
 }

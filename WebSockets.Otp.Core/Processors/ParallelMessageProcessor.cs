@@ -16,16 +16,16 @@ public sealed class ParallelMessageProcessor(
 
     public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
     {
-        var memoryOpt = options.Memory;
+        var memoryOptions = options.Memory;
 
-        var pool = new AsyncObjectPool<int, IMessageBuffer>(memoryOpt.MaxBufferPoolSize, bufferFactory.Create);
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(memoryOpt.InitialBufferSize);
+        var pool = new AsyncObjectPool<int, IMessageBuffer>(memoryOptions.MaxBufferPoolSize, bufferFactory.Create);
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(memoryOptions.InitialBufferSize);
 
-        var reclaimBuffer = memoryOpt.ReclaimBuffersImmediately;
-        var serializer = serializerFactory.TryResolve(options.Connection.Protocol);
+        var reclaimBuffer = memoryOptions.ReclaimBuffersImmediately;
+        var serializer = serializerFactory.Resolve(options.Connection.Protocol);
         try
         {
-            var enumerable = EnumerateMessagesAsync(connection, options, pool, tempBuffer);
+            var enumerable = EnumerateMessages(connection, options, pool, tempBuffer);
             var parallelOptions = new ParallelOptions
             {
                 MaxDegreeOfParallelism = options.Processing.MaxParallelOperations,
@@ -46,12 +46,12 @@ public sealed class ParallelMessageProcessor(
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(tempBuffer);
             await pool.DisposeAsync();
+            ArrayPool<byte>.Shared.Return(tempBuffer);
         }
     }
 
-    private async IAsyncEnumerable<IMessageBuffer> EnumerateMessagesAsync(
+    private async IAsyncEnumerable<IMessageBuffer> EnumerateMessages(
         IWsConnection connection, WsMiddlewareOptions options, AsyncObjectPool<int, IMessageBuffer> pool, byte[] tempBuffer)
     {
         var connectionId = connection.Id;

@@ -2,5 +2,5 @@
 
 public interface ISerializerFactory
 {
-    ISerializer? TryResolve(string format);
+    ISerializer Resolve(string format);
 }
