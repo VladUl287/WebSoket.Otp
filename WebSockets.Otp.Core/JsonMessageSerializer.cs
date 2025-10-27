@@ -56,31 +56,6 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return null;
     }
 
-    public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8, IStringPool stringIntern)
-    {
-        if (string.IsNullOrEmpty(field))
-            throw new ArgumentException("Field name cannot be null or empty", nameof(field));
-
-        var reader = new Utf8JsonReader(jsonUtf8.Span);
-        var keyField = field.AsSpan();
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(keyField))
-            {
-                reader.Read();
-                return reader.HasValueSequence ?
-                    stringIntern.Get(reader.ValueSequence) :
-                    stringIntern.Get(reader.ValueSpan);
-            }
-
-            reader.Skip();
-        }
-        return null;
-    }
-
     public object? Deserialize(Type type, ReadOnlySpan<byte> jsonUtf8)
     {
         ArgumentNullException.ThrowIfNull(type, nameof(type));
@@ -91,7 +66,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return JsonSerializer.Deserialize(jsonUtf8, type, Options);
     }
 
-    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringIntern)
+    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8)
     {
         if (string.IsNullOrEmpty(field))
             throw new ArgumentException("Field name cannot be null or empty", nameof(field));

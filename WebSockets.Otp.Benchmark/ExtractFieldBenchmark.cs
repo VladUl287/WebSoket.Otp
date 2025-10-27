@@ -77,28 +77,28 @@ public class ExtractFieldBenchmark
         return null;
     }
 
-    private static readonly IStringPool pool = new Core.Helpers.StringPool(["chat-message"], Encoding.UTF8);
+    //private static readonly IStringPool pool = new Core.Helpers.StringPool(["chat-message"], Encoding.UTF8);
 
-    [Benchmark]
-    public string? Small_ExtractField_Reader_Interned_IStringIntern()
-    {
-        var reader = new Utf8JsonReader(SmallMessageBytes.Span);
-        var keyField = KeyFieldMemory.Span;
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
+    //[Benchmark]
+    //public string? Small_ExtractField_Reader_Interned_IStringIntern()
+    //{
+    //    var reader = new Utf8JsonReader(SmallMessageBytes.Span);
+    //    var keyField = KeyFieldMemory.Span;
+    //    while (reader.Read())
+    //    {
+    //        if (reader.TokenType is not JsonTokenType.PropertyName)
+    //            continue;
 
-            if (reader.ValueTextEquals(keyField))
-            {
-                reader.Read();
-                return pool.Get(reader.ValueSpan);
-            }
+    //        if (reader.ValueTextEquals(keyField))
+    //        {
+    //            reader.Read();
+    //            return pool.Get(reader.ValueSpan);
+    //        }
 
-            reader.Skip();
-        }
-        return null;
-    }
+    //        reader.Skip();
+    //    }
+    //    return null;
+    //}
 
     private static readonly CommunityToolkit.HighPerformance.Buffers.StringPool stringPool = new(10);
 

@@ -8,8 +8,8 @@ using WebSockets.Otp.Core.Logging;
 namespace WebSockets.Otp.Core;
 
 public class MessageDispatcher(
-    IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory, 
-    IEndpointInvoker invoker, IStringPool keyStringIntern, ILogger<MessageDispatcher> logger) : IMessageDispatcher
+    IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory,
+    IEndpointInvoker invoker, ILogger<MessageDispatcher> logger) : IMessageDispatcher
 {
     private static readonly string KeyField = nameof(WsMessage.Key).ToLowerInvariant();
 
@@ -21,7 +21,7 @@ public class MessageDispatcher(
 
         logger.LogDispatchingMessage(connectionId, "Unknown", payload.Length);
 
-        var endpointKey = serializer.ExtractStringField(KeyField, payload, keyStringIntern);
+        var endpointKey = serializer.ExtractStringField(KeyField, payload);
         if (endpointKey is null)
         {
             logger.LogKeyExtractionFailed(connectionId);
