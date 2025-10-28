@@ -45,7 +45,7 @@ public sealed class DefaultMethodResolver : IMethodResolver
     private static MethodInfo ResolveRequestHandleMethod(Type endpointType)
     {
         var baseType = endpointType.GetBaseEndpointType();
-        var requestType = baseType.GenericTypeArguments[0];
+        var requestType = baseType.GetRequestType();
 
         var handleMethod = endpointType.GetMethod(
             nameof(WsEndpoint.HandleAsync),

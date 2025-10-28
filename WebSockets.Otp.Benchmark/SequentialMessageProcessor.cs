@@ -84,17 +84,17 @@ public class MockWebSocket : WebSocket
 
     private static int Readed = 0;
 
-    private static byte[] message = Encoding.UTF8.GetBytes("""
-     { 
-         "key": "chat/message/singleton",
-     }
-     """);
-
     //private static byte[] message = Encoding.UTF8.GetBytes("""
     // { 
-    //     "key": "chat/message/request",
+    //     "key": "chat/message/singleton",
     // }
     // """);
+
+    private static byte[] message = Encoding.UTF8.GetBytes("""
+     { 
+         "key": "chat/message/request"
+     }
+     """);
 
     private static readonly WebSocketReceiveResult defautlResult = new WebSocketReceiveResult(
             message.Length,

@@ -7,13 +7,13 @@ using WebSockets.Otp.Benchmark.IdProviders;
 //Console.WriteLine(HashCodeBenchmark.GetHashCodeAllocFree(System.Text.Encoding.UTF8.GetBytes("Hello World")));
 //Console.WriteLine(HashCodeBenchmark.GetXXHash64(System.Text.Encoding.UTF8.GetBytes("Hello World")));
 
-//var benc = new SequentialMessageProcessorBenchmark();
-//benc.Setup();
-//benc.IterationSetup();
+var benc = new SequentialMessageProcessorBenchmark();
+benc.Setup();
+benc.IterationSetup();
 
-//benc.BenchmarkMethod();
+benc.BenchmarkMethod();
 
-//benc.Cleanup();
+benc.Cleanup();
 
 //var ven = new MethodInvokeBenchmark();
 //ven.Setup();
