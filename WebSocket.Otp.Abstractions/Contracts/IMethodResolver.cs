@@ -5,4 +5,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 public interface IMethodResolver
 {
     MethodInfo ResolveHandleMethod(Type endpointType);
+    MethodInfo ResolveHandleMethodFromBase(Type endpointType);
 }

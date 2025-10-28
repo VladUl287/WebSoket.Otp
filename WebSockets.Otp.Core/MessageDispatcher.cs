@@ -1,7 +1,6 @@
 ﻿using WebSockets.Otp.Abstractions.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Core.Exceptions;
-using WebSockets.Otp.Core.Extensions;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Core.Logging;
 
@@ -22,6 +21,7 @@ public class MessageDispatcher(
         logger.LogDispatchingMessage(connectionId, "Unknown", payload.Length);
 
         var endpointKey = serializer.ExtractStringField(KeyField, payload);
+
         if (endpointKey is null)
         {
             logger.LogKeyExtractionFailed(connectionId);
@@ -44,7 +44,7 @@ public class MessageDispatcher(
             throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
         }
 
-        logger.LogEndpointResolved(connectionId, endpointType.Name, endpointType.AcceptsRequestMessages());
+        logger.LogEndpointResolved(connectionId, endpointType.Name);
 
         var execCtx = contextFactory.Create(endpointKey, endpointType, connection, buffer, serializer, token);
 

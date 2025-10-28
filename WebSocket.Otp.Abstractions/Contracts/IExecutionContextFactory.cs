@@ -1,8 +1,8 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts
+﻿namespace WebSockets.Otp.Abstractions.Contracts;
+
+public interface IExecutionContextFactory
 {
-    public interface IExecutionContextFactory
-    {
-        IWsExecutionContext Create(string endpointKey, Type endpointType, IWsConnection connection, 
-            IMessageBuffer payload, ISerializer serializer, CancellationToken token);
-    }
+    IWsExecutionContext Create(
+        string endpointKey, Type endpointType, IWsConnection connection, 
+        IMessageBuffer payload, ISerializer serializer, CancellationToken token);
 }

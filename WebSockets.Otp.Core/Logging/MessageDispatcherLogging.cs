@@ -16,8 +16,8 @@ internal static partial class MessageDispatcherLogging
     [LoggerMessage(Level = LogLevel.Warning, Message = "Endpoint service not found in DI container for connection {ConnectionId}. Endpoint type: {EndpointType}")]
     internal static partial void LogEndpointServiceNotFound(this ILogger logger, string connectionId, string endpointType);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Successfully resolved endpoint for connection {ConnectionId}. Endpoint type: {EndpointType}, Has request: {HasRequest}")]
-    internal static partial void LogEndpointResolved(this ILogger logger, string connectionId, string endpointType, bool hasRequest);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Successfully resolved endpoint for connection {ConnectionId}. Endpoint type: {EndpointType}")]
+    internal static partial void LogEndpointResolved(this ILogger logger, string connectionId, string endpointType);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Successfully dispatched message for connection {ConnectionId}. Endpoint key: {EndpointKey}")]
     internal static partial void LogMessageDispatched(this ILogger logger, string connectionId, string endpointKey);

@@ -1,5 +1,7 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.Core;
 
@@ -66,10 +68,11 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return JsonSerializer.Deserialize(jsonUtf8, type, Options);
     }
 
+    private static readonly StringPool stringPool = new(["chat/message/singleton"], Encoding.UTF8);
+
     public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8)
     {
-        if (string.IsNullOrEmpty(field))
-            throw new ArgumentException("Field name cannot be null or empty", nameof(field));
+        ArgumentException.ThrowIfNullOrEmpty(nameof(field), "Field name cannot be null or empty");
 
         var reader = new Utf8JsonReader(jsonUtf8);
         var keyField = field.AsSpan();
@@ -81,11 +84,14 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
             if (reader.ValueTextEquals(keyField))
             {
                 reader.Read();
-                return reader.GetString();
+                return reader.HasValueSequence ?
+                    stringPool.Get(reader.ValueSequence) :
+                    stringPool.Get(reader.ValueSpan);
             }
 
             reader.Skip();
         }
         return null;
+    
     }
 }

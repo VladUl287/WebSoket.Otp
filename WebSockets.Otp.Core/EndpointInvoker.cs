@@ -4,6 +4,8 @@ using System.Reflection;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Abstractions;
+using System.Runtime.CompilerServices;
 
 namespace WebSockets.Otp.Core;
 
@@ -20,7 +22,7 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
         {
             _logger.LogInvokingEndpoint(endpointType.Name, connectionId);
 
-            var invoker = GetInvoker(endpointType);
+            var invoker = GetOrCreateInvoker(endpointType);
             await invoker(endpointInstance, ctx, ct);
 
             _logger.LogInvocationSuccess(endpointType.Name, connectionId);
@@ -32,27 +34,15 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
         }
     }
 
-    public Func<object, IWsExecutionContext, CancellationToken, Task> GetInvoker(Type endpointType)
-    {
-        ArgumentNullException.ThrowIfNull(endpointType, nameof(endpointType));
-
-        if (_cache.TryGetValue(endpointType, out var cachedInvoker))
-        {
-            _logger.LogCacheHit(endpointType.Name);
-            return cachedInvoker;
-        }
-
-        _logger.LogCacheMiss(endpointType.Name);
-        var invoker = CreateInvoker(endpointType);
-        _cache[endpointType] = invoker;
-        return invoker;
-    }
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Func<object, IWsExecutionContext, CancellationToken, Task> GetOrCreateInvoker(Type endpType) =>
+        _cache.GetOrAdd(endpType, (endp, create) => create(endp), CreateInvoker);
 
     private Func<object, IWsExecutionContext, CancellationToken, Task> CreateInvoker(Type endpointType)
     {
         _logger.LogCreatingInvoker(endpointType.Name);
 
-        var handleMethod = methodResolver.ResolveHandleMethod(endpointType);
+        var handleMethod = methodResolver.ResolveHandleMethodFromBase(endpointType);
         if (handleMethod is null)
         {
             _logger.LogNullMethodResolution(endpointType.Name);
@@ -90,12 +80,13 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
 
     private static Func<object, IWsExecutionContext, CancellationToken, Task> CreateConnectionHandlingInvoker(MethodInfo handleMethod)
     {
+        var func = handleMethod.CreateDelegate<Func<WsEndpoint, IWsExecutionContext, CancellationToken, Task>>();
         return (endpointInst, execCtx, token) =>
         {
-            var invocation = handleMethod.Invoke(endpointInst, [execCtx, token])
-                ?? throw new InvalidOperationException("HandleAsync method returned null");
+            if (endpointInst is not WsEndpoint endpoint)
+                throw new Exception("Cannot call handler for non WsEndpoint derived type");
 
-            return (Task)invocation;
+            return func(endpoint, execCtx, token);
         };
     }
 }
