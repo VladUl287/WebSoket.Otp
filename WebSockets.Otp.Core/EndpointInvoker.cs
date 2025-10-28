@@ -83,7 +83,7 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
         return (endpointInst, execCtx, token) =>
         {
             var requestType = baseEndpType.GetRequestType();
-            var requestData = execCtx.Serializer.Deserialize(requestType, execCtx.RawPayload.Span) as IWsMessage ??
+            var requestData = execCtx.Serializer.Deserialize(requestType, execCtx.RawPayload.Span) ??
                 throw new NullReferenceException();
 
             return handler(endpointInst, requestData, execCtx, token);
@@ -102,13 +102,13 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
         };
     }
 
-    private static Func<object, IWsMessage, IWsExecutionContext, CancellationToken, Task> CreateHandlerDelegateExpr(Type baseEndpType, MethodInfo handleMethod)
+    private static Func<object, object, IWsExecutionContext, CancellationToken, Task> CreateHandlerDelegateExpr(Type baseEndpType, MethodInfo handleMethod)
     {
         var baseType = baseEndpType.GetBaseEndpointType();
         var messageType = baseEndpType.GetRequestType();
 
         var instanceParam = Expression.Parameter(typeof(object));
-        var messageParam = Expression.Parameter(typeof(IWsMessage));
+        var messageParam = Expression.Parameter(typeof(object));
         var contextParam = Expression.Parameter(typeof(IWsExecutionContext));
         var cancellationParam = Expression.Parameter(typeof(CancellationToken));
 
@@ -117,7 +117,7 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
 
         var callExpression = Expression.Call(typedInstance, handleMethod, typedMessage, contextParam, cancellationParam);
 
-        var lambda = Expression.Lambda<Func<object, IWsMessage, IWsExecutionContext, CancellationToken, Task>>(
+        var lambda = Expression.Lambda<Func<object, object, IWsExecutionContext, CancellationToken, Task>>(
             callExpression, instanceParam, messageParam, contextParam, cancellationParam);
 
         return lambda.Compile();
