@@ -1,10 +1,9 @@
 ﻿
+using Moq;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
-using Moq;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core;
-using Xunit;
 
 namespace WebSockets.Otp.Tests;
 

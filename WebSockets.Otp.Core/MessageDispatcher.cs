@@ -1,7 +1,7 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
-using Microsoft.Extensions.DependencyInjection;
-using WebSockets.Otp.Core.Exceptions;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Core.Exceptions;
 using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core;

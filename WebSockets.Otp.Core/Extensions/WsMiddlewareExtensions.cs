@@ -2,17 +2,17 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Data;
 using System.Reflection;
+using System.Text;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Authorization;
-using WebSockets.Otp.Core.Middlewares;
-using WebSockets.Otp.Core.Validators;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Helpers;
-using WebSockets.Otp.Core.Processors;
 using WebSockets.Otp.Core.IdProviders;
-using System.Text;
+using WebSockets.Otp.Core.Middlewares;
+using WebSockets.Otp.Core.Processors;
+using WebSockets.Otp.Core.Validators;
 
 namespace WebSockets.Otp.Core.Extensions;
 
@@ -99,7 +99,14 @@ public static class WsMiddlewareExtensions
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(assemblies);
 
-        services.AddHostedService((sp) => new WsEndpointInitializer(sp, assemblies));
+        services.AddSingleton<IWsEndpointRegistry>(sp =>
+        {
+            var registry = new WsEndpointRegistry();
+            var endpointsTypes = assemblies.GetEndpoints();
+            registry.Register(endpointsTypes);
+            return registry;
+        });
+
         services.AddSingleton(options);
 
         var endpointsTypes = assemblies.GetEndpoints();

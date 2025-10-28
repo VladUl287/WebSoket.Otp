@@ -1,13 +1,11 @@
-﻿using System.Security.Claims;
-using System.Security.Principal;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Security.Claims;
+using System.Security.Principal;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core;
-using Xunit;
 
 namespace WebSockets.Otp.Tests;
 

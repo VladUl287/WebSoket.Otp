@@ -1,6 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
 using System.IO.Hashing;
-using System.Security.Cryptography;
 
 namespace WebSockets.Otp.Benchmark;
 
