@@ -23,7 +23,8 @@ public class SequentialMessageProcessorBenchmark
     {
         var builder = WebApplication.CreateBuilder();
 
-        builder.Services.AddWsEndpoints(typeof(BenchmarkEndpoint).Assembly);
+        builder.Services.AddWsEndpoints(typeof(BenchmarkEndpoint).Assembly)
+            .AddUlidIdProvider();
         builder.Logging.ClearProviders();
 
         var app = builder.Build();

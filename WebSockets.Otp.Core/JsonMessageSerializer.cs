@@ -1,7 +1,5 @@
-﻿using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Core.Helpers;
 
 namespace WebSockets.Otp.Core;
 
@@ -68,8 +66,6 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return JsonSerializer.Deserialize(jsonUtf8, type, Options);
     }
 
-    private static readonly StringPool stringPool = new(["chat/message/singleton"], Encoding.UTF8);
-
     public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8)
     {
         ArgumentException.ThrowIfNullOrEmpty(nameof(field), "Field name cannot be null or empty");
@@ -84,14 +80,36 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
             if (reader.ValueTextEquals(keyField))
             {
                 reader.Read();
-                return reader.HasValueSequence ?
-                    stringPool.Get(reader.ValueSequence) :
-                    stringPool.Get(reader.ValueSpan);
+                return reader.GetString();
             }
 
             reader.Skip();
         }
         return null;
-    
+    }
+
+    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(field));
+        ArgumentException.ThrowIfNullOrEmpty(nameof(stringPool));
+
+        var reader = new Utf8JsonReader(jsonUtf8);
+        var keyField = field.AsSpan();
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(keyField))
+            {
+                reader.Read();
+                return reader.HasValueSequence ?
+                    stringPool.Intern(reader.ValueSequence) :
+                    stringPool.Intern(reader.ValueSpan);
+            }
+
+            reader.Skip();
+        }
+        return null;
     }
 }

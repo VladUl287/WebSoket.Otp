@@ -21,6 +21,6 @@ using WebSockets.Otp.Benchmark.IdProviders;
 
 //BenchmarkRunner.Run<MethodInvokeBenchmark>();
 
-//BenchmarkRunner.Run<SequentialMessageProcessorBenchmark>();
+BenchmarkRunner.Run<SequentialMessageProcessorBenchmark>();
 
 //BenchmarkRunner.Run<IdProvidersCreationBench>();

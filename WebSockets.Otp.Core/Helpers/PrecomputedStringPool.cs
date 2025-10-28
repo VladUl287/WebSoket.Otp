@@ -3,15 +3,16 @@ using System.Collections.Frozen;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Text;
+using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Helpers;
 
-public sealed class StringPool
+public sealed class PrecomputedStringPool : IStringPool
 {
     private readonly FrozenDictionary<ulong, string> _map;
     private readonly Encoding _encoding;
 
-    public StringPool(IEnumerable<string> knownStrings, Encoding encoding)
+    public PrecomputedStringPool(IEnumerable<string> knownStrings, Encoding encoding)
     {
         _encoding = encoding;
 
@@ -22,7 +23,9 @@ public sealed class StringPool
             var hashCode = GetHashCode(precomputedBytes);
 
             if (map.TryGetValue(hashCode, out var stored))
-                throw new InvalidOperationException($"Collision detected for: {precomputed} and {stored}");
+            {
+                //collision bucket
+            }
 
             map[hashCode] = precomputed;
         }
@@ -30,7 +33,7 @@ public sealed class StringPool
         _map = map.ToFrozenDictionary();
     }
 
-    public string Get(ReadOnlySpan<byte> bytes)
+    public string Intern(ReadOnlySpan<byte> bytes)
     {
         var hashCode = GetHashCode(bytes);
 
@@ -40,10 +43,10 @@ public sealed class StringPool
         return _encoding.GetString(bytes);
     }
 
-    public string Get(ReadOnlySequence<byte> bytes)
+    public string Intern(ReadOnlySequence<byte> bytes)
     {
         if (bytes.IsSingleSegment)
-            return Get(bytes.FirstSpan);
+            return Intern(bytes.FirstSpan);
 
         var hashCode = GetHashCode(bytes);
 

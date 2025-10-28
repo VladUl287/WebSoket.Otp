@@ -12,6 +12,7 @@ using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Helpers;
 using WebSockets.Otp.Core.Processors;
 using WebSockets.Otp.Core.IdProviders;
+using System.Text;
 
 namespace WebSockets.Otp.Core.Extensions;
 
@@ -120,6 +121,7 @@ public static class WsMiddlewareExtensions
                 _ => services.AddScoped(endpointType)
             };
         }
+        services.AddSingleton<IStringPool>(new PrecomputedStringPool(endpointsKeys, Encoding.UTF8));
 
         return services;
     }
