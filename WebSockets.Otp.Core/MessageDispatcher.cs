@@ -10,7 +10,7 @@ public class MessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory,
     IEndpointInvoker invoker, IStringPool stringPool, ILogger<MessageDispatcher> logger) : IMessageDispatcher
 {
-    private static readonly string KeyField = nameof(WsMessage.Key).ToLowerInvariant();
+    private readonly ReadOnlyMemory<byte> KeyField = stringPool.Encoding.GetBytes(nameof(WsMessage.Key)).AsMemory();
 
     public async Task DispatchMessage(IWsConnection connection, ISerializer serializer, IMessageBuffer buffer, CancellationToken token)
     {
@@ -20,7 +20,7 @@ public class MessageDispatcher(
 
         logger.LogDispatchingMessage(connectionId, "Unknown", payload.Length);
 
-        var endpointKey = serializer.ExtractStringField(KeyField, payload, stringPool);
+        var endpointKey = serializer.ExtractStringField(KeyField.Span, payload, stringPool);
 
         if (endpointKey is null)
         {

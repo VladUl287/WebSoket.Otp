@@ -33,29 +33,6 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return JsonSerializer.SerializeToUtf8Bytes(message, Options);
     }
 
-    public string? ExtractStringField(string field, ReadOnlyMemory<byte> jsonUtf8)
-    {
-        if (string.IsNullOrEmpty(field))
-            throw new ArgumentException("Field name cannot be null or empty", nameof(field));
-
-        var reader = new Utf8JsonReader(jsonUtf8.Span);
-        var keyField = field.AsSpan();
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(keyField))
-            {
-                reader.Read();
-                return reader.GetString();
-            }
-
-            reader.Skip();
-        }
-        return null;
-    }
-
     public object? Deserialize(Type type, ReadOnlySpan<byte> jsonUtf8)
     {
         ArgumentNullException.ThrowIfNull(type, nameof(type));
@@ -101,6 +78,30 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
                 continue;
 
             if (reader.ValueTextEquals(keyField))
+            {
+                reader.Read();
+                return reader.HasValueSequence ?
+                    stringPool.Intern(reader.ValueSequence) :
+                    stringPool.Intern(reader.ValueSpan);
+            }
+
+            reader.Skip();
+        }
+        return null;
+    }
+
+    public string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(field));
+        ArgumentException.ThrowIfNullOrEmpty(nameof(stringPool));
+
+        var reader = new Utf8JsonReader(jsonUtf8);
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(field))
             {
                 reader.Read();
                 return reader.HasValueSequence ?

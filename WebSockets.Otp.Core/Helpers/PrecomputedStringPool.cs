@@ -33,6 +33,8 @@ public sealed class PrecomputedStringPool : IStringPool
         _map = map.ToFrozenDictionary();
     }
 
+    public Encoding Encoding => _encoding;
+
     public string Intern(ReadOnlySpan<byte> bytes)
     {
         var hashCode = GetHashCode(bytes);
