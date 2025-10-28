@@ -4,5 +4,5 @@ namespace WebSockets.Otp.Core.IdProviders;
 
 public sealed class UlidIdProvider : IIdProvider
 {
-    public string Create() => new Ulid().ToString();
+    public string Create() => Ulid.NewUlid().ToString();
 }
