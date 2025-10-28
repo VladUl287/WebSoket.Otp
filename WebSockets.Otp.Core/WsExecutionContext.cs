@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.ObjectPool;
-using WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core;
 

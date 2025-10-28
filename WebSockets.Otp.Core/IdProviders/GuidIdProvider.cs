@@ -1,6 +1,6 @@
 ﻿using WebSockets.Otp.Abstractions.Contracts;
 
-namespace WebSockets.Otp.Core;
+namespace WebSockets.Otp.Core.IdProviders;
 
 public sealed class GuidIdProvider : IIdProvider
 {
