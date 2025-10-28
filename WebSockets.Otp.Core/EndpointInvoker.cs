@@ -5,7 +5,6 @@ using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Abstractions;
-using System.Runtime.CompilerServices;
 
 namespace WebSockets.Otp.Core;
 
@@ -22,10 +21,10 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
         {
             _logger.LogInvokingEndpoint(endpointType.Name, connectionId);
 
-            var invoker = GetOrCreateInvoker(endpointType);
+            var invoker = GetOrAddInvoker(endpointType);
             await invoker(endpointInstance, ctx, ct);
 
-            _logger.LogInvocationSuccess(endpointType.Name, connectionId);
+            _logger.LogInvocationSuccess(endpointType.Name, invoker.Method.Name);
         }
         catch (Exception ex)
         {
@@ -34,9 +33,20 @@ public sealed class EndpointInvoker(IMethodResolver methodResolver, ILogger<Endp
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Func<object, IWsExecutionContext, CancellationToken, Task> GetOrCreateInvoker(Type endpType) =>
-        _cache.GetOrAdd(endpType, (endp, create) => create(endp), CreateInvoker);
+    public Func<object, IWsExecutionContext, CancellationToken, Task> GetOrAddInvoker(Type endpointType)
+    {
+        if (_cache.TryGetValue(endpointType, out var cachedInvoker))
+        {
+            _logger.LogCacheHit(endpointType.Name);
+            return cachedInvoker;
+        }
+
+        _logger.LogCacheMiss(endpointType.Name);
+
+        var invoker = CreateInvoker(endpointType);
+        _cache[endpointType] = invoker;
+        return invoker;
+    }
 
     private Func<object, IWsExecutionContext, CancellationToken, Task> CreateInvoker(Type endpointType)
     {
