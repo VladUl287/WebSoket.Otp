@@ -17,7 +17,21 @@ public sealed class DefaultMethodResolver : IMethodResolver
 
     public MethodInfo ResolveHandleMethodFromBase(Type endpointType)
     {
-        var handleMethod = endpointType.GetBaseEndpointType().GetMethod(
+        var baseEndpType = endpointType.GetBaseEndpointType();
+
+        if (baseEndpType.AcceptsRequestMessages())
+        {
+            var requestType = endpointType.GetRequestType();
+            return baseEndpType.GetMethod(
+                nameof(WsEndpoint.HandleAsync),
+                BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic,
+                binder: null,
+                [requestType, typeof(IWsExecutionContext), typeof(CancellationToken)],
+                null) ??
+            throw new InvalidOperationException("Method 'HandleAsync(IWsConnection, CancellationToken)' not found");
+        }
+
+        var handleMethod = baseEndpType.GetMethod(
             nameof(WsEndpoint.HandleAsync),
             BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic,
             null,

@@ -16,9 +16,6 @@ public static class WsEndpointsExtensions
 
     public static bool AcceptsRequestMessages(this Type type)
     {
-        if (!type.IsWsEndpoint())
-            return false;
-
         while (type is not null)
         {
             if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(WsEndpoint<>))

@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ObjectPool;
 using Moq;
 using System.Net.WebSockets;
 using System.Reflection;
@@ -74,30 +73,6 @@ public class SequentialMessageProcessorBenchmark
     }
 }
 
-public sealed class AsyncServiceScopePooledObjectPolicy : IPooledObjectPolicy<IServiceScope>
-{
-    private readonly IServiceProvider _serviceProvider;
-
-    public AsyncServiceScopePooledObjectPolicy(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
-
-    public IServiceScope Create()
-    {
-        return _serviceProvider.CreateScope();
-    }
-
-    public bool Return(IServiceScope obj)
-    {
-        if (obj is AsyncServiceScope asyncScpo)
-        {
-
-        }
-        return true;
-    }
-}
-
 public class MockWebSocket : WebSocket
 {
     private WebSocketState _state = WebSocketState.Open;
@@ -111,12 +86,15 @@ public class MockWebSocket : WebSocket
 
     private static byte[] message = Encoding.UTF8.GetBytes("""
      { 
-         "key": "chat/message/singleton", 
-         "chatId": "deace9c3-5984-4241-8e65-927dc4ded8bf", 
-         "timestamp": "2011-10-05T14:48:00.000Z", 
-         "content": "test" 
+         "key": "chat/message/singleton",
      }
      """);
+
+    //private static byte[] message = Encoding.UTF8.GetBytes("""
+    // { 
+    //     "key": "chat/message/request",
+    // }
+    // """);
 
     private static readonly WebSocketReceiveResult defautlResult = new WebSocketReceiveResult(
             message.Length,
