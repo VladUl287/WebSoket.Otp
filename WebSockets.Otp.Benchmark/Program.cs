@@ -1,4 +1,5 @@
 ﻿using BenchmarkDotNet.Running;
+using WebSockets.Otp.Benchmark;
 using WebSockets.Otp.Benchmark.Benchmarks;
 
 //var benc = new SequentialMessageProcessorBenchmark();
@@ -19,7 +20,7 @@ using WebSockets.Otp.Benchmark.Benchmarks;
 
 //BenchmarkRunner.Run<IdProvidersCreationBench>();
 
-//BenchmarkRunner.Run<ExtractFieldBenchmark>();
+BenchmarkRunner.Run<ExtractFieldBenchmark>();
 
 //var tes = new StringPoolBenchmark();
 //tes.Setup();
@@ -28,4 +29,4 @@ using WebSockets.Otp.Benchmark.Benchmarks;
 //Console.WriteLine(tes.Preloaded_Strign_Pool_Existing_Key());
 //Console.WriteLine(tes.Preloaded_Strign_Pool_Unsafe_Existing_Key());
 
-BenchmarkRunner.Run<StringPoolBenchmark>();
+//BenchmarkRunner.Run<StringPoolBenchmark>();

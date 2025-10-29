@@ -10,6 +10,7 @@ public interface ISerializer
     object? Deserialize(Type type, ReadOnlySpan<byte> jsonUtf8);
 
     string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8);
+    string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8);
     string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool);
     string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool);
 }

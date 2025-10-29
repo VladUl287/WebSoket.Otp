@@ -28,6 +28,10 @@ public class ExtractFieldBenchmark
     public ReadOnlyMemory<byte> KeyFieldMemory = Encoding.UTF8.GetBytes("key").AsMemory();
 
 
+    private static readonly JsonMessageSerializer jsonMessageSerializer = new();
+    private static readonly IStringPool stringPool = new PreloadedStringPool(["chat-message"], Encoding.UTF8);
+    private static readonly IStringPool unsafeStringPool = new PreloadedStringPool(["chat-message"], Encoding.UTF8, true);
+
     [Benchmark]
     public string? Small_ExtractField_Parse()
     {
@@ -36,25 +40,28 @@ public class ExtractFieldBenchmark
         return element.GetString();
     }
 
-    private static readonly JsonMessageSerializer jsonMessageSerializer = new();
-    private static readonly IStringPool stringPool = new PreloadedStringPool(["chat-message"], Encoding.UTF8);
-
     [Benchmark]
-    public string? Small_ExtractStringField_Field_Span()
+    public string? Small_ExtractStringField_Field_String()
     {
         return jsonMessageSerializer.ExtractStringField(KeyField, SmallMessageBytes.Span);
     }
 
     [Benchmark]
-    public string? Small_ExtractStringField_Field_Memory()
+    public string? Small_ExtractStringField_Field_Span()
+    {
+        return jsonMessageSerializer.ExtractStringField(KeyFieldMemory.Span, SmallMessageBytes.Span);
+    }
+
+    [Benchmark]
+    public string? Small_ExtractStringField_Field_Span_Pool()
     {
         return jsonMessageSerializer.ExtractStringField(KeyFieldMemory.Span, SmallMessageBytes.Span, stringPool);
     }
 
     [Benchmark]
-    public string? Small_ExtractStringField_Field_Pool()
+    public string? Small_ExtractStringField_Field_Span_Unsafe_Pool()
     {
-        return jsonMessageSerializer.ExtractStringField(KeyField, SmallMessageBytes.Span, stringPool);
+        return jsonMessageSerializer.ExtractStringField(KeyFieldMemory.Span, SmallMessageBytes.Span, unsafeStringPool);
     }
 
     private static readonly CommunityToolkit.HighPerformance.Buffers.StringPool toolkitStringPool = new();

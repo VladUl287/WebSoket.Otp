@@ -90,6 +90,27 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         return null;
     }
 
+    public string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(nameof(field));
+
+        var reader = new Utf8JsonReader(jsonUtf8);
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
+
+            if (reader.ValueTextEquals(field))
+            {
+                reader.Read();
+                return reader.GetString();
+            }
+
+            reader.Skip();
+        }
+        return null;
+    }
+
     public string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool)
     {
         ArgumentException.ThrowIfNullOrEmpty(nameof(field));
