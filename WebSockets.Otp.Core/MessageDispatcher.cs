@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core.Exceptions;
 using WebSockets.Otp.Core.Logging;
@@ -10,7 +11,7 @@ public class MessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory,
     IEndpointInvoker invoker, IStringPool stringPool, ILogger<MessageDispatcher> logger) : IMessageDispatcher
 {
-    private readonly ReadOnlyMemory<byte> KeyField = stringPool.Encoding.GetBytes("key").AsMemory();
+    private readonly ReadOnlyMemory<byte> KeyField = stringPool.Encoding.GetBytes(nameof(WsMessage.Key).ToLowerInvariant()).AsMemory();
 
     public async Task DispatchMessage(IWsConnection connection, ISerializer serializer, IMessageBuffer buffer, CancellationToken token)
     {
