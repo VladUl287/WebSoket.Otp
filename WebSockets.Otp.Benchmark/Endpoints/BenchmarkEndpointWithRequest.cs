@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Benchmark.Endpoints;
@@ -12,4 +13,4 @@ public sealed class BenchmarkEndpointWithRequest : WebSockets.Otp.Abstractions.W
     }
 }
 
-public sealed record Request(string Key);
+public sealed class Request : WsMessage;
