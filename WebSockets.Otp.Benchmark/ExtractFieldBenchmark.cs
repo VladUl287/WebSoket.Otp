@@ -37,7 +37,7 @@ public class ExtractFieldBenchmark
     }
 
     private static readonly JsonMessageSerializer jsonMessageSerializer = new();
-    private static readonly IStringPool stringPool = new PrecomputedStringPool(["chat-message"], Encoding.UTF8);
+    private static readonly IStringPool stringPool = new PreloadedStringPool(["chat-message"], Encoding.UTF8);
 
     [Benchmark]
     public string? Small_ExtractStringField_Field_Span()
