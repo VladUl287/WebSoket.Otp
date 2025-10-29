@@ -1,58 +1,51 @@
 ﻿using System.Reflection;
-using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
-using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Extensions;
 
 public static class WsEndpointsExtensions
 {
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsWsEndpoint(this Type type) =>
-        type is { IsAbstract: false } &&
-        type.IsAssignableTo(typeof(IWsEndpoint)) &&
-        type.GetCustomAttribute<WsEndpointAttribute>() is not null;
+        type is { IsAbstract: false } and { IsInterface: false } &&
+        type.GetCustomAttribute<WsEndpointAttribute>() is not null &&
+        type.GetBaseEndpointTypeSafe() is not null;
 
-    public static bool AcceptsRequestMessages(this Type type)
+    public static bool AcceptsRequestMessages(this Type type) => GetRequestTypeSafe(type) is not null;
+
+    public static Type GetRequestType(this Type type) =>
+        GetRequestTypeSafe(type) ?? throw new ArgumentException($"Type '{nameof(type)}' not contains request type");
+
+    public static Type GetBaseEndpointType(this Type type) =>
+        GetBaseEndpointTypeSafe(type) ?? throw new ArgumentException($"Base type not found from '{nameof(type)}'");
+
+    public static Type? GetRequestTypeSafe(this Type type)
     {
-        while (type is not null)
+        Type? current = type;
+        while (current is not null)
         {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
-                return true;
+            if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
+                return current.GenericTypeArguments[0];
 
-            type = type.BaseType;
+            current = current.BaseType;
         }
-
-        return false;
+        return null;
     }
 
-    public static Type GetRequestType(this Type type)
+    private static Type? GetBaseEndpointTypeSafe(this Type type)
     {
-        while (type is not null)
+        Type? current = type;
+        while (current is not null)
         {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
-                return type.GenericTypeArguments[0];
+            if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
+                return current;
 
-            type = type.BaseType;
+            if (current == typeof(WsEndpoint))
+                return current;
+
+            current = current.BaseType;
         }
 
-        throw new ArgumentException($"Type '{nameof(type)}' not contains request type");
-    }
-
-    public static Type GetBaseEndpointType(this Type type)
-    {
-        while (type is not null)
-        {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
-                return type;
-
-            if (type == typeof(WsEndpoint))
-                return type;
-
-            type = type.BaseType;
-        }
-
-        throw new ArgumentException($"Base type not found from '{nameof(type)}'");
+        return null;
     }
 }

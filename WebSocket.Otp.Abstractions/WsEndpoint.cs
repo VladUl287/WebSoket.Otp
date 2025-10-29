@@ -2,12 +2,12 @@
 
 namespace WebSockets.Otp.Abstractions;
 
-public abstract class WsEndpoint : IWsEndpoint
+public abstract class WsEndpoint
 {
     public abstract Task HandleAsync(IWsExecutionContext connection, CancellationToken token);
 }
 
-public abstract class WsEndpoint<TReq> : IWsEndpoint where TReq : IWsMessage
+public abstract class WsEndpoint<TReq>
 {
     public abstract Task HandleAsync(TReq request, IWsExecutionContext context, CancellationToken token);
 }
