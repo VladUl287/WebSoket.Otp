@@ -31,7 +31,7 @@ public sealed class PreloadedStringPool : IStringPool
         var entries = new Dictionary<ulong, Entry>(uniqueStrings.Count);
         var hasCollisions = false;
 
-        foreach (var str in knownStrings)
+        foreach (var str in uniqueStrings)
         {
             var bytes = _encoding.GetBytes(str);
             var hashCode = GetHashCode(bytes);
@@ -62,9 +62,10 @@ public sealed class PreloadedStringPool : IStringPool
         if (!_mapEntries.TryGetValue(hashCode, out var entry))
             return _encoding.GetString(bytes);
 
-        return unsafeMode && entry.Next is null
-            ? entry.Value
-            : FindExactMatch(bytes, entry) ?? _encoding.GetString(bytes);
+        if (unsafeMode && entry.Next is null)
+            return entry.Value;
+
+        return FindExactMatch(bytes, entry) ?? _encoding.GetString(bytes);
     }
 
     public string Intern(ReadOnlySequence<byte> bytes, bool unsafeMode = false)
@@ -77,9 +78,10 @@ public sealed class PreloadedStringPool : IStringPool
         if (!_mapEntries.TryGetValue(hashCode, out var entry))
             return _encoding.GetString(bytes);
 
-        return unsafeMode && entry.Next is null
-            ? entry.Value
-            : FindExactMatch(bytes, entry) ?? _encoding.GetString(bytes);
+        if (unsafeMode && entry.Next is null)
+            return entry.Value;
+
+        return FindExactMatch(bytes, entry) ?? _encoding.GetString(bytes);
     }
 
     private static string? FindExactMatch(ReadOnlySpan<byte> bytes, Entry entry)
@@ -88,7 +90,7 @@ public sealed class PreloadedStringPool : IStringPool
         while (currnet is not null)
         {
             if (bytes.SequenceEqual(currnet.Bytes))
-                return entry.Value;
+                return currnet.Value;
 
             currnet = currnet.Next;
         }
@@ -101,7 +103,7 @@ public sealed class PreloadedStringPool : IStringPool
         while (current is not null)
         {
             if (SequenceEqual(bytes, current.Bytes))
-                return entry.Value;
+                return current.Value;
 
             current = current.Next;
         }
