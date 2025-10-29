@@ -19,13 +19,15 @@ public sealed class PreloadedStringPool : IStringPool
     private readonly FrozenDictionary<ulong, Entry> _mapEntries;
     private readonly Encoding _encoding;
     private readonly bool _hasCollisions;
+    private readonly bool _unsafeMode;
 
     public Encoding Encoding => _encoding;
     public bool HasCollisions => _hasCollisions;
 
-    public PreloadedStringPool(IEnumerable<string> knownStrings, Encoding encoding)
+    public PreloadedStringPool(IEnumerable<string> knownStrings, Encoding encoding, bool unsafeMode = false)
     {
         _encoding = encoding;
+        _unsafeMode = unsafeMode;
 
         var uniqueStrings = new HashSet<string>(knownStrings);
         var entries = new Dictionary<ulong, Entry>(uniqueStrings.Count);
@@ -55,20 +57,20 @@ public sealed class PreloadedStringPool : IStringPool
         _mapEntries = entries.ToFrozenDictionary();
     }
 
-    public string Intern(ReadOnlySpan<byte> bytes, bool unsafeMode = false)
+    public string Intern(ReadOnlySpan<byte> bytes)
     {
         var hashCode = GetHashCode(bytes);
 
         if (!_mapEntries.TryGetValue(hashCode, out var entry))
             return _encoding.GetString(bytes);
 
-        if (unsafeMode && entry.Next is null)
+        if (_unsafeMode && entry.Next is null)
             return entry.Value;
 
         return FindExactMatch(bytes, entry) ?? _encoding.GetString(bytes);
     }
 
-    public string Intern(ReadOnlySequence<byte> bytes, bool unsafeMode = false)
+    public string Intern(ReadOnlySequence<byte> bytes)
     {
         if (bytes.IsSingleSegment)
             return Intern(bytes.FirstSpan);
@@ -78,7 +80,7 @@ public sealed class PreloadedStringPool : IStringPool
         if (!_mapEntries.TryGetValue(hashCode, out var entry))
             return _encoding.GetString(bytes);
 
-        if (unsafeMode && entry.Next is null)
+        if (_unsafeMode && entry.Next is null)
             return entry.Value;
 
         return FindExactMatch(bytes, entry) ?? _encoding.GetString(bytes);

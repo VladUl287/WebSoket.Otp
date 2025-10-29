@@ -10,6 +10,7 @@ public class StringPoolBenchmark
 {
     private StringPool stringPool;
     private PreloadedStringPool preloadedStringPool;
+    private PreloadedStringPool preloadedStringPoolUnsafe;
 
     private readonly Encoding encoding = Encoding.UTF8;
 
@@ -28,6 +29,7 @@ public class StringPoolBenchmark
 
         stringPool = new StringPool();
         preloadedStringPool = new(listStrings, encoding);
+        preloadedStringPoolUnsafe = new(listStrings, encoding, true);
         foreach (var item in listStrings)
             stringPool.Add(item);
     }
@@ -41,6 +43,12 @@ public class StringPoolBenchmark
     }
 
     [Benchmark]
+    public string Comunity_Strign_Pool_Get_Or_Add_Existing_Key()
+    {
+        return stringPool.GetOrAdd(keyBytes.Span, encoding);
+    }
+
+    [Benchmark]
     public string Preloaded_Strign_Pool_Existing_Key()
     {
         return preloadedStringPool.Intern(keyBytes.Span);
@@ -49,7 +57,7 @@ public class StringPoolBenchmark
     [Benchmark]
     public string Preloaded_Strign_Pool_Unsafe_Existing_Key()
     {
-        return preloadedStringPool.Intern(keyBytes.Span, true);
+        return preloadedStringPoolUnsafe.Intern(keyBytes.Span);
     }
 
     [Benchmark]
@@ -69,7 +77,7 @@ public class StringPoolBenchmark
     [Benchmark]
     public string Preloaded_Strign_Pool_Unsafe_Not_Existing_Key()
     {
-        return preloadedStringPool.Intern(not_keyBytes.Span, true);
+        return preloadedStringPoolUnsafe.Intern(not_keyBytes.Span);
     }
 
     private static readonly Random _random = new();
