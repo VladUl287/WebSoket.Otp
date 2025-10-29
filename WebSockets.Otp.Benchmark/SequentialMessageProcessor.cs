@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Net.WebSockets;
 using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Benchmark.Endpoints;
+using WebSockets.Otp.Benchmark.Utils;
 using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
 
@@ -35,6 +35,18 @@ public class SequentialMessageProcessorBenchmark
     private IWsConnection smallSocketConnection = default!;
     private readonly WsMiddlewareOptions options = new();
 
+    //private static byte[] message = Encoding.UTF8.GetBytes("""
+    // { 
+    //     "key": "chat/message/singleton",
+    // }
+    // """);
+
+    private readonly static byte[] Message = Encoding.UTF8.GetBytes("""
+     { 
+         "key": "chat/message/request"
+     }
+     """);
+
     [GlobalSetup]
     public void Setup()
     {
@@ -50,7 +62,7 @@ public class SequentialMessageProcessorBenchmark
     [IterationSetup]
     public void IterationSetup()
     {
-        var webSocket = new MockWebSocket();
+        var webSocket = new MockWebSocket(Message, 100_000);
 
         var cancellationTokenSource = new CancellationTokenSource();
         var mockHttpContext = new Mock<HttpContext>();
@@ -73,85 +85,3 @@ public class SequentialMessageProcessorBenchmark
     }
 }
 
-public class MockWebSocket : WebSocket
-{
-    private WebSocketState _state = WebSocketState.Open;
-
-    public override WebSocketCloseStatus? CloseStatus => WebSocketCloseStatus.NormalClosure;
-    public override string CloseStatusDescription => "Normal closure";
-    public override WebSocketState State => _state;
-    public override string SubProtocol => string.Empty;
-
-    private static int Readed = 0;
-
-    //private static byte[] message = Encoding.UTF8.GetBytes("""
-    // { 
-    //     "key": "chat/message/singleton",
-    // }
-    // """);
-
-    private static byte[] message = Encoding.UTF8.GetBytes("""
-     { 
-         "key": "chat/message/request"
-     }
-     """);
-
-    private static readonly WebSocketReceiveResult defautlResult = new WebSocketReceiveResult(
-            message.Length,
-            WebSocketMessageType.Text,
-            true);
-
-    public override async Task<WebSocketReceiveResult> ReceiveAsync(
-        ArraySegment<byte> buffer,
-        CancellationToken cancellationToken)
-    {
-        if (Readed > 100_000)
-        {
-            Readed = 0;
-            return new WebSocketReceiveResult(0, WebSocketMessageType.Close, true);
-        }
-
-        var bytesToCopy = Math.Min(message.Length, buffer.Count);
-        Array.Copy(message, 0, buffer.Array, buffer.Offset, bytesToCopy);
-
-        Readed++;
-        return defautlResult;
-    }
-
-    public override Task SendAsync(
-        ArraySegment<byte> buffer,
-        WebSocketMessageType messageType,
-        bool endOfMessage,
-        CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-
-    public override Task CloseAsync(
-        WebSocketCloseStatus closeStatus,
-        string statusDescription,
-        CancellationToken cancellationToken)
-    {
-        _state = WebSocketState.Closed;
-        return Task.CompletedTask;
-    }
-
-    public override Task CloseOutputAsync(
-        WebSocketCloseStatus closeStatus,
-        string statusDescription,
-        CancellationToken cancellationToken)
-    {
-        _state = WebSocketState.Closed;
-        return Task.CompletedTask;
-    }
-
-    public override void Abort()
-    {
-        _state = WebSocketState.Closed;
-    }
-
-    public override void Dispose()
-    {
-        _state = WebSocketState.Closed;
-    }
-}
