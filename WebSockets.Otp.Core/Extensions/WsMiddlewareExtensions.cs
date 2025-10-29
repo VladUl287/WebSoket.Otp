@@ -66,7 +66,7 @@ public static class WsMiddlewareExtensions
     private static IServiceCollection AddMessageProcessingServices(this IServiceCollection services)
     {
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
-        services.AddSingleton<IMethodResolver, DefaultMethodResolver>();
+        services.AddSingleton<IHandleDelegateFactory, DefaultDelegateFactory>();
         services.AddSingleton<IEndpointInvoker, EndpointInvoker>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 

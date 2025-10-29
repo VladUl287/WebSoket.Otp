@@ -32,7 +32,7 @@ public static class WsEndpointsExtensions
         return null;
     }
 
-    private static Type? GetBaseEndpointTypeSafe(this Type type)
+    public static Type? GetBaseEndpointTypeSafe(this Type type)
     {
         Type? current = type;
         while (current is not null)

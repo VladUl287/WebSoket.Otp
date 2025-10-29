@@ -16,11 +16,11 @@ using WebSockets.Otp.Benchmark.Benchmarks;
 
 //BenchmarkRunner.Run<MethodInvokeBenchmark>();
 
-//BenchmarkRunner.Run<SequentialMessageProcessorBenchmark>();
+BenchmarkRunner.Run<SequentialMessageProcessorBenchmark>();
 
 //BenchmarkRunner.Run<IdProvidersCreationBench>();
 
-BenchmarkRunner.Run<ExtractFieldBenchmark>();
+//BenchmarkRunner.Run<ExtractFieldBenchmark>();
 
 //var tes = new StringPoolBenchmark();
 //tes.Setup();
