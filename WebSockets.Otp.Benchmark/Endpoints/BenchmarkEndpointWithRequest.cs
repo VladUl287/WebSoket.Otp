@@ -12,4 +12,4 @@ public sealed class BenchmarkEndpointWithRequest : WebSockets.Otp.Abstractions.W
     }
 }
 
-public sealed record Request(string Key) : IWsMessage;
+public sealed record Request(string Key);
