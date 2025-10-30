@@ -33,7 +33,8 @@ public sealed partial class WsService(
             logger.LogConnectionEstablished(connection.Id);
 
             if (options.OnConnected is not null)
-                await SafeExecuteAsync((conn) => options.OnConnected(conn), connection, "OnConnected", logger);
+                await SafeExecuteAsync((state) => state.options.OnConnected!(state.connection),
+                    (options, connection), "OnConnected", logger);
 
             var processor = processorFactory.Create(options.Processing.Mode);
             await processor.Process(connection, options);
@@ -44,7 +45,8 @@ public sealed partial class WsService(
             logger.LogConnectionClosed(connection.Id);
 
             if (options.OnDisconnected is not null)
-                await SafeExecuteAsync((conn) => options.OnDisconnected(conn), connection, "OnDisconnected", logger);
+                await SafeExecuteAsync((state) => state.options.OnDisconnected!(state.connection),
+                    (options, connection), "OnDisconnected", logger);
         }
     }
 
