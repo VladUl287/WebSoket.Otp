@@ -28,41 +28,6 @@ public static class ParallelState
         }
     }
 
-    private static async Task AsyncEnumerableTaskBody<TSource, TState>(SyncForEachAsyncEnumerable<TSource, TState> syncState)
-    {
-        var nextWorkerRunning = false;
-
-        try
-        {
-            while (!syncState.Cancellation.IsCancellationRequested)
-            {
-                var element = await syncState.TryGetNextAsync();
-                if (element is null)
-                    break;
-
-                if (!nextWorkerRunning)
-                {
-                    nextWorkerRunning = true;
-                    syncState.TryRunWorker();
-                }
-
-                await syncState.LoopBody(element, syncState.State, syncState.Cancellation.Token);
-            }
-        }
-        catch (Exception e)
-        {
-            syncState.RecordException(e);
-        }
-        finally
-        {
-            if (syncState.SignalWorkerCompletedIterating())
-            {
-                await syncState.DisposeAsync();
-                syncState.Complete();
-            }
-        }
-    }
-
     private static async Task TaskBody<TSource, TState>(object o)
     {
         var syncState = (SyncForEachAsyncEnumerable<TSource, TState>)o;
