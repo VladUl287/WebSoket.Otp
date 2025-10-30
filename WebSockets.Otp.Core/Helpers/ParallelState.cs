@@ -1,22 +1,21 @@
-﻿using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Threading.Channels;
+﻿using System.Diagnostics;
 
 namespace WebSockets.Otp.Core.Helpers;
 
 public static class ParallelState
 {
-    public static Task ForEachAsync<TSource, TState>(IAsyncEnumerable<TSource> source, int dop, TaskScheduler scheduler, 
-        CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
+    public static Task ForEachAsync<TSource, TState>(IAsyncEnumerable<TSource> source, int dop, TaskScheduler scheduler,
+        CancellationToken cancellationToken, Func<TSource, TState, CancellationToken, ValueTask> body, TState state)
     {
         if (cancellationToken.IsCancellationRequested)
             return Task.FromCanceled(cancellationToken);
 
         try
         {
-            var state = new AsyncForEachAsyncState<TSource>(source, TaskBody<TSource, TState>, dop, scheduler, cancellationToken, body);
-            state.TryRunWorker();
-            return state.Task;
+            var syncState = new AsyncForEachAsyncState<TSource, TState>(source, TaskBody<TSource, TState>, dop, 
+                scheduler, cancellationToken, body, state);
+            syncState.TryRunWorker();
+            return syncState.Task;
         }
         catch (Exception e)
         {
@@ -26,7 +25,7 @@ public static class ParallelState
 
     private static async Task TaskBody<TSource, TState>(object o)
     {
-        var state = (AsyncForEachAsyncState<TSource>)o;
+        var state = (AsyncForEachAsyncState<TSource, TState>)o;
         bool launchedNext = false;
 
         try
@@ -55,7 +54,7 @@ public static class ParallelState
                     state.TryRunWorker();
                 }
 
-                await state.LoopBody(element, state.Cancellation.Token);
+                await state.LoopBody(element, state.State, state.Cancellation.Token);
             }
         }
         catch (Exception e)
@@ -80,17 +79,19 @@ public static class ParallelState
         }
     }
 
-    private sealed class AsyncForEachAsyncState<TSource> : ForEachAsyncState<TSource>, IAsyncDisposable
+    private sealed class AsyncForEachAsyncState<TSource, TState> : ForEachAsyncState<TSource, TState>, IAsyncDisposable
     {
         public readonly IAsyncEnumerator<TSource> Enumerator;
+        public TState State;
 
         public AsyncForEachAsyncState(
             IAsyncEnumerable<TSource> source, Func<object, Task> taskBody,
             int dop, TaskScheduler scheduler, CancellationToken cancellationToken,
-            Func<TSource, CancellationToken, ValueTask> body) :
+            Func<TSource, TState, CancellationToken, ValueTask> body, TState state) :
             base(taskBody, needsLock: true, dop, scheduler, cancellationToken, body)
         {
             Enumerator = source.GetAsyncEnumerator(Cancellation.Token) ?? throw new InvalidOperationException();
+            State = state;
         }
 
         public ValueTask DisposeAsync()
@@ -100,7 +101,7 @@ public static class ParallelState
         }
     }
 
-    private abstract class ForEachAsyncState<TSource> : TaskCompletionSource, IThreadPoolWorkItem
+    private abstract class ForEachAsyncState<TSource, TState> : TaskCompletionSource, IThreadPoolWorkItem
     {
         /// <summary>The caller-provided cancellation token.</summary>
         private readonly CancellationToken _externalCancellationToken;
@@ -129,12 +130,12 @@ public static class ParallelState
         private int _remainingDop;
 
         /// <summary>The delegate to invoke for each element yielded by the enumerator.</summary>
-        public readonly Func<TSource, CancellationToken, ValueTask> LoopBody;
+        public readonly Func<TSource, TState, CancellationToken, ValueTask> LoopBody;
         /// <summary>The internal token source used to cancel pending work.</summary>
         public readonly CancellationTokenSource Cancellation = new CancellationTokenSource();
 
         /// <summary>Initializes the state object.</summary>
-        protected ForEachAsyncState(Func<object, Task> taskBody, bool needsLock, int dop, TaskScheduler scheduler, CancellationToken cancellationToken, Func<TSource, CancellationToken, ValueTask> body)
+        protected ForEachAsyncState(Func<object, Task> taskBody, bool needsLock, int dop, TaskScheduler scheduler, CancellationToken cancellationToken, Func<TSource, TState, CancellationToken, ValueTask> body)
         {
             _taskBody = taskBody;
             _lock = needsLock ? new SemaphoreSlim(initialCount: 1, maxCount: 1) : null;
@@ -147,7 +148,7 @@ public static class ParallelState
             }
 
             _externalCancellationToken = cancellationToken;
-            _registration = cancellationToken.UnsafeRegister(static o => ((ForEachAsyncState<TSource>)o!).Cancellation.Cancel(), this);
+            _registration = cancellationToken.UnsafeRegister(static o => ((ForEachAsyncState<TSource, TState>)o!).Cancellation.Cancel(), this);
         }
 
         /// <summary>Queues another worker if allowed by the remaining degree of parallelism permitted.</summary>
@@ -273,7 +274,7 @@ public static class ParallelState
             }
             else
             {
-                ExecutionContext.Run(_executionContext, static o => ((ForEachAsyncState<TSource>)o!)._taskBody(o), this);
+                ExecutionContext.Run(_executionContext, static o => ((ForEachAsyncState<TSource, TState>)o!)._taskBody(o), this);
             }
         }
     }
