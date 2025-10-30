@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Threading.Channels;
 
 namespace WebSockets.Otp.Core.Helpers;
 
@@ -6,17 +7,19 @@ public static class ParallelState
 {
     public static Task ForEachStateAsync<TSource, TState>(
         IAsyncEnumerable<TSource> source, int dop, TaskScheduler scheduler,
-        Func<TSource, TState, CancellationToken, ValueTask> body, TState state, CancellationToken token)
+        Func<TSource, TState, CancellationToken, ValueTask> action, TState state, CancellationToken token)
     {
         if (token.IsCancellationRequested)
             return Task.FromCanceled(token);
 
         try
         {
-            var syncState = new SyncForEachAsyncStateWithStateAsync<TSource, TState>(
+            var syncState = new SyncForEachAsyncEnumerable<TSource, TState>(
                 source, TaskBody<TSource, TState>, dop,
-                scheduler, token, body, state);
-            syncState.QueueWorkerIfDopAvailable();
+                scheduler, action, state, token);
+
+            syncState.TryRunWorker();
+
             return syncState.Task;
         }
         catch (Exception e)
@@ -25,23 +28,22 @@ public static class ParallelState
         }
     }
 
-    private static async Task TaskBody<TSource, TState>(object o)
+    private static async Task AsyncEnumerableTaskBody<TSource, TState>(SyncForEachAsyncEnumerable<TSource, TState> syncState)
     {
-        var syncState = (SyncForEachAsyncStateWithStateAsync<TSource, TState>)o;
-        var launchedNext = false;
+        var nextWorkerRunning = false;
 
         try
         {
             while (!syncState.Cancellation.IsCancellationRequested)
             {
-                var (success, element) = await syncState.TryGetNextAsync();
-                if (!success)
+                var element = await syncState.TryGetNextAsync();
+                if (element is null)
                     break;
 
-                if (!launchedNext)
+                if (!nextWorkerRunning)
                 {
-                    launchedNext = true;
-                    syncState.QueueWorkerIfDopAvailable();
+                    nextWorkerRunning = true;
+                    syncState.TryRunWorker();
                 }
 
                 await syncState.LoopBody(element, syncState.State, syncState.Cancellation.Token);
@@ -55,55 +57,83 @@ public static class ParallelState
         {
             if (syncState.SignalWorkerCompletedIterating())
             {
-                try
-                {
-                    await syncState.DisposeAsync();
-                }
-                catch (Exception e)
-                {
-                    syncState.RecordException(e);
-                }
-
+                await syncState.DisposeAsync();
                 syncState.Complete();
             }
         }
     }
 
-    private sealed class SyncForEachAsyncStateWithStateAsync<TSource, TState> : ForEachAsyncStateWithState<TSource, TState>, IAsyncDisposable
+    private static async Task TaskBody<TSource, TState>(object o)
     {
-        public readonly IAsyncEnumerator<TSource> Enumerator;
-        public readonly TState State;
+        var syncState = (SyncForEachAsyncEnumerable<TSource, TState>)o;
+        var nextWorkerRunning = false;
 
-        public SyncForEachAsyncStateWithStateAsync(
-            IAsyncEnumerable<TSource> source, Func<object, Task> taskBody,
-            int dop, TaskScheduler scheduler, CancellationToken cancellationToken,
-            Func<TSource, TState, CancellationToken, ValueTask> body, TState state) :
-                base(taskBody, dop, scheduler, cancellationToken, body)
+        try
         {
-            Enumerator = source.GetAsyncEnumerator() ?? throw new InvalidOperationException();
-            State = state;
+            while (!syncState.Cancellation.IsCancellationRequested)
+            {
+                var element = await syncState.TryGetNextAsync();
+                if (element is null)
+                    break;
+
+                if (!nextWorkerRunning)
+                {
+                    nextWorkerRunning = true;
+                    syncState.TryRunWorker();
+                }
+
+                await syncState.LoopBody(element, syncState.State, syncState.Cancellation.Token);
+            }
         }
-
-        public async ValueTask<(bool Success, TSource Element)> TryGetNextAsync()
+        catch (Exception e)
         {
-            await AcquireLock(); //TODO: spin wait + semaphore lock?
+            syncState.RecordException(e);
+        }
+        finally
+        {
+            if (syncState.SignalWorkerCompletedIterating())
+            {
+                await syncState.DisposeAsync();
+                syncState.Complete();
+            }
+        }
+    }
+
+    private sealed class SyncForEachAsyncEnumerable<TSource, TState>(
+        IAsyncEnumerable<TSource> source,
+        Func<object, Task> taskBody,
+        int dop,
+        TaskScheduler scheduler,
+        Func<TSource, TState, CancellationToken, ValueTask> body,
+        TState state,
+        CancellationToken token) : ForEachAsyncStateWithState<TSource, TState>(taskBody, dop, scheduler, token, body), IAsyncDisposable
+    {
+        private readonly IAsyncEnumerator<TSource> _enumerator = source.GetAsyncEnumerator(token);
+        private readonly SemaphoreSlim _lock = new(initialCount: 1, maxCount: 1);
+
+        public readonly TState State = state;
+
+        public override async ValueTask<TSource?> TryGetNextAsync()
+        {
+            await _lock.WaitAsync(CancellationToken.None); //TODO: spin wait + semaphore lock + thread.yield?
             try
             {
-                if (Cancellation.IsCancellationRequested || !await Enumerator.MoveNextAsync())
-                    return (false, default);
+                if (Cancellation.IsCancellationRequested || !await _enumerator.MoveNextAsync())
+                    return default;
 
-                return (true, Enumerator.Current);
+                return _enumerator.Current;
             }
             finally
             {
-                ReleaseLock();
+                _lock.Release();
             }
         }
 
         public ValueTask DisposeAsync()
         {
+            _lock.Dispose();
             _registration.Dispose();
-            return Enumerator.DisposeAsync();
+            return _enumerator.DisposeAsync();
         }
     }
 
@@ -118,8 +148,6 @@ public static class ParallelState
         private readonly TaskScheduler _scheduler;
 
         private readonly ExecutionContext? _executionContext;
-
-        private readonly SemaphoreSlim _lock;
 
         private int _completionRefCount;
 
@@ -137,7 +165,7 @@ public static class ParallelState
             LoopBody = body;
 
             _taskBody = taskBody;
-            _lock = new SemaphoreSlim(initialCount: 1, maxCount: 1);
+
             _remainingDop = dop < 0 ? 1 : dop;
             _scheduler = scheduler;
 
@@ -150,7 +178,7 @@ public static class ParallelState
             _registration = cancellationToken.UnsafeRegister(static o => ((ForEachAsyncStateWithState<TSource, TState>)o!).Cancellation.Cancel(), this);
         }
 
-        public void QueueWorkerIfDopAvailable()
+        public void TryRunWorker()
         {
             if (_remainingDop > 0)
             {
@@ -169,10 +197,6 @@ public static class ParallelState
         }
 
         public bool SignalWorkerCompletedIterating() => Interlocked.Decrement(ref _completionRefCount) == 0;
-
-        public Task AcquireLock() => _lock.WaitAsync(CancellationToken.None);
-
-        public void ReleaseLock() => _lock.Release();
 
         public void RecordException(Exception e)
         {
@@ -214,6 +238,32 @@ public static class ParallelState
             {
                 ExecutionContext.Run(_executionContext, static o => ((ForEachAsyncStateWithState<TSource, TState>)o!)._taskBody(o), this);
             }
+        }
+
+        public abstract ValueTask<TSource?> TryGetNextAsync();
+    }
+
+
+    private sealed class SyncForEachChannel<TSource, TState> : ForEachAsyncStateWithState<TSource, TState>, IDisposable
+    {
+        public readonly Channel<TSource> Channel;
+        public readonly TState State;
+
+        public SyncForEachChannel(
+            Channel<TSource> source, Func<object, Task> taskBody,
+            int dop, TaskScheduler scheduler, CancellationToken cancellationToken,
+            Func<TSource, TState, CancellationToken, ValueTask> body, TState state) : base(taskBody, dop, scheduler, cancellationToken, body)
+        {
+            Channel = source;
+            State = state;
+        }
+
+        public override ValueTask<TSource?> TryGetNextAsync() => Channel.Reader.ReadAsync(Cancellation.Token);
+
+        public void Dispose()
+        {
+            _registration.Dispose();
+            Channel.Writer.Complete();
         }
     }
 }
