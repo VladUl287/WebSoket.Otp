@@ -87,7 +87,7 @@ public static class WsMiddlewareExtensions
 
     private static IServiceCollection AddSerializationServices(this IServiceCollection services)
     {
-        services.AddSingleton<ISerializerFactory, SerializerFactory>();
+        services.AddSingleton<ISerializerResolver, DefaultSerializerResolver>();
         services.AddSingleton<ISerializer, JsonMessageSerializer>();
 
         return services;

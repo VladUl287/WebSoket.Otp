@@ -9,7 +9,7 @@ using WebSockets.Otp.Core.Logging;
 namespace WebSockets.Otp.Core.Processors;
 
 public sealed class ParallelMessageProcessor(
-    IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory, ISerializerFactory serializerFactory,
+    IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory, ISerializerResolver serializerFactory,
     ILogger<SequentialMessageProcessor> logger) : IMessageProcessor
 {
     public string Name => ProcessingMode.Parallel;
@@ -25,7 +25,7 @@ public sealed class ParallelMessageProcessor(
 
         try
         {
-            var serializer = serializerFactory.Resolve(options.Connection.Protocol);
+            var serializer = serializerFactory.TryResolve(options.Connection.Protocol);
             var enumerable = EnumerateMessages(connection, options, bufferPool, tempBuffer);
 
             var parallelOptions = new ParallelOptions

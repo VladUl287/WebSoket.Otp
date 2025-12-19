@@ -1,25 +1,25 @@
 ﻿using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core;
 
-public sealed class SerializerFactory : ISerializerFactory
+public sealed class DefaultSerializerResolver : ISerializerResolver
 {
     private readonly FrozenDictionary<string, ISerializer> _store;
 
-    public SerializerFactory(IEnumerable<ISerializer> serializers)
+    public DefaultSerializerResolver(IEnumerable<ISerializer> serializers)
     {
         var store = new Dictionary<string, ISerializer>();
+
         foreach (var serializer in serializers)
             store[serializer.Format] = serializer;
+
         _store = store.ToFrozenDictionary();
     }
 
-    public ISerializer Resolve(string format)
-    {
-        if (_store.TryGetValue(format, out var serializer))
-            return serializer;
+    public bool Registered(string format) => _store.ContainsKey(format);
 
-        throw new InvalidOperationException($"Data format {format} not supported");
-    }
+    public bool TryResolve(string format, [NotNullWhen(true)] out ISerializer? serializer) =>
+        _store.TryGetValue(format, out serializer);
 }

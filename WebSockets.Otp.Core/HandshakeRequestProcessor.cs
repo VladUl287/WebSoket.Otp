@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics.CodeAnalysis;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Extensions;
@@ -12,7 +11,7 @@ public sealed class HandshakeRequestProcessor(
     IWsAuthorizationService authService,
     IHandshakeRequestParser handshakeRequestParser,
     IConnectionStateService requestState,
-    ISerializerFactory serializerFactory,
+    ISerializerResolver serializerResolver,
     ILogger<HandshakeRequestProcessor> logger) : IHandshakeRequestProcessor
 {
     public bool IsHandshakeRequest(HttpContext ctx, WsMiddlewareOptions options)
@@ -35,51 +34,27 @@ public sealed class HandshakeRequestProcessor(
 
         var connectionOptions = await handshakeRequestParser.ParseOptions(ctx.Request, token);
 
-        if (!ValidateConnection(connectionOptions.Protocol, out var statusCode, out var errorMessage))
+        if (!serializerResolver.Registered(connectionOptions.Protocol))
         {
-            await ctx.Response.WriteAsync(statusCode, errorMessage, token);
+            await ctx.Response.WriteAsync(StatusCodes.Status400BadRequest, "Specified protocol not supported", token);
+            //log
             return;
         }
 
         var authorized = await authService.TryAuhtorize(ctx, options.Authorization);
         if (!authorized)
         {
-            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await ctx.Response.WriteAsync(StatusCodes.Status401Unauthorized, string.Empty, token);
             logger.WebSocketRequestAuthFailed(connectionId);
             return;
         }
 
-        var connectionTokenId = await CreateConnectionAsync(ctx, options, connectionOptions.Protocol, token);
-        await ctx.Response.WriteAsync(StatusCodes.Status200OK, connectionTokenId, token);
+        options.Connection.User = ctx.User;
+        options.Connection.Protocol = connectionOptions.Protocol;
+
+        var tokenId = await requestState.GenerateTokenId(ctx, options.Connection, token);
+        await ctx.Response.WriteAsync(StatusCodes.Status200OK, tokenId, token);
 
         logger.HandshakeCompleted(connectionId);
-    }
-
-    private bool ValidateConnection(string protocolName, out int statusCode, [NotNullWhen(false)] out string? errorMessage)
-    {
-        statusCode = 0;
-        errorMessage = null;
-
-        var protocol = serializerFactory.Resolve(protocolName);
-        if (protocol is null)
-        {
-            statusCode = StatusCodes.Status400BadRequest;
-            errorMessage = $"Protocol '{protocolName}' not supported";
-            return false;
-        }
-
-        return true;
-    }
-
-    private async Task<string> CreateConnectionAsync(HttpContext context, WsMiddlewareOptions options, string protocolName, CancellationToken cancellationToken)
-    {
-        options.Connection.User = context.User;
-        options.Connection.Protocol = protocolName;
-
-        var connectionTokenId = await requestState.GenerateTokenId(context, options.Connection, cancellationToken);
-
-        logger.ConnectionTokenGenerated(connectionTokenId, context.Connection.Id);
-
-        return connectionTokenId;
     }
 }
