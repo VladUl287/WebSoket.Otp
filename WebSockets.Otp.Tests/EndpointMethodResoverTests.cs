@@ -1,3 +1,0 @@
-﻿namespace WebSockets.Otp.Tests;
-
-
