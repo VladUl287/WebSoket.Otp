@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 
 namespace WebSockets.Otp.Core.Authorization;
 
-public class WsAuthorizationService : IWsAuthorizationService
+public sealed class WsAuthorizationService : IWsAuthorizationService
 {
     private readonly IAuthorizationService _authService;
     private readonly ILogger<WsAuthorizationService> _logger;
@@ -22,7 +22,7 @@ public class WsAuthorizationService : IWsAuthorizationService
         _logger = logger;
     }
 
-    public virtual async ValueTask<bool> TryAuhtorize(HttpContext ctx, WsAuthorizationOptions options)
+    public async ValueTask<bool> TryAuhtorize(HttpContext ctx, WsAuthorizationOptions options)
     {
         if (!IsUserAuthenticated(ctx))
             return false;
