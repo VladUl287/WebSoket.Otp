@@ -8,21 +8,24 @@ namespace WebSockets.Otp.Core;
 
 public sealed class WsEndpointRegistry : IWsEndpointRegistry
 {
-    private FrozenDictionary<string, Type> map = new Dictionary<string, Type>().ToFrozenDictionary();
+    private FrozenDictionary<string, Type> _map = new Dictionary<string, Type>().ToFrozenDictionary();
 
-    public Type? Resolve(string path) => map.TryGetValue(path, out var value) ? value : null;
+    public WsEndpointRegistry() { }
+    public WsEndpointRegistry(IEnumerable<Type> types) => Register(types);
 
-    public IEnumerable<Type> Enumerate() => map.Values.AsEnumerable();
+    public Type? Resolve(string path) => _map.TryGetValue(path, out var value) ? value : null;
+
+    public IEnumerable<Type> Enumerate() => _map.Values.AsEnumerable();
 
     public void Register(IEnumerable<Type> types)
     {
-        var mutated = map.ToDictionary();
+        var mutated = _map.ToDictionary();
         foreach (var type in types)
         {
             var attr = ValidateWithException(type);
             mutated[attr.Key] = type;
         }
-        map = mutated.ToFrozenDictionary();
+        _map = mutated.ToFrozenDictionary();
     }
 
     private static WsEndpointAttribute ValidateWithException(Type type)

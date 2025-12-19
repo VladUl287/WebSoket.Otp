@@ -101,10 +101,8 @@ public static class WsMiddlewareExtensions
 
         services.AddSingleton<IWsEndpointRegistry>(sp =>
         {
-            var registry = new WsEndpointRegistry();
             var endpointsTypes = assemblies.GetEndpoints();
-            registry.Register(endpointsTypes);
-            return registry;
+            return new WsEndpointRegistry(endpointsTypes);
         });
 
         services.AddSingleton(options);
