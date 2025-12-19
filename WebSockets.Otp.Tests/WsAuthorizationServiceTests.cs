@@ -29,7 +29,7 @@ public class WsAuthorizationServiceTests
         var context = CreateHttpContext(authenticated: true);
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, null);
+        var result = await _service.Auhtorize(context, null);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -41,10 +41,10 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings { RequireAuthorization = false };
+        var options = new Abstractions.Options.WsAuthorizationOptions { RequireAuthorization = false };
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -57,10 +57,10 @@ public class WsAuthorizationServiceTests
         // Arrange
         var service = new WsAuthorizationService(null, _mockLogger.Object);
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings { RequireAuthorization = true };
+        var options = new Abstractions.Options.WsAuthorizationOptions { RequireAuthorization = true };
 
         // Act
-        var result = await service.AuhtorizeAsync(context, options);
+        var result = await service.Auhtorize(context, options);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -73,10 +73,10 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: false);
-        var options = new AuthorizationSettings { RequireAuthorization = true };
+        var options = new Abstractions.Options.WsAuthorizationOptions { RequireAuthorization = true };
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -117,7 +117,7 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = new[] { "TestPolicy" }
@@ -128,7 +128,7 @@ public class WsAuthorizationServiceTests
             .ReturnsAsync(AuthorizationResult.Failed());
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -147,14 +147,14 @@ public class WsAuthorizationServiceTests
         }, "TestAuth"));
 
         var context = new DefaultHttpContext { User = user };
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Roles = new[] { "Admin", "Manager" }
         };
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -172,14 +172,14 @@ public class WsAuthorizationServiceTests
         }, "Bearer"));
 
         var context = new DefaultHttpContext { User = user };
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Schemes = new[] { "Cookies", "CustomAuth" }
         };
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -198,7 +198,7 @@ public class WsAuthorizationServiceTests
         }, "Cookies"));
 
         var context = new DefaultHttpContext { User = user };
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = new[] { "Policy1" },
@@ -211,7 +211,7 @@ public class WsAuthorizationServiceTests
             .ReturnsAsync(AuthorizationResult.Success());
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -223,7 +223,7 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = null,
@@ -234,7 +234,7 @@ public class WsAuthorizationServiceTests
         user.AddIdentity(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "Admin") }));
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -246,7 +246,7 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = Array.Empty<string>(),
@@ -257,7 +257,7 @@ public class WsAuthorizationServiceTests
         user.AddIdentity(new ClaimsIdentity(new[] { new Claim(ClaimTypes.Role, "Admin") }));
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -269,7 +269,7 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = new[] { "Policy1" },
@@ -281,7 +281,7 @@ public class WsAuthorizationServiceTests
             .ReturnsAsync(AuthorizationResult.Success());
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -292,7 +292,7 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = new[] { "Policy1" },
@@ -304,7 +304,7 @@ public class WsAuthorizationServiceTests
             .ReturnsAsync(AuthorizationResult.Success());
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -315,7 +315,7 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = new[] { "Policy1" },
@@ -327,7 +327,7 @@ public class WsAuthorizationServiceTests
             .ReturnsAsync(AuthorizationResult.Success());
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -338,7 +338,7 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Policies = new[] { "Policy1" },
@@ -350,7 +350,7 @@ public class WsAuthorizationServiceTests
             .ReturnsAsync(AuthorizationResult.Success());
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -368,14 +368,14 @@ public class WsAuthorizationServiceTests
         }, "TestAuth"));
 
         var context = new DefaultHttpContext { User = user };
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Roles = new[] { "Admin", "Manager" }
         };
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -391,14 +391,14 @@ public class WsAuthorizationServiceTests
         }, "Cookies"));
 
         var context = new DefaultHttpContext { User = user };
-        var options = new AuthorizationSettings
+        var options = new Abstractions.Options.WsAuthorizationOptions
         {
             RequireAuthorization = true,
             Schemes = new[] { "Cookies", "Bearer" }
         };
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -409,10 +409,10 @@ public class WsAuthorizationServiceTests
     {
         // Arrange
         var context = new DefaultHttpContext { User = new ClaimsPrincipal() };
-        var options = new AuthorizationSettings { RequireAuthorization = true };
+        var options = new Abstractions.Options.WsAuthorizationOptions { RequireAuthorization = true };
 
         // Act
-        var result = await _service.AuhtorizeAsync(context, options);
+        var result = await _service.Auhtorize(context, options);
 
         // Assert
         Assert.False(result.Succeeded);
@@ -425,10 +425,10 @@ public class WsAuthorizationServiceTests
         // Arrange
         var service = new TestableWsAuthorizationService(_mockAuthorizationService.Object, _mockLogger.Object);
         var context = CreateHttpContext(authenticated: true);
-        var options = new AuthorizationSettings { RequireAuthorization = true };
+        var options = new Abstractions.Options.WsAuthorizationOptions { RequireAuthorization = true };
 
         // Act
-        var result = await service.AuhtorizeAsync(context, options);
+        var result = await service.Auhtorize(context, options);
 
         // Assert
         Assert.True(result.Succeeded);
@@ -458,7 +458,7 @@ public class TestableWsAuthorizationService : WsAuthorizationService
     {
     }
 
-    public override async Task<WsAuthorizationResult> AuhtorizeAsync(HttpContext context, AuthorizationSettings options)
+    public override async Task<WsAuthorizationResult> Auhtorize(HttpContext context, Abstractions.Options.WsAuthorizationOptions options)
     {
         WasOverriddenCalled = true;
         return WsAuthorizationResult.Success();

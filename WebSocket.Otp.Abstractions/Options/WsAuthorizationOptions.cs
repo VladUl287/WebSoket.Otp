@@ -1,6 +1,6 @@
 ﻿namespace WebSockets.Otp.Abstractions.Options;
 
-public sealed class AuthorizationSettings
+public sealed class WsAuthorizationOptions
 {
     public bool RequireAuthorization { get; set; }
 

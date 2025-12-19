@@ -282,7 +282,7 @@ public class WsRequestProcessorTests
         var options = new WsMiddlewareOptions
         {
             Paths = new PathSettings { RequestPath = "/ws" },
-            Authorization = new AuthorizationSettings { RequireAuthorization = true }
+            Authorization = new WsAuthorizationOptions { RequireAuthorization = true }
         };
         var connectionTokenId = "valid-token";
 
@@ -323,7 +323,7 @@ public class WsRequestProcessorTests
         var options = new WsMiddlewareOptions
         {
             Paths = new PathSettings { RequestPath = "/ws" },
-            Authorization = new AuthorizationSettings { RequireAuthorization = false }
+            Authorization = new WsAuthorizationOptions { RequireAuthorization = false }
         };
         var connectionTokenId = "valid-token";
 
@@ -380,7 +380,7 @@ public class WsRequestProcessorTests
         var options = new WsMiddlewareOptions
         {
             Paths = new PathSettings { RequestPath = "/ws" },
-            Authorization = new AuthorizationSettings { RequireAuthorization = false }
+            Authorization = new WsAuthorizationOptions { RequireAuthorization = false }
         };
         var connectionTokenId = "valid-token";
 

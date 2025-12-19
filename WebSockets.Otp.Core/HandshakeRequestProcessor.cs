@@ -59,10 +59,10 @@ public sealed class HandshakeRequestProcessor(
             return;
         }
 
-        var authResult = await authService.AuhtorizeAsync(context, options.Authorization);
-        if (authResult.Failed)
+        var authorized = await authService.TryAuhtorize(context, options.Authorization);
+        if (!authorized)
         {
-            await WriteResponseAsync(context, StatusCodes.Status401Unauthorized, authResult.FailureReason, cancellationToken);
+            await WriteResponseAsync(context, StatusCodes.Status401Unauthorized, string.Empty, cancellationToken);
             logger.WebSocketRequestAuthFailed(connectionId);
             return;
         }
