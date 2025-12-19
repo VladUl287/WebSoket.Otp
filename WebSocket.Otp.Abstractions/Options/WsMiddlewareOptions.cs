@@ -8,7 +8,7 @@ public sealed class WsMiddlewareOptions
     public MemorySettings Memory { get; set; } = new();
     public ProcessingSettings Processing { get; set; } = new();
     public WsAuthorizationOptions Authorization { get; set; } = new();
-    public ConnectionSettings Connection { get; set; } = new();
+    public WsConnectionOptions Connection { get; set; } = new();
 
     public Func<IWsConnection, Task>? OnConnected { get; set; }
     public Func<IWsConnection, Task>? OnDisconnected { get; set; }

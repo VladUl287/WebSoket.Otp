@@ -12,6 +12,7 @@ using WebSockets.Otp.Core.Helpers;
 using WebSockets.Otp.Core.IdProviders;
 using WebSockets.Otp.Core.Middlewares;
 using WebSockets.Otp.Core.Processors;
+using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Validators;
 
 namespace WebSockets.Otp.Core.Extensions;
@@ -47,7 +48,14 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
         services.AddSingleton<IWsService, WsService>();
+
+        services.AddSingleton<IHandshakeRequestParser>(
+            new DefaultJsonHandshakeRequestParser(new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+            }));
         services.AddSingleton<IHandshakeRequestProcessor, HandshakeRequestProcessor>();
+
         services.AddSingleton<IWsRequestProcessor, WsRequestProcessor>();
         services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
 

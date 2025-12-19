@@ -2,7 +2,7 @@
 
 namespace WebSockets.Otp.Abstractions.Options;
 
-public sealed class ConnectionSettings
+public sealed class WsConnectionOptions
 {
     public ClaimsPrincipal? User { get; set; }
     public string Protocol { get; set; } = "json";
