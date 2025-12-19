@@ -9,7 +9,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class WsRequestProcessor(
     IConnectionStateService requestState,
-    IWsConnectionFactory connectionFactory,
+    ITokenIdService tokenIdService,
     IWsService wsService,
     ILogger<WsRequestProcessor> logger) : IWsRequestProcessor
 {
@@ -28,27 +28,26 @@ public sealed class WsRequestProcessor(
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(options);
 
-        var cancellationToken = context.RequestAborted;
+        var token = context.RequestAborted;
 
         if (!IsWsRequestPath(context, options))
         {
-            await WriteErrorResponseAsync(context, StatusCodes.Status404NotFound, "Not found", cancellationToken);
+            await WriteErrorResponseAsync(context, StatusCodes.Status404NotFound, "Not found", token);
             return;
         }
 
-        var connectionTokenId = connectionFactory.GetConnectionTokenId(context);
-        if (string.IsNullOrEmpty(connectionTokenId))
+        if (!tokenIdService.TryExclude(context.Request, out var tokenId))
         {
             logger.MissingConnectionToken(context.Connection.Id);
-            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Missing connection token", cancellationToken);
+            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Missing connection token", token);
             return;
         }
 
-        var connOptions = await requestState.GetAsync(connectionTokenId, cancellationToken);
+        var connOptions = await requestState.Get(tokenId, token);
         if (connOptions is null)
         {
-            logger.InvalidConnectionToken(connectionTokenId);
-            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Invalid connection token", cancellationToken);
+            logger.InvalidConnectionToken(tokenId);
+            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Invalid connection token", token);
             return;
         }
 
@@ -64,7 +63,7 @@ public sealed class WsRequestProcessor(
         if (options is { Authorization.RequireAuthorization: true, Connection.User.Identity.IsAuthenticated: false })
         {
             logger.WebSocketRequestAuthFailed(context.Connection.Id);
-            await WriteErrorResponseAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", cancellationToken);
+            await WriteErrorResponseAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", token);
             return;
         }
 

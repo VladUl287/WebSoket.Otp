@@ -11,6 +11,7 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Benchmark.Endpoints;
 using WebSockets.Otp.Benchmark.Utils;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Benchmark;
 

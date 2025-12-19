@@ -25,7 +25,9 @@ public sealed class ParallelMessageProcessor(
 
         try
         {
-            var serializer = serializerFactory.TryResolve(options.Connection.Protocol);
+            if (!serializerFactory.TryResolve(options.Connection.Protocol, out var serializer))
+                return;
+
             var enumerable = EnumerateMessages(connection, options, bufferPool, tempBuffer);
 
             var parallelOptions = new ParallelOptions

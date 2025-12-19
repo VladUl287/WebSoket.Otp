@@ -11,6 +11,7 @@ using WebSockets.Otp.Core.Middlewares;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Authorization;
 using WebSockets.Otp.Core.Services.IdProviders;
+using WebSockets.Otp.Core.Services.MessageProcessors;
 using WebSockets.Otp.Core.Services.Serializers;
 using WebSockets.Otp.Core.Services.Validators;
 using WebSockets.Otp.Core.Utils;
@@ -95,7 +96,6 @@ public static class WsMiddlewareExtensions
 
     private static IServiceCollection AddUtilityServices(this IServiceCollection services)
     {
-        services.AddSingleton<IClock, UtcClock>();
         services.AddSingleton<IIdProvider, GuidIdProvider>();
 
         return services;

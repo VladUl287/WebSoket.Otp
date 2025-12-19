@@ -11,6 +11,7 @@ public sealed class DefaultHandshakeRequestProcessor(
     IWsAuthorizationService authService,
     IHandshakeRequestParser handshakeRequestParser,
     IConnectionStateService requestState,
+    ITokenIdService tokenIdService,
     ISerializerResolver serializerResolver,
     ILogger<DefaultHandshakeRequestProcessor> logger) : IHandshakeRequestProcessor
 {
@@ -52,7 +53,8 @@ public sealed class DefaultHandshakeRequestProcessor(
         options.Connection.User = ctx.User;
         options.Connection.Protocol = connectionOptions.Protocol;
 
-        var tokenId = await requestState.GenerateTokenId(ctx, options.Connection, token);
+        var tokenId = tokenIdService.Generate();
+        await requestState.Set(tokenId, connectionOptions, token);
         await ctx.Response.WriteAsync(StatusCodes.Status200OK, tokenId, token);
 
         logger.HandshakeCompleted(connectionId);

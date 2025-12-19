@@ -12,14 +12,4 @@ public sealed class WsConnectionFactory(IIdProvider idProvider) : IWsConnectionF
         var connectionId = idProvider.Create();
         return new WsConnection(connectionId, context, socket);
     }
-
-    public string GetConnectionTokenId(HttpContext context)
-    {
-        const string queryKey = "id";
-
-        if (!context.Request.Query.TryGetValue(queryKey, out var idValues) || idValues.Count == 0)
-            return string.Empty;
-
-        return idValues.ToString();
-    }
 }

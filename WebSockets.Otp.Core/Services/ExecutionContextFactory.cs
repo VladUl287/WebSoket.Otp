@@ -1,4 +1,5 @@
 ﻿using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 

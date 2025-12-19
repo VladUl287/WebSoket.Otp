@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Core.Services.Serializers;
+using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Benchmark;
 
