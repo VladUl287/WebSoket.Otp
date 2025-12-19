@@ -6,14 +6,14 @@ using System.Text;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Core.Authorization;
 using WebSockets.Otp.Core.Extensions;
-using WebSockets.Otp.Core.Helpers;
-using WebSockets.Otp.Core.IdProviders;
 using WebSockets.Otp.Core.Middlewares;
-using WebSockets.Otp.Core.Processors;
 using WebSockets.Otp.Core.Services;
-using WebSockets.Otp.Core.Validators;
+using WebSockets.Otp.Core.Services.Authorization;
+using WebSockets.Otp.Core.Services.IdProviders;
+using WebSockets.Otp.Core.Services.Serializers;
+using WebSockets.Otp.Core.Services.Validators;
+using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;
 
@@ -50,11 +50,11 @@ public static class WsMiddlewareExtensions
         services.AddSingleton<IWsService, WsService>();
 
         services.AddSingleton<IHandshakeRequestParser>(
-            new DefaultJsonHandshakeRequestParser(new System.Text.Json.JsonSerializerOptions
+            new DefaultHandshakeRequestParser(new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
             }));
-        services.AddSingleton<IHandshakeRequestProcessor, HandshakeRequestProcessor>();
+        services.AddSingleton<IHandshakeRequestProcessor, DefaultHandshakeRequestProcessor>();
 
         services.AddSingleton<IWsRequestProcessor, WsRequestProcessor>();
         services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();

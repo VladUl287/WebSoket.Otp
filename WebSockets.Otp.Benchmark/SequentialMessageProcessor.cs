@@ -10,7 +10,6 @@ using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Benchmark.Endpoints;
 using WebSockets.Otp.Benchmark.Utils;
-using WebSockets.Otp.Core;
 using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Benchmark;

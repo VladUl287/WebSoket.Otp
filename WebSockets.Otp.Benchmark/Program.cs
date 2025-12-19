@@ -1,6 +1,5 @@
 ﻿using BenchmarkDotNet.Running;
 using WebSockets.Otp.Benchmark;
-using WebSockets.Otp.Benchmark.Benchmarks;
 
 BenchmarkRunner.Run<RegistryDictionaryBenchmark>();
 //BenchmarkRunner.Run<RegistryBenchmark>();

@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class HttpResponseExtensions
 {
-    public static ValueTask WriteAsync(this HttpResponse response, int statusCode, string message, CancellationToken token) => 
+    public static ValueTask WriteAsync(this HttpResponse response, int statusCode, string message, CancellationToken token) =>
         WriteAsync(response, Encoding.UTF8, statusCode, message, token);
 
     private static async ValueTask WriteAsync(HttpResponse response, Encoding encoding, int statusCode, string message, CancellationToken token)

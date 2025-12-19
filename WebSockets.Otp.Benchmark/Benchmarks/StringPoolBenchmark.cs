@@ -1,7 +1,7 @@
 ﻿using BenchmarkDotNet.Attributes;
 using CommunityToolkit.HighPerformance.Buffers;
 using System.Text;
-using WebSockets.Otp.Core.Helpers;
+using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Benchmark.Benchmarks;
 

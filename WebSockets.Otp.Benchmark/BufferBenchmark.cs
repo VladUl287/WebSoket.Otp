@@ -1,6 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 using Microsoft.IO;
-using WebSockets.Otp.Core.Helpers;
+using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Benchmark;
 

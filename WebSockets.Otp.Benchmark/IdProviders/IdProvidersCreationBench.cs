@@ -1,6 +1,5 @@
 ﻿using BenchmarkDotNet.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Core.IdProviders;
 
 namespace WebSockets.Otp.Benchmark.IdProviders;
 
