@@ -2,6 +2,9 @@
 using WebSockets.Otp.Benchmark;
 using WebSockets.Otp.Benchmark.Benchmarks;
 
+BenchmarkRunner.Run<RegistryDictionaryBenchmark>();
+//BenchmarkRunner.Run<RegistryBenchmark>();
+
 //var benc = new SequentialMessageProcessorBenchmark();
 //benc.Setup();
 //benc.IterationSetup();
@@ -16,7 +19,7 @@ using WebSockets.Otp.Benchmark.Benchmarks;
 
 //BenchmarkRunner.Run<MethodInvokeBenchmark>();
 
-BenchmarkRunner.Run<SequentialMessageProcessorBenchmark>();
+//BenchmarkRunner.Run<SequentialMessageProcessorBenchmark>();
 
 //BenchmarkRunner.Run<IdProvidersCreationBench>();
 
