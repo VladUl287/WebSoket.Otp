@@ -9,6 +9,7 @@ public sealed class WsGlobalOptions
 
 public sealed class WsEndpointKeyOptions
 {
+    public bool InternUnsafeMode { get; init; } = false;
     public bool IgnoreCase { get; set; } = false;
     public int MaxLength { get; set; } = 256;
     public int MinLength { get; set; } = 1;
