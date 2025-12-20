@@ -6,11 +6,11 @@ public interface ISerializer
 
     ReadOnlyMemory<byte> Serialize<T>(T message);
 
-    object? Deserialize(Type type, ReadOnlyMemory<byte> jsonUtf8);
-    object? Deserialize(Type type, ReadOnlySpan<byte> jsonUtf8);
+    object? Deserialize(Type type, ReadOnlyMemory<byte> data);
+    object? Deserialize(Type type, ReadOnlySpan<byte> data);
 
-    string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8);
-    string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8);
-    string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool);
-    string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool);
+    string? ExtractStringField(string field, ReadOnlySpan<byte> data);
+    string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data);
+    string? ExtractStringField(string field, ReadOnlySpan<byte> data, IStringPool stringPool);
+    string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data, IStringPool stringPool);
 }
