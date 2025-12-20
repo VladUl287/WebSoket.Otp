@@ -34,7 +34,7 @@ public sealed class AsyncObjectPool<TState, TObject>(int size, Func<TState, TObj
             if (_created < size)
             {
                 _created++;
-                return new ValueTask<TObject>(objectFactory.Invoke(state));
+                return new ValueTask<TObject>(objectFactory(state));
             }
         }
 
