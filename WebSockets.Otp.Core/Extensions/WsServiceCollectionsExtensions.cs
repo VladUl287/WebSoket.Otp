@@ -1,10 +1,10 @@
-﻿using System.Text;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
-using WebSockets.Otp.Core.Services;
-using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Contracts;
+using System.Text;
 using WebSockets.Otp.Abstractions.Attributes;
-using Microsoft.Extensions.DependencyInjection;
+using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Authorization;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.MessageProcessors;
@@ -18,36 +18,35 @@ public static class WsServiceCollectionsExtensions
 {
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
-        services.AddMainServices();
-        services.AddEndpointServices(new WsGlobalOptions(), assemblies);
-        return services;
+        var options = new WsGlobalOptions();
+        services.AddMainServices(options);
+        return services.AddEndpointServices(options, assemblies);
     }
 
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure, params Assembly[] assemblies)
     {
-        var globalOptions = new WsGlobalOptions();
-        configure(globalOptions);
+        var options = new WsGlobalOptions();
+        configure(options);
 
-        services.AddMainServices();
-        services.AddEndpointServices(globalOptions, assemblies);
-        return services;
+        services.AddMainServices(options);
+        return services.AddEndpointServices(options, assemblies);
     }
 
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions options, params Assembly[] assemblies)
     {
-        services.AddMainServices();
+        services.AddMainServices(options);
         services.AddEndpointServices(options, assemblies);
         return services;
     }
 
-    private static IServiceCollection AddMainServices(this IServiceCollection services)
+    private static IServiceCollection AddMainServices(this IServiceCollection services, WsGlobalOptions options)
     {
         services.AddCoreServices();
         services.AddConnectionServices();
         services.AddMessageProcessingServices();
         services.AddSerializationServices();
         services.AddUtilityServices();
-        return services;
+        return services.AddSingleton(options);
     }
 
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
@@ -64,18 +63,14 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<IHandshakeRequestProcessor, DefaultHandshakeRequestProcessor>();
 
         services.AddSingleton<IWsRequestProcessor, WsRequestProcessor>();
-        services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
-
-        return services;
+        return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
     }
 
     private static IServiceCollection AddConnectionServices(this IServiceCollection services)
     {
         services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
         services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
-        services.AddSingleton<IConnectionStateService, InMemoryConnectionStateService>();
-
-        return services;
+        return services.AddSingleton<IConnectionStateService, InMemoryConnectionStateService>();
     }
 
     private static IServiceCollection AddMessageProcessingServices(this IServiceCollection services)
@@ -87,34 +82,22 @@ public static class WsServiceCollectionsExtensions
 
         services.AddSingleton<IMessageProcessorFactory, MessageProcessorFactory>();
         services.AddSingleton<IMessageProcessor, SequentialMessageProcessor>();
-        services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
-
-        return services;
+        return services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
     }
 
     private static IServiceCollection AddSerializationServices(this IServiceCollection services)
     {
         services.AddSingleton<ISerializerResolver, DefaultSerializerResolver>();
-        services.AddSingleton<ISerializer, JsonMessageSerializer>();
-
-        return services;
+        return services.AddSingleton<ISerializer, JsonMessageSerializer>();
     }
 
     private static IServiceCollection AddUtilityServices(this IServiceCollection services)
     {
-        services.AddSingleton<IIdProvider, GuidIdProvider>();
-
-        return services;
+        return services.AddSingleton<IIdProvider, GuidIdProvider>();
     }
 
     private static IServiceCollection AddEndpointServices(this IServiceCollection services, WsGlobalOptions options, params Assembly[] assemblies)
     {
-        ArgumentNullException.ThrowIfNull(services);
-        ArgumentNullException.ThrowIfNull(options);
-        ArgumentNullException.ThrowIfNull(assemblies);
-
-        services.AddSingleton(options);
-
         var endpointsTypes = assemblies
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
@@ -129,7 +112,6 @@ public static class WsServiceCollectionsExtensions
                 throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
 
             var key = attribute.Validate(options.KeyOptions).Key;
-
             if (!endpointsKeys.Add(attribute.Key))
                 throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {key} in type {endpointType.Name}");
 

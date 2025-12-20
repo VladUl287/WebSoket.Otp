@@ -5,7 +5,7 @@ namespace WebSockets.Otp.Core.Services.Validators;
 
 public static class WsEndpointValidator
 {
-    public static WsEndpointAttribute Validate(this WsEndpointAttribute? attribute, WsEndpointKeyOptions options)
+    public static WsEndpointAttribute Validate(this WsEndpointAttribute attribute, WsEndpointKeyOptions options)
     {
         ArgumentNullException.ThrowIfNull(attribute);
         ArgumentNullException.ThrowIfNull(options);
