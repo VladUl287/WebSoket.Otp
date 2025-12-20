@@ -1,6 +1,6 @@
 ﻿namespace WebSockets.Otp.Abstractions.Options;
 
-public sealed class ProcessingSettings
+public sealed class WsMessageProcessingOptions
 {
     public ProcessingMode Mode { get; set; } = ProcessingMode.Sequential;
     public int MaxParallelOperations { get; set; } = 10;

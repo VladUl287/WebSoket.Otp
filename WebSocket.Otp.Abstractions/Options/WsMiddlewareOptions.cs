@@ -4,9 +4,9 @@ namespace WebSockets.Otp.Abstractions.Options;
 
 public sealed class WsMiddlewareOptions
 {
-    public PathSettings Paths { get; set; } = new();
-    public MemorySettings Memory { get; set; } = new();
-    public ProcessingSettings Processing { get; set; } = new();
+    public WsPathOptions Paths { get; set; } = new();
+    public WsMemoryManagementOptions Memory { get; set; } = new();
+    public WsMessageProcessingOptions Processing { get; set; } = new();
     public WsAuthorizationOptions Authorization { get; set; } = new();
     public WsConnectionOptions Connection { get; set; } = new();
 

@@ -1,20 +1,11 @@
-﻿using System.Text.RegularExpressions;
+﻿using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Attributes;
 
 namespace WebSockets.Otp.Core.Services.Validators;
 
-public sealed class WsEndpointAttributeOptions
-{
-    public readonly static WsEndpointAttributeOptions Default = new();
-
-    public int MaxKeyLength { get; init; } = 256;
-    public int MinKeyLength { get; init; } = 1;
-    public Regex? KeyPattern { get; init; }
-}
-
 public static class WsEndpointValidator
 {
-    public static WsEndpointAttribute Validate(this WsEndpointAttribute? attribute, WsEndpointAttributeOptions options)
+    public static WsEndpointAttribute Validate(this WsEndpointAttribute? attribute, WsEndpointKeyOptions options)
     {
         ArgumentNullException.ThrowIfNull(attribute);
         ArgumentNullException.ThrowIfNull(options);
@@ -23,13 +14,13 @@ public static class WsEndpointValidator
 
         ArgumentException.ThrowIfNullOrEmpty(key, "WsEndpoint key cannot be null or empty");
 
-        if (attribute.Key.Length < options.MinKeyLength)
-            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too short. Minimum length is {options.MinKeyLength}");
+        if (attribute.Key.Length < options.MinLength)
+            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too short. Minimum length is {options.MinLength}");
 
-        if (attribute.Key.Length > options.MaxKeyLength)
-            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too long. Maximum length is {options.MaxKeyLength}");
+        if (attribute.Key.Length > options.MaxLength)
+            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too long. Maximum length is {options.MaxLength}");
 
-        if (options.KeyPattern is not null && !options.KeyPattern.IsMatch(attribute.Key))
+        if (options.Pattern is not null && !options.Pattern.IsMatch(attribute.Key))
             throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' does not match the required pattern");
 
         return attribute;

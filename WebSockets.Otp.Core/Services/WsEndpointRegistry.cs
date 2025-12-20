@@ -1,8 +1,7 @@
-﻿using System.Collections.Frozen;
-using System.Reflection;
+﻿using System.Reflection;
+using System.Collections.Frozen;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -22,20 +21,10 @@ public sealed class WsEndpointRegistry : IWsEndpointRegistry
         var mutated = _map.ToDictionary();
         foreach (var type in types)
         {
-            var attr = ValidateWithException(type);
+            var attr = type.GetCustomAttribute<WsEndpointAttribute>() ??
+                throw new ArgumentException("Endpoint type must be annotated with [WsEndpoint(\"key\")]");
             mutated[attr.Key] = type;
         }
         _map = mutated.ToFrozenDictionary();
-    }
-
-    private static WsEndpointAttribute ValidateWithException(Type type)
-    {
-        var endpointAttr = type.GetCustomAttribute<WsEndpointAttribute>() ??
-            throw new ArgumentException("Endpoint type must be annotated with [WsEndpoint(\"key\")]");
-
-        if (!type.IsWsEndpoint())
-            throw new ArgumentException("Type is not correct endpoint type");
-
-        return endpointAttr;
     }
 }
