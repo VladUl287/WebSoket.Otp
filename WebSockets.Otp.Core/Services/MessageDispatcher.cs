@@ -21,7 +21,7 @@ public class MessageDispatcher(
 
         logger.LogDispatchingMessage(connectionId, "Unknown", payload.Length);
 
-        var endpointKey = serializer.ExtractStringField(KeyField.Span, payload, stringPool);
+        var endpointKey = serializer.ExtractField(KeyField.Span, payload);
 
         if (endpointKey is null)
         {

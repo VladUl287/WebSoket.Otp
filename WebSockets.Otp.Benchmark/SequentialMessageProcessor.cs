@@ -55,8 +55,8 @@ public class SequentialMessageProcessorBenchmark
         messageProcessor = factory.Create(ProcessingMode.Sequential);
 
         var registry = serviceProvider.GetRequiredService<IWsEndpointRegistry>();
-        var enpointsTypes = new Assembly[] { typeof(BenchmarkEndpoint).Assembly }.GetEndpoints();
-        registry.Register(enpointsTypes);
+        //var enpointsTypes = new Assembly[] { typeof(BenchmarkEndpoint).Assembly }.GetEndpoints();
+        //registry.Register(enpointsTypes);
     }
 
     [IterationSetup]

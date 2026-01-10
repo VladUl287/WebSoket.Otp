@@ -3,34 +3,22 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
-public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null) : ISerializer
+public sealed class JsonMessageSerializer(IStringPool stringPool) : ISerializer
 {
-    private static readonly JsonSerializerOptions Default = new()
+    private static readonly JsonSerializerOptions _default = new()
     {
         PropertyNameCaseInsensitive = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
     };
-    private readonly JsonSerializerOptions Options = options ?? Default;
 
-    private static readonly string _format = string.Intern("json");
-    public string Format => _format;
-
-    public object? Deserialize(Type type, ReadOnlyMemory<byte> payload)
-    {
-        ArgumentNullException.ThrowIfNull(type, nameof(type));
-
-        if (payload.IsEmpty)
-            return null;
-
-        return JsonSerializer.Deserialize(payload.Span, type, Options);
-    }
+    public string Format => "json";
 
     public ReadOnlyMemory<byte> Serialize<T>(T message)
     {
         ArgumentNullException.ThrowIfNull(message, nameof(message));
 
-        return JsonSerializer.SerializeToUtf8Bytes(message, Options);
+        return JsonSerializer.SerializeToUtf8Bytes(message, _default);
     }
 
     public object? Deserialize(Type type, ReadOnlySpan<byte> jsonUtf8)
@@ -40,101 +28,21 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
         if (jsonUtf8.IsEmpty)
             return null;
 
-        return JsonSerializer.Deserialize(jsonUtf8, type, Options);
+        return JsonSerializer.Deserialize(jsonUtf8, type, _default);
     }
 
-    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(field, nameof(field));
-
-        var reader = new Utf8JsonReader(jsonUtf8);
-        var keyField = field.AsSpan();
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(keyField))
-            {
-                reader.Read();
-
-                if (reader.TokenType is not JsonTokenType.String)
-                    break;
-
-                return reader.GetString();
-            }
-
-            reader.Skip();
-        }
-        return null;
-    }
-
-    public string? ExtractStringField(string field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(field, nameof(field));
-        ArgumentNullException.ThrowIfNull(stringPool, nameof(stringPool));
-
-        var reader = new Utf8JsonReader(jsonUtf8);
-        var keyField = field.AsSpan();
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(keyField))
-            {
-                reader.Read();
-
-                if (reader.TokenType is not JsonTokenType.String)
-                    break;
-
-                return reader.HasValueSequence ?
-                    stringPool.Intern(reader.ValueSequence) :
-                    stringPool.Intern(reader.ValueSpan);
-            }
-
-            reader.Skip();
-        }
-        return null;
-    }
-
-    public string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8)
+    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8)
     {
         if (field.IsEmpty)
             throw new ArgumentException("Field argument is empty", nameof(field));
+
         if (jsonUtf8.IsEmpty)
             throw new ArgumentException("Data argument is empty", nameof(jsonUtf8));
 
-        var reader = new Utf8JsonReader(jsonUtf8);
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(field))
-            {
-                reader.Read();
-
-                if (reader.TokenType is not JsonTokenType.String)
-                    break;
-
-                return reader.GetString();
-            }
-
-            reader.Skip();
-        }
-        return null;
-    }
-
-    public string? ExtractStringField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool)
-    {
-        if (field.IsEmpty)
-            throw new ArgumentException("Field argument is empty", nameof(field));
-        if (jsonUtf8.IsEmpty)
-            throw new ArgumentException("Data argument is empty", nameof(jsonUtf8));
         ArgumentNullException.ThrowIfNull(stringPool, nameof(stringPool));
 
         var reader = new Utf8JsonReader(jsonUtf8);
+
         while (reader.Read())
         {
             if (reader.TokenType is not JsonTokenType.PropertyName)
@@ -154,6 +62,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions? options = null)
 
             reader.Skip();
         }
-        return null;
+
+        throw new NullReferenceException();
     }
 }
