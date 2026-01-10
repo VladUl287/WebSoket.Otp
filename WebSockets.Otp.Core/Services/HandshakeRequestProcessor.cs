@@ -24,8 +24,10 @@ public sealed class HandshakeRequestProcessor(
 
         logger.HandshakeRequestStarted(connectionId);
 
-        var connectionOptions = await handshakeRequestParser.Parse(ctx);
-        if (!serializerResolver.Registered(connectionOptions.Protocol))
+        var state = await handshakeRequestParser.Deserialize(ctx) ??
+            throw new InvalidOperationException();
+
+        if (!serializerResolver.Registered(state.Protocol))
         {
             await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Specified protocol not supported", token);
             return;
@@ -33,7 +35,7 @@ public sealed class HandshakeRequestProcessor(
 
         var tokenId = tokenIdService.Generate();
 
-        await requestState.Set(tokenId, connectionOptions, token);
+        await requestState.Set(tokenId, state, token);
 
         await ctx.WriteAsync(StatusCodes.Status200OK, tokenId, token);
 

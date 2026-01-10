@@ -9,7 +9,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : IHandshakeRequestParser
 {
-    public async ValueTask<WsConnectionOptions> Parse(HttpContext ctx)
+    public ValueTask<WsConnectionOptions?> Deserialize(HttpContext ctx)
     {
         if (!HttpMethods.IsPost(ctx.Request.Method))
             throw new HttpRequestException("Only POST method is supported.");
@@ -18,9 +18,7 @@ public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : 
             throw new UnsupportedMediaTypeException(
                 "Content-Type must be application/json.", MediaTypeHeaderValue.Parse(MediaTypeNames.Application.Json));
 
-        var options = await JsonSerializer.DeserializeAsync<WsConnectionOptions>(
+        return JsonSerializer.DeserializeAsync<WsConnectionOptions>(
             ctx.Request.Body, jsonOptions);
-
-        return options ?? throw new InvalidDataException("Invalid JSON format.");
     }
 }

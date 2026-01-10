@@ -5,5 +5,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IHandshakeRequestParser
 {
-    ValueTask<WsConnectionOptions> Parse(HttpContext context);
+    ValueTask<WsConnectionOptions?> Deserialize(HttpContext context);
 }
