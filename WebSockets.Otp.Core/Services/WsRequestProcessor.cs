@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Extensions;
@@ -14,28 +13,12 @@ public sealed class WsRequestProcessor(
     IWsService wsService,
     ILogger<WsRequestProcessor> logger) : IWsRequestProcessor
 {
-    private const string TextContentType = "text/plain; charset=utf-8";
-
-    public bool IsWebSocketRequest(HttpContext context, WsMiddlewareOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        ArgumentNullException.ThrowIfNull(options);
-
-        return IsWsRequestPath(context, options);
-    }
+    public bool IsWebSocketRequest(HttpContext ctx, WsMiddlewareOptions options) =>
+        ctx.WebSockets.IsWebSocketRequest && ctx.Request.Path.Equals(options.Paths.RequestPath);
 
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
-        ArgumentNullException.ThrowIfNull(ctx);
-        ArgumentNullException.ThrowIfNull(options);
-
         var token = ctx.RequestAborted;
-
-        if (!IsWsRequestPath(ctx, options))
-        {
-            await ctx.WriteAsync(StatusCodes.Status404NotFound, "Not found", token);
-            return;
-        }
 
         if (!tokenIdService.TryExclude(ctx.Request, out var tokenId))
         {
@@ -52,16 +35,7 @@ public sealed class WsRequestProcessor(
             return;
         }
 
-        options.Connection = connOptions;
-
-        if (options.Connection.User is not null)
-        {
-            var userName = options.Connection.User.Identity?.Name ?? "Unknown";
-            logger.UserContextSet(userName);
-            ctx.User = options.Connection.User;
-        }
-
-        if (options is { Authorization.RequireAuthorization: true, Connection.User.Identity.IsAuthenticated: false })
+        if (options is { Authorization.RequireAuthorization: true } && ctx is { User.Identity.IsAuthenticated: false })
         {
             logger.WebSocketRequestAuthFailed(ctx.Connection.Id);
             await ctx.WriteAsync(StatusCodes.Status401Unauthorized, "Unauthorized", token);
@@ -70,8 +44,4 @@ public sealed class WsRequestProcessor(
 
         await wsService.HandleWebSocketRequestAsync(ctx, options);
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsWsRequestPath(HttpContext context, WsMiddlewareOptions options)
-        => context.WebSockets.IsWebSocketRequest && context.Request.Path.Equals(options.Paths.RequestPath);
 }
