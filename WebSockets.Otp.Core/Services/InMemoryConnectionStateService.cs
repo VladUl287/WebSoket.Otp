@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class InMemoryConnectionStateService : IConnectionStateService
+public sealed class InMemoryConnectionStateService : IStateService
 {
     private static readonly ConcurrentDictionary<string, WsConnectionOptions> _store = new();
 

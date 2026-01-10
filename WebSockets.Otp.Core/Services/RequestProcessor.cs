@@ -8,7 +8,7 @@ using WebSockets.Otp.Core.Logging;
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class RequestProcessor(
-    IConnectionStateService requestState,
+    IStateService requestState,
     ITokenIdService tokenIdService,
     IWsService wsService,
     ILogger<RequestProcessor> logger) : IWsRequestProcessor

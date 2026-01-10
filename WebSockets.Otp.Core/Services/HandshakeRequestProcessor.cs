@@ -4,12 +4,13 @@ using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Logging;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class HandshakeRequestProcessor(
     IHandshakeRequestParser handshakeRequestParser,
-    IConnectionStateService requestState,
+    IStateService stateService,
     ITokenIdService tokenIdService,
     ISerializerResolver serializerResolver,
     ILogger<HandshakeRequestProcessor> logger) : IHandshakeRequestProcessor
@@ -17,31 +18,34 @@ public sealed class HandshakeRequestProcessor(
     public bool IsHandshakeRequest(HttpContext ctx, WsMiddlewareOptions options) =>
         ctx.Request.Path.Equals(options.Paths.HandshakePath);
 
-    public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
+    public async Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
-        var cancellationToken = ctx.RequestAborted;
+        var cancellationToken = context.RequestAborted;
+        var traceId = new TraceId(context);
 
-        logger.HandshakeRequestStarted(ctx);
+        logger.HandshakeRequestStarted(traceId);
 
-        var connectionOptions = await handshakeRequestParser.TryParse(ctx);
+        var connectionOptions = await handshakeRequestParser.TryParse(context);
         if (connectionOptions is null)
         {
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Unable to parse handshake request body", cancellationToken);
+            logger.HandshakeBodyParseFail(traceId);
+            await context.WriteAsync(StatusCodes.Status400BadRequest, "Unable to parse handshake request body", cancellationToken);
             return;
         }
 
         if (!serializerResolver.Contains(connectionOptions.Protocol))
         {
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Protocol not supported", cancellationToken);
+            logger.HandshakedUnsupportedProtocol(traceId, connectionOptions.Protocol);
+            await context.WriteAsync(StatusCodes.Status400BadRequest, "Protocol not supported", cancellationToken);
             return;
         }
 
-        var tokenId = tokenIdService.Generate();
+        var stateId = tokenIdService.Generate();
 
-        await requestState.Set(tokenId, connectionOptions, cancellationToken);
+        await stateService.Set(stateId, connectionOptions, cancellationToken);
 
-        await ctx.WriteAsync(StatusCodes.Status200OK, tokenId, cancellationToken);
+        await context.WriteAsync(StatusCodes.Status200OK, stateId, cancellationToken);
 
-        logger.HandshakeRequestCompleted(ctx);
+        logger.HandshakeRequestCompleted(context);
     }
 }

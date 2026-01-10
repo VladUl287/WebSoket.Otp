@@ -70,7 +70,7 @@ public static class WsServiceCollectionsExtensions
     {
         services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
         services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
-        return services.AddSingleton<IConnectionStateService, InMemoryConnectionStateService>();
+        return services.AddSingleton<IStateService, InMemoryConnectionStateService>();
     }
 
     private static IServiceCollection AddMessageProcessingServices(this IServiceCollection services)
