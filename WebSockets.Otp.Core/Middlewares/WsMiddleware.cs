@@ -14,7 +14,7 @@ public sealed class WsMiddleware(
             return handshakeProcessor.HandleRequestAsync(context, options);
 
         if (wsProcessor.IsWebSocketRequest(context, options))
-            return wsProcessor.HandleWebSocketRequestAsync(context, options);
+            return wsProcessor.HandleRequestAsync(context, options);
 
         return next(context);
     }

@@ -7,5 +7,5 @@ public interface IWsRequestProcessor
 {
     bool IsWebSocketRequest(HttpContext context, WsMiddlewareOptions options);
 
-    Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options);
+    Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options);
 }

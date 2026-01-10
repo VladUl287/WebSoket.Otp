@@ -24,7 +24,7 @@ public sealed class WsRequestProcessor(
         return IsWsRequestPath(context, options);
     }
 
-    public async Task HandleWebSocketRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
+    public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
         ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(options);
