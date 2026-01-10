@@ -42,6 +42,6 @@ public sealed class WsRequestProcessor(
             return;
         }
 
-        await wsService.HandleWebSocketRequestAsync(ctx, options);
+        await wsService.HandleRequestAsync(ctx, options);
     }
 }

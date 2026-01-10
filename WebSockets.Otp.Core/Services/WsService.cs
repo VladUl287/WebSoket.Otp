@@ -11,7 +11,7 @@ public sealed partial class WsService(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageProcessorFactory processorFactory,
     ILogger<WsService> logger) : IWsService
 {
-    public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
+    public async Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
         await AcceptSocket(context, webSocket, options);

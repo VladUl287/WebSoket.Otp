@@ -5,7 +5,7 @@ using WebSockets.Otp.Abstractions.Contracts;
 namespace WebSockets.Otp.Core.Middlewares;
 
 public sealed class WsMiddleware(
-    RequestDelegate next, IHandshakeRequestProcessor handshakeProcessor, IWsRequestProcessor wsProcessor, 
+    RequestDelegate next, IHandshakeRequestProcessor handshakeProcessor, IWsRequestProcessor mainProcessor, 
     WsMiddlewareOptions options)
 {
     public Task InvokeAsync(HttpContext context)
@@ -13,8 +13,8 @@ public sealed class WsMiddleware(
         if (handshakeProcessor.IsHandshakeRequest(context, options))
             return handshakeProcessor.HandleRequestAsync(context, options);
 
-        if (wsProcessor.IsWebSocketRequest(context, options))
-            return wsProcessor.HandleRequestAsync(context, options);
+        if (mainProcessor.IsWebSocketRequest(context, options))
+            return mainProcessor.HandleRequestAsync(context, options);
 
         return next(context);
     }

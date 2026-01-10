@@ -20,6 +20,7 @@ public sealed class HandshakeRequestProcessor(
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
         var token = ctx.RequestAborted;
+
         var connectionId = ctx.Connection.Id;
 
         logger.HandshakeRequestStarted(connectionId);
