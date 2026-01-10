@@ -17,17 +17,11 @@ public sealed class DefaultHandshakeRequestProcessor(
 {
     public bool IsHandshakeRequest(HttpContext ctx, WsMiddlewareOptions options)
     {
-        ArgumentNullException.ThrowIfNull(ctx, nameof(ctx));
-        ArgumentNullException.ThrowIfNull(options, nameof(options));
-
         return ctx.Request.Path.Equals(options.Paths.HandshakePath);
     }
 
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
-        ArgumentNullException.ThrowIfNull(ctx, nameof(ctx));
-        ArgumentNullException.ThrowIfNull(options, nameof(options));
-
         var connectionId = ctx.Connection.Id;
         var token = ctx.RequestAborted;
 
@@ -37,15 +31,14 @@ public sealed class DefaultHandshakeRequestProcessor(
 
         if (!serializerResolver.Registered(connectionOptions.Protocol))
         {
-            await ctx.Response.WriteAsync(StatusCodes.Status400BadRequest, "Specified protocol not supported", token);
-            //log
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Specified protocol not supported", token);
             return;
         }
 
         var authorized = await authService.TryAuhtorize(ctx, options.Authorization);
         if (!authorized)
         {
-            await ctx.Response.WriteAsync(StatusCodes.Status401Unauthorized, string.Empty, token);
+            await ctx.WriteAsync(StatusCodes.Status401Unauthorized, string.Empty, token);
             logger.WebSocketRequestAuthFailed(connectionId);
             return;
         }
@@ -55,7 +48,7 @@ public sealed class DefaultHandshakeRequestProcessor(
 
         var tokenId = tokenIdService.Generate();
         await requestState.Set(tokenId, connectionOptions, token);
-        await ctx.Response.WriteAsync(StatusCodes.Status200OK, tokenId, token);
+        await ctx.WriteAsync(StatusCodes.Status200OK, tokenId, token);
 
         logger.HandshakeCompleted(connectionId);
     }

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services;
@@ -23,23 +24,23 @@ public sealed class WsRequestProcessor(
         return IsWsRequestPath(context, options);
     }
 
-    public async Task HandleWebSocketRequestAsync(HttpContext context, WsMiddlewareOptions options)
+    public async Task HandleWebSocketRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(ctx);
         ArgumentNullException.ThrowIfNull(options);
 
-        var token = context.RequestAborted;
+        var token = ctx.RequestAborted;
 
-        if (!IsWsRequestPath(context, options))
+        if (!IsWsRequestPath(ctx, options))
         {
-            await WriteErrorResponseAsync(context, StatusCodes.Status404NotFound, "Not found", token);
+            await ctx.WriteAsync(StatusCodes.Status404NotFound, "Not found", token);
             return;
         }
 
-        if (!tokenIdService.TryExclude(context.Request, out var tokenId))
+        if (!tokenIdService.TryExclude(ctx.Request, out var tokenId))
         {
-            logger.MissingConnectionToken(context.Connection.Id);
-            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Missing connection token", token);
+            logger.MissingConnectionToken(ctx.Connection.Id);
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Missing connection token", token);
             return;
         }
 
@@ -47,7 +48,7 @@ public sealed class WsRequestProcessor(
         if (connOptions is null)
         {
             logger.InvalidConnectionToken(tokenId);
-            await WriteErrorResponseAsync(context, StatusCodes.Status400BadRequest, "Invalid connection token", token);
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Invalid connection token", token);
             return;
         }
 
@@ -57,27 +58,20 @@ public sealed class WsRequestProcessor(
         {
             var userName = options.Connection.User.Identity?.Name ?? "Unknown";
             logger.UserContextSet(userName);
-            context.User = options.Connection.User;
+            ctx.User = options.Connection.User;
         }
 
         if (options is { Authorization.RequireAuthorization: true, Connection.User.Identity.IsAuthenticated: false })
         {
-            logger.WebSocketRequestAuthFailed(context.Connection.Id);
-            await WriteErrorResponseAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized", token);
+            logger.WebSocketRequestAuthFailed(ctx.Connection.Id);
+            await ctx.WriteAsync(StatusCodes.Status401Unauthorized, "Unauthorized", token);
             return;
         }
 
-        await wsService.HandleWebSocketRequestAsync(context, options);
+        await wsService.HandleWebSocketRequestAsync(ctx, options);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsWsRequestPath(HttpContext context, WsMiddlewareOptions options)
         => context.WebSockets.IsWebSocketRequest && context.Request.Path.Equals(options.Paths.RequestPath);
-
-    private static Task WriteErrorResponseAsync(HttpContext context, int statusCode, string message, CancellationToken cancellationToken)
-    {
-        context.Response.StatusCode = statusCode;
-        context.Response.ContentType = TextContentType;
-        return context.Response.WriteAsync(message, cancellationToken);
-    }
 }
