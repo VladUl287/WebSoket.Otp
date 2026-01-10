@@ -21,25 +21,23 @@ public sealed class HandshakeRequestProcessor(
     {
         var token = ctx.RequestAborted;
 
-        var connectionId = ctx.Connection.Id;
+        logger.HandshakeRequestStarted(ctx);
 
-        logger.HandshakeRequestStarted(connectionId);
-
-        var state = await handshakeRequestParser.Deserialize(ctx) ??
+        var connectionOptions = await handshakeRequestParser.Deserialize(ctx) ??
             throw new InvalidOperationException();
 
-        if (!serializerResolver.Registered(state.Protocol))
+        if (!serializerResolver.Registered(connectionOptions.Protocol))
         {
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Specified protocol not supported", token);
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Protocol not supported", token);
             return;
         }
 
         var tokenId = tokenIdService.Generate();
 
-        await requestState.Set(tokenId, state, token);
+        await requestState.Set(tokenId, connectionOptions, token);
 
         await ctx.WriteAsync(StatusCodes.Status200OK, tokenId, token);
 
-        logger.HandshakeCompleted(connectionId);
+        logger.HandshakeRequestCompleted(ctx);
     }
 }

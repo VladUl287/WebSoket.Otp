@@ -20,7 +20,7 @@ public sealed class WsRequestProcessor(
     {
         var token = ctx.RequestAborted;
 
-        if (!tokenIdService.TryExclude(ctx.Request, out var tokenId))
+        if (!tokenIdService.TryExclude(ctx, out var tokenId))
         {
             logger.MissingConnectionToken(ctx.Connection.Id);
             await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Missing connection token", token);
@@ -42,6 +42,6 @@ public sealed class WsRequestProcessor(
             return;
         }
 
-        await wsService.HandleRequestAsync(ctx, options);
+        await wsService.HandleRequestAsync(ctx, options, connOptions);
     }
 }

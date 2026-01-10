@@ -13,7 +13,7 @@ public sealed class SequentialMessageProcessor(
 {
     public string Name => ProcessingMode.Sequential;
 
-    public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
+    public async Task Process(IWsConnection connection, WsMiddlewareOptions options, WsConnectionOptions connectionOptions)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(options);
@@ -22,7 +22,7 @@ public sealed class SequentialMessageProcessor(
         var tempBuffer = ArrayPool<byte>.Shared.Rent(options.Memory.InitialBufferSize);
         try
         {
-            await SequentialMessageProcessoLoop(connection, options, buffer, tempBuffer);
+            await SequentialMessageProcessoLoop(connection, options, connectionOptions, buffer, tempBuffer);
         }
         finally
         {
@@ -31,7 +31,7 @@ public sealed class SequentialMessageProcessor(
         }
     }
 
-    private async Task SequentialMessageProcessoLoop(IWsConnection connection, WsMiddlewareOptions options, IMessageBuffer buffer, byte[] tempBuffer)
+    private async Task SequentialMessageProcessoLoop(IWsConnection connection, WsMiddlewareOptions options, WsConnectionOptions connectionOptions, IMessageBuffer buffer, byte[] tempBuffer)
     {
         var connectionId = connection.Id;
 
@@ -41,7 +41,7 @@ public sealed class SequentialMessageProcessor(
         var socket = connection.Socket;
         var token = connection.Context.RequestAborted;
 
-        if (!serializerFactory.TryResolve(options.Connection.Protocol, out var serializer))
+        if (!serializerFactory.TryResolve(connectionOptions.Protocol, out var serializer))
             return;
 
         try

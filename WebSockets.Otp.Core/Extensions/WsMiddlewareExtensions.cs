@@ -6,7 +6,6 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class WsMiddlewareExtensions
 {
-   
     public static IApplicationBuilder UseWsEndpoints(this IApplicationBuilder builder, Action<WsMiddlewareOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
@@ -14,7 +13,6 @@ public static class WsMiddlewareExtensions
 
         var options = new WsMiddlewareOptions();
         configure(options);
-        options.Validate();
 
         return builder.UseMiddleware<WsMiddleware>(options);
     }

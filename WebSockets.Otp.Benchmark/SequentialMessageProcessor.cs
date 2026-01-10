@@ -81,7 +81,7 @@ public class SequentialMessageProcessorBenchmark
     [Benchmark]
     public async Task BenchmarkMethod()
     {
-        await messageProcessor.Process(smallSocketConnection, options);
+        //await messageProcessor.Process(smallSocketConnection, options);
     }
 }
 

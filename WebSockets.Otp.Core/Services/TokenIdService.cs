@@ -4,13 +4,15 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class DefaultTokenIdService(string queryKey) : ITokenIdService
+public sealed class TokenIdService : ITokenIdService
 {
     public string Generate() => Guid.CreateVersion7().ToString("N");
 
-    public bool TryExclude(HttpRequest request, [NotNullWhen(true)] out string? tokenId)
+    public bool TryExclude(HttpContext ctx, [NotNullWhen(true)] out string? tokenId)
     {
-        if(request.Query.TryGetValue(queryKey, out var values) && values is { Count: > 0 })
+        const string QueryKey = "";
+
+        if(ctx.Request.Query.TryGetValue(QueryKey, out var values) && values is { Count: > 0 })
         {
             tokenId = values.ToString();
             return true;

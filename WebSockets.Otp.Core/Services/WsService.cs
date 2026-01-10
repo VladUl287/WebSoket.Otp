@@ -11,14 +11,10 @@ public sealed partial class WsService(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageProcessorFactory processorFactory,
     ILogger<WsService> logger) : IWsService
 {
-    public async Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options)
+    public async Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options, WsConnectionOptions connectionOptions)
     {
         using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-        await AcceptSocket(context, webSocket, options);
-    }
 
-    private async Task AcceptSocket(HttpContext context, WebSocket webSocket, WsMiddlewareOptions options)
-    {
         var connection = connectionFactory.Create(context, webSocket);
 
         if (!connectionManager.TryAdd(connection))
@@ -37,7 +33,8 @@ public sealed partial class WsService(
                     (options, connection), "OnConnected", logger);
 
             var processor = processorFactory.Create(options.Processing.Mode);
-            await processor.Process(connection, options);
+
+            await processor.Process(connection, options, connectionOptions);
         }
         finally
         {

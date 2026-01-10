@@ -14,7 +14,7 @@ public sealed class ParallelMessageProcessor(
 {
     public string Name => ProcessingMode.Parallel;
 
-    public async Task Process(IWsConnection connection, WsMiddlewareOptions options)
+    public async Task Process(IWsConnection connection, WsMiddlewareOptions options, WsConnectionOptions connectionOptions)
     {
         var memoryOptions = options.Memory;
         var processingOptions = options.Processing;
@@ -25,7 +25,7 @@ public sealed class ParallelMessageProcessor(
 
         try
         {
-            if (!serializerFactory.TryResolve(options.Connection.Protocol, out var serializer))
+            if (!serializerFactory.TryResolve(connectionOptions.Protocol, out var serializer))
                 return;
 
             var enumerable = EnumerateMessages(connection, options, bufferPool, tempBuffer);
