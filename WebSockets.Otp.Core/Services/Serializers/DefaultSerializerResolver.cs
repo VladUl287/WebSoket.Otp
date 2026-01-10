@@ -18,7 +18,7 @@ public sealed class DefaultSerializerResolver : ISerializerResolver
         _store = store.ToFrozenDictionary();
     }
 
-    public bool Registered(string format) => _store.ContainsKey(format);
+    public bool Contains(string format) => _store.ContainsKey(format);
 
     public bool TryResolve(string format, [NotNullWhen(true)] out ISerializer? serializer) =>
         _store.TryGetValue(format, out serializer);

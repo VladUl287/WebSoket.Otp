@@ -9,7 +9,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : IHandshakeRequestParser
 {
-    public ValueTask<WsConnectionOptions?> Deserialize(HttpContext ctx)
+    public ValueTask<WsConnectionOptions?> TryParse(HttpContext ctx)
     {
         if (!HttpMethods.IsPost(ctx.Request.Method))
             throw new HttpRequestException("Only POST method is supported.");

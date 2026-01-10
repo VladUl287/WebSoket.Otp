@@ -19,24 +19,28 @@ public sealed class HandshakeRequestProcessor(
 
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
-        var token = ctx.RequestAborted;
+        var cancellationToken = ctx.RequestAborted;
 
         logger.HandshakeRequestStarted(ctx);
 
-        var connectionOptions = await handshakeRequestParser.Deserialize(ctx) ??
-            throw new InvalidOperationException();
-
-        if (!serializerResolver.Registered(connectionOptions.Protocol))
+        var connectionOptions = await handshakeRequestParser.TryParse(ctx);
+        if (connectionOptions is null)
         {
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Protocol not supported", token);
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Unable to parse handshake request body", cancellationToken);
+            return;
+        }
+
+        if (!serializerResolver.Contains(connectionOptions.Protocol))
+        {
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Protocol not supported", cancellationToken);
             return;
         }
 
         var tokenId = tokenIdService.Generate();
 
-        await requestState.Set(tokenId, connectionOptions, token);
+        await requestState.Set(tokenId, connectionOptions, cancellationToken);
 
-        await ctx.WriteAsync(StatusCodes.Status200OK, tokenId, token);
+        await ctx.WriteAsync(StatusCodes.Status200OK, tokenId, cancellationToken);
 
         logger.HandshakeRequestCompleted(ctx);
     }

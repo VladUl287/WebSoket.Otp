@@ -62,7 +62,7 @@ public static class WsServiceCollectionsExtensions
             }));
         services.AddSingleton<IHandshakeRequestProcessor, HandshakeRequestProcessor>();
 
-        services.AddSingleton<IWsRequestProcessor, WsRequestProcessor>();
+        services.AddSingleton<IWsRequestProcessor, RequestProcessor>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
     }
 

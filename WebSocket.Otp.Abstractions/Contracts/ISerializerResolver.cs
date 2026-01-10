@@ -4,7 +4,7 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface ISerializerResolver
 {
-    bool Registered(string format);
+    bool Contains(string protocol);
 
-    bool TryResolve(string format, [NotNullWhen(true)] out ISerializer? serializer);
+    bool TryResolve(string protocol, [NotNullWhen(true)] out ISerializer? serializer);
 }

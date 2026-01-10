@@ -7,41 +7,34 @@ using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class WsRequestProcessor(
+public sealed class RequestProcessor(
     IConnectionStateService requestState,
     ITokenIdService tokenIdService,
     IWsService wsService,
-    ILogger<WsRequestProcessor> logger) : IWsRequestProcessor
+    ILogger<RequestProcessor> logger) : IWsRequestProcessor
 {
     public bool IsWebSocketRequest(HttpContext ctx, WsMiddlewareOptions options) =>
         ctx.WebSockets.IsWebSocketRequest && ctx.Request.Path.Equals(options.Paths.RequestPath);
 
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
-        var token = ctx.RequestAborted;
+        var cancellationToken = ctx.RequestAborted;
 
         if (!tokenIdService.TryExclude(ctx, out var tokenId))
         {
             logger.MissingConnectionToken(ctx.Connection.Id);
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Missing connection token", token);
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Missing connection token", cancellationToken);
             return;
         }
 
-        var connOptions = await requestState.Get(tokenId, token);
-        if (connOptions is null)
+        var connectionOptions = await requestState.Get(tokenId, cancellationToken);
+        if (connectionOptions is null)
         {
             logger.InvalidConnectionToken(tokenId);
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Invalid connection token", token);
+            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Invalid connection token", cancellationToken);
             return;
         }
 
-        if (options is { Authorization.RequireAuthorization: true } && ctx is { User.Identity.IsAuthenticated: false })
-        {
-            logger.WebSocketRequestAuthFailed(ctx.Connection.Id);
-            await ctx.WriteAsync(StatusCodes.Status401Unauthorized, "Unauthorized", token);
-            return;
-        }
-
-        await wsService.HandleRequestAsync(ctx, options, connOptions);
+        await wsService.HandleRequestAsync(ctx, options, connectionOptions);
     }
 }
