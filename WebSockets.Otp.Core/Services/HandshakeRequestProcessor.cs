@@ -8,7 +8,6 @@ using WebSockets.Otp.Core.Logging;
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class HandshakeRequestProcessor(
-    IWsAuthorizationService authService,
     IHandshakeRequestParser handshakeRequestParser,
     IConnectionStateService requestState,
     ITokenIdService tokenIdService,
@@ -20,32 +19,22 @@ public sealed class HandshakeRequestProcessor(
 
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
-        var connectionId = ctx.Connection.Id;
         var token = ctx.RequestAborted;
+        var connectionId = ctx.Connection.Id;
 
         logger.HandshakeRequestStarted(connectionId);
 
-        var connectionOptions = await handshakeRequestParser.ParseOptions(ctx.Request, token);
-
+        var connectionOptions = await handshakeRequestParser.Parse(ctx);
         if (!serializerResolver.Registered(connectionOptions.Protocol))
         {
             await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Specified protocol not supported", token);
             return;
         }
 
-        var authorized = await authService.TryAuhtorize(ctx, options.Authorization);
-        if (!authorized)
-        {
-            await ctx.WriteAsync(StatusCodes.Status401Unauthorized, string.Empty, token);
-            logger.WebSocketRequestAuthFailed(connectionId);
-            return;
-        }
-
-        options.Connection.User = ctx.User;
-        options.Connection.Protocol = connectionOptions.Protocol;
-
         var tokenId = tokenIdService.Generate();
+
         await requestState.Set(tokenId, connectionOptions, token);
+
         await ctx.WriteAsync(StatusCodes.Status200OK, tokenId, token);
 
         logger.HandshakeCompleted(connectionId);

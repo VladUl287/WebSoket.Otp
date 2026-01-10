@@ -5,5 +5,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IHandshakeRequestParser
 {
-    ValueTask<WsConnectionOptions> ParseOptions(HttpRequest request, CancellationToken token);
+    ValueTask<WsConnectionOptions> Parse(HttpContext context);
 }
