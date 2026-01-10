@@ -20,9 +20,6 @@ internal static partial class WsMiddlewareLogging
     [LoggerMessage(Level = LogLevel.Debug, Message = "Connection token generated: {ConnectionToken}. Session id: {ConnectionId}")]
     internal static partial void ConnectionTokenGenerated(this ILogger logger, string connectionToken, string connectionId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Missing connection token: {ConnectionId}")]
-    internal static partial void MissingConnectionToken(this ILogger logger, string connectionId);
-
     [LoggerMessage(Level = LogLevel.Warning, Message = "Invalid connection token: {ConnectionTokenId}")]
     internal static partial void InvalidConnectionToken(this ILogger logger, string connectionTokenId);
 

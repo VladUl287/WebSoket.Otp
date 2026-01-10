@@ -4,13 +4,14 @@ using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Logging;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class RequestProcessor(
+    IWsService wsService,
     IStateService requestState,
     ITokenIdService tokenIdService,
-    IWsService wsService,
     ILogger<RequestProcessor> logger) : IWsRequestProcessor
 {
     public bool IsWebSocketRequest(HttpContext ctx, WsMiddlewareOptions options) =>
@@ -19,10 +20,13 @@ public sealed class RequestProcessor(
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
         var cancellationToken = ctx.RequestAborted;
+        var traceId = new TraceId(ctx);
+
+        logger.WsRequestProcessorStarted(traceId);
 
         if (!tokenIdService.TryExclude(ctx, out var tokenId))
         {
-            logger.MissingConnectionToken(ctx.Connection.Id);
+            logger.WsRequestMissedConnectionToken(traceId);
             await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Missing connection token", cancellationToken);
             return;
         }
@@ -30,11 +34,13 @@ public sealed class RequestProcessor(
         var connectionOptions = await requestState.Get(tokenId, cancellationToken);
         if (connectionOptions is null)
         {
-            logger.InvalidConnectionToken(tokenId);
+            logger.WsRequestInvalidConnectionToken(traceId, tokenId);
             await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Invalid connection token", cancellationToken);
             return;
         }
 
         await wsService.HandleRequestAsync(ctx, options, connectionOptions);
+
+        logger.WsRequestProcessorFinished(traceId);
     }
 }
