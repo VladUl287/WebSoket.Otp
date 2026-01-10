@@ -60,7 +60,7 @@ public static class WsServiceCollectionsExtensions
             {
                 PropertyNameCaseInsensitive = true,
             }));
-        services.AddSingleton<IHandshakeRequestProcessor, DefaultHandshakeRequestProcessor>();
+        services.AddSingleton<IHandshakeRequestProcessor, HandshakeRequestProcessor>();
 
         services.AddSingleton<IWsRequestProcessor, WsRequestProcessor>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();

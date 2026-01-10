@@ -7,18 +7,16 @@ using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class DefaultHandshakeRequestProcessor(
+public sealed class HandshakeRequestProcessor(
     IWsAuthorizationService authService,
     IHandshakeRequestParser handshakeRequestParser,
     IConnectionStateService requestState,
     ITokenIdService tokenIdService,
     ISerializerResolver serializerResolver,
-    ILogger<DefaultHandshakeRequestProcessor> logger) : IHandshakeRequestProcessor
+    ILogger<HandshakeRequestProcessor> logger) : IHandshakeRequestProcessor
 {
-    public bool IsHandshakeRequest(HttpContext ctx, WsMiddlewareOptions options)
-    {
-        return ctx.Request.Path.Equals(options.Paths.HandshakePath);
-    }
+    public bool IsHandshakeRequest(HttpContext ctx, WsMiddlewareOptions options) =>
+        ctx.Request.Path.Equals(options.Paths.HandshakePath);
 
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
