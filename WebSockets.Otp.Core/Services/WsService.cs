@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Contracts.Transport;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Logging;
 
@@ -49,42 +50,38 @@ public sealed partial class WsService(
         }
     }
 
-    public async Task HandleRequestAsync(ConnectionContext connectionContext, WsMiddlewareOptions options)
+    public async Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options)
     {
-        var context = connectionContext.GetHttpContext() ?? throw new NullReferenceException();
+        IMessageEnumerator? messageEnumerator = null;
+        INewMessageProcessor? messageProcessor = null;
 
-        if (context.Response.HasStarted)
-        {
-            throw new InvalidOperationException("Response has already started");
-        }
-
-        using var webSocket = await context.WebSockets.AcceptWebSocketAsync();
-
-        var connection = connectionFactory.Create(context, webSocket);
+        var connection = connectionFactory.Create(context.GetHttpContext(), null);
 
         if (!connectionManager.TryAdd(connection))
         {
-            logger.LogFailedToAddConnection(connection.Id);
-            await connection.Socket.CloseAsync(WebSocketCloseStatus.InternalServerError, "Unable to register connection", CancellationToken.None);
             return;
+        }
+
+        var messages = messageEnumerator.EnumerateAsync(context, options, default);
+
+        WsConnectionOptions? connectionOptions = null;
+        await foreach (var handshake in messages)
+        {
+            connectionOptions = new();
+            break;
         }
 
         try
         {
-            logger.LogConnectionEstablished(connection.Id);
-
             if (options.OnConnected is not null)
                 await SafeExecuteAsync((state) => state.options.OnConnected!(state.connection),
                     (options, connection), "OnConnected", logger);
 
-            var processor = processorFactory.Create(options.Processing.Mode);
-
-            //await processor.Process(connection, options, connectionOptions);
+            await messageProcessor.Process(messages, connection, options, connectionOptions);
         }
         finally
         {
             connectionManager.TryRemove(connection.Id);
-            logger.LogConnectionClosed(connection.Id);
 
             if (options.OnDisconnected is not null)
                 await SafeExecuteAsync((state) => state.options.OnDisconnected!(state.connection),
