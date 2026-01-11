@@ -10,7 +10,7 @@ public class NewParallelMessageProcessor(
 {
     public string Name => ProcessingMode.Parallel;
 
-    public async Task Process(ConnectionContext context, IWsConnection connection, 
+    public async Task Process(ConnectionContext context, IWsConnection connection,
         WsMiddlewareOptions options, WsConnectionOptions connectionOptions, CancellationToken token)
     {
         var parallelOptions = new ParallelOptions

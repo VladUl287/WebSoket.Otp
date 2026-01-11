@@ -1,5 +1,5 @@
-﻿using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Attributes;
+﻿using WebSockets.Otp.Abstractions.Attributes;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core.Services.Validators;
 

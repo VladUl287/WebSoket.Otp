@@ -1,5 +1,5 @@
-﻿using System.Reflection;
-using System.Collections.Frozen;
+﻿using System.Collections.Frozen;
+using System.Reflection;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 

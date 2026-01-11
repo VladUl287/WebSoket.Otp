@@ -99,7 +99,7 @@ var app = builder.Build();
                 var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
                 await storage.Delete(userId, connection.Id);
             };
-        }, 
+        },
         null);
 
     app.MapControllers();

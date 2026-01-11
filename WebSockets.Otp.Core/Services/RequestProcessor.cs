@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Core.Logging;
-using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -13,8 +11,6 @@ public sealed class RequestProcessor(
     IWsService wsService,
     IHandshakeRequestParser handshakeRequestParser,
     ISerializerResolver serializerResolver,
-    IStateService requestState,
-    ITokenIdService tokenIdService,
     ILogger<RequestProcessor> logger) : IWsRequestProcessor
 {
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)

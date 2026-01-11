@@ -7,6 +7,6 @@ public interface INewMessageProcessor
 {
     string Name { get; }
 
-    Task Process(ConnectionContext context, IWsConnection connection, WsMiddlewareOptions options, 
+    Task Process(ConnectionContext context, IWsConnection connection, WsMiddlewareOptions options,
         WsConnectionOptions connectionOptions, CancellationToken cancellationToken);
 }

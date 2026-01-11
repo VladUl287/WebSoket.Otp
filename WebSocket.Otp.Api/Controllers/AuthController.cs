@@ -3,7 +3,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Database.Models;
 using WebSockets.Otp.Api.DTOs;
 

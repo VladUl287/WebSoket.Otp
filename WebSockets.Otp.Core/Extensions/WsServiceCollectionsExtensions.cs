@@ -59,10 +59,6 @@ public static class WsServiceCollectionsExtensions
                 PropertyNameCaseInsensitive = true,
             }));
 
-        services.AddSingleton<IHandshakeRequestProcessor, HandshakeRequestProcessor>();
-
-        services.AddSingleton<ITokenIdService, TokenIdService>();
-
         services.AddSingleton<IWsRequestProcessor, RequestProcessor>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
     }
@@ -70,8 +66,7 @@ public static class WsServiceCollectionsExtensions
     private static IServiceCollection AddConnectionServices(this IServiceCollection services)
     {
         services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
-        services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
-        return services.AddSingleton<IStateService, InMemoryConnectionStateService>();
+        return services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
     }
 
     private static IServiceCollection AddMessageProcessingServices(this IServiceCollection services)
