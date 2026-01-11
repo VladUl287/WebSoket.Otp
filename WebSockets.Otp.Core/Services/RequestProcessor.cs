@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Connections.Features;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Core.Models;
 
@@ -10,39 +11,75 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class RequestProcessor(
     IWsService wsService,
+    IHandshakeRequestParser handshakeRequestParser,
+    ISerializerResolver serializerResolver,
     IStateService requestState,
     ITokenIdService tokenIdService,
     ILogger<RequestProcessor> logger) : IWsRequestProcessor
 {
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
-        var cancellationToken = ctx.RequestAborted;
-        var traceId = new TraceId(ctx);
+        await wsService.HandleRequestAsync(ctx, options);
+    }
 
-        logger.WsRequestProcessorStarted(traceId);
+    public async Task HandleRequestAsync(ConnectionContext ctx, WsMiddlewareOptions options)
+    {
+        var handshakeOptions = await HandshakeAsync(ctx, default);
 
-        if (!ctx.WebSockets.IsWebSocketRequest)
-        {
+        if (handshakeOptions is null)
             return;
-        }
 
-        if (!tokenIdService.TryExclude(ctx, out var tokenId))
+        await wsService.HandleRequestAsync(ctx, options);
+    }
+
+    internal async ValueTask<WsConnectionOptions?> HandshakeAsync(ConnectionContext ctx, CancellationToken token)
+    {
+        var connectionContext = ctx.Features.Get<IConnectionTransportFeature>()
+            ?? throw new NullReferenceException();
+
+        var input = connectionContext.Transport.Input;
+
+        while (true)
         {
-            logger.WsRequestMissedConnectionToken(traceId);
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Missing connection token", cancellationToken);
-            return;
+            var result = await input.ReadAsync(token);
+
+            if (result.IsCanceled)
+                return null;
+
+            var buffer = result.Buffer;
+
+            var consumed = buffer.Start;
+            var examined = buffer.End;
+
+            try
+            {
+                if (buffer.IsEmpty)
+                    continue;
+
+                if (result.IsCompleted)
+                    return null;
+
+                var segment = buffer;
+
+                var options = await handshakeRequestParser.Parse(segment);
+
+                consumed = segment.Start;
+                examined = consumed;
+
+                if (!serializerResolver.Contains(options.Protocol))
+                {
+                    return null;
+                }
+
+                //var successResult = Array.Empty<byte>().AsMemory();
+                //await connectionContext.Transport.Output.WriteAsync(successResult, token);
+
+                return options;
+            }
+            finally
+            {
+                input.AdvanceTo(consumed, examined);
+            }
         }
-
-        var connectionOptions = await requestState.Get(tokenId, cancellationToken);
-        if (connectionOptions is null)
-        {
-            logger.WsRequestInvalidConnectionToken(traceId, tokenId);
-            await ctx.WriteAsync(StatusCodes.Status400BadRequest, "Invalid connection token", cancellationToken);
-            return;
-        }
-
-        await wsService.HandleRequestAsync(ctx, options, connectionOptions);
-
-        logger.WsRequestProcessorFinished(traceId);
     }
 }

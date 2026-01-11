@@ -1,15 +1,17 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Routing;
-using WebSockets.Otp.Core.Middlewares;
-using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Core.Middlewares;
 
 namespace WebSockets.Otp.Core.Extensions;
 
 public static class WsMiddlewareExtensions
 {
-    public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder, Action<WsMiddlewareOptions> configure)
+    public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder,
+        Action<WsMiddlewareOptions> configure, Action<HttpConnectionDispatcherOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentNullException.ThrowIfNull(configure, nameof(configure));
@@ -17,14 +19,8 @@ public static class WsMiddlewareExtensions
         var options = new WsMiddlewareOptions();
         configure(options);
 
-        builder
-            .Map(options.HandshakePath, (context) =>
-            {
-                return context.RequestServices
-                    .GetRequiredService<IHandshakeRequestProcessor>()
-                    .HandleRequestAsync(context, options);
-            })
-            ;
+        var httpOptions = new HttpConnectionDispatcherOptions();
+        configureOptions?.Invoke(httpOptions);
 
         var conventionBuilder = builder
             .Map(options.RequestPath, (context) =>
@@ -36,6 +32,17 @@ public static class WsMiddlewareExtensions
             .DisableAntiforgery()
             .RequireCors()
             ;
+
+        //var conventionBuilder = builder
+        //    .MapConnections(options.RequestPath, httpOptions, (context) =>
+        //    {
+        //        var requestProcessor = context.ApplicationServices.GetRequiredService<IWsRequestProcessor>();
+        //        context.Use((next) => (context) => 
+        //            requestProcessor.HandleRequestAsync(context, options));
+        //    })
+        //    .DisableAntiforgery()
+        //    .RequireCors()
+        //    ;
 
         if (options.Authorization is not null)
             conventionBuilder.WithMetadata(options.Authorization);

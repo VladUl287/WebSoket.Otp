@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http;
 using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
@@ -6,4 +7,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 public interface IWsRequestProcessor
 {
     Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options);
+    Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options);
 }

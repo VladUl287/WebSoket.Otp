@@ -6,6 +6,7 @@ using System.Text;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
+using WebSockets.Otp.Api.Hubs;
 using WebSockets.Otp.Api.Services;
 using WebSockets.Otp.Api.Services.Contracts;
 using WebSockets.Otp.Core.Extensions;
@@ -20,6 +21,8 @@ var builder = WebApplication.CreateBuilder(args);
     {
         op.UseNpgsql("Host=localhost;Port=5432;Database=chatdb;Username=postgres;Password=qwerty");
     });
+
+    builder.Services.AddSignalR();
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -74,30 +77,34 @@ var app = builder.Build();
 
     app.UseWebSockets();
 
-    app.MapWsEndpoints((opt) =>
-    {
-        opt.RequestPath = "/ws";
-        opt.HandshakePath = "/ws/_handshake";
-
-        opt.Processing.Mode = ProcessingMode.Parallel;
-
-        opt.Authorization = new();
-
-        opt.OnConnected = async (connection) =>
+    app.MapWsEndpoints(
+        (opt) =>
         {
-            var userId = connection.Context.User.GetUserId<long>();
-            var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
-            await storage.Add(userId, connection.Id);
-        };
-        opt.OnDisconnected = async (connection) =>
-        {
-            var userId = connection.Context.User.GetUserId<long>();
-            var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
-            await storage.Delete(userId, connection.Id);
-        };
-    });
+            opt.RequestPath = "/ws";
+            opt.HandshakePath = "/ws/_handshake";
+
+            opt.Processing.Mode = ProcessingMode.Parallel;
+
+            opt.Authorization = new();
+
+            opt.OnConnected = async (connection) =>
+            {
+                var userId = connection.Context.User.GetUserId<long>();
+                var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
+                await storage.Add(userId, connection.Id);
+            };
+            opt.OnDisconnected = async (connection) =>
+            {
+                var userId = connection.Context.User.GetUserId<long>();
+                var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
+                await storage.Delete(userId, connection.Id);
+            };
+        }, 
+        null);
 
     app.MapControllers();
+
+    app.MapHub<ChatHub>("/chatHub");
 
     app.Run();
 }

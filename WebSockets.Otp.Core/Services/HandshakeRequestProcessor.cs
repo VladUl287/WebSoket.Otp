@@ -15,9 +15,6 @@ public sealed class HandshakeRequestProcessor(
     ISerializerResolver serializerResolver,
     ILogger<HandshakeRequestProcessor> logger) : IHandshakeRequestProcessor
 {
-    public bool IsHandshakeRequest(HttpContext ctx, WsMiddlewareOptions options) =>
-        ctx.Request.Path.Equals(options.Paths.HandshakePath);
-
     public async Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options)
     {
         var cancellationToken = context.RequestAborted;
@@ -25,7 +22,7 @@ public sealed class HandshakeRequestProcessor(
 
         logger.HandshakeRequestStarted(traceId);
 
-        var connectionOptions = await handshakeRequestParser.TryParse(context);
+        var connectionOptions = await handshakeRequestParser.Parse(new System.Buffers.ReadOnlySequence<byte>([]));
         if (connectionOptions is null)
         {
             logger.HandshakeBodyParseFail(traceId);

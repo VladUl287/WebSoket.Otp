@@ -1,9 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System.Buffers;
 using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IHandshakeRequestParser
 {
-    ValueTask<WsConnectionOptions?> TryParse(HttpContext context);
+    ValueTask<WsConnectionOptions> Parse(ReadOnlySequence<byte> data);
 }
