@@ -77,7 +77,7 @@ public sealed partial class WsService(
                 await SafeExecuteAsync((state) => state.options.OnConnected!(state.connection),
                     (options, connection), "OnConnected", logger);
 
-            await messageProcessor.Process(messages, connection, options, connectionOptions);
+            await messageProcessor.Process(context, connection, options, connectionOptions, default);
         }
         finally
         {
