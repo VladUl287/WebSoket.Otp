@@ -31,6 +31,19 @@ var builder = WebApplication.CreateBuilder(args);
                 ValidateIssuer = false,
                 ValidateAudience = false
             };
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.Equals("/ws"))
+                        context.Token = accessToken;
+
+                    return Task.CompletedTask;
+                }
+            };
         });
     builder.Services.AddAuthorization();
 
@@ -60,14 +73,15 @@ var app = builder.Build();
     app.UseAuthorization();
 
     app.UseWebSockets();
-    app.UseWsEndpoints((opt) =>
+
+    app.MapWsEndpoints((opt) =>
     {
-        opt.Paths.RequestPath = "/ws";
-        opt.Paths.HandshakePath = "/ws/_handshake";
+        opt.RequestPath = "/ws";
+        opt.HandshakePath = "/ws/_handshake";
 
         opt.Processing.Mode = ProcessingMode.Parallel;
 
-        opt.Authorization.RequireAuthorization = true;
+        opt.Authorization = new();
 
         opt.OnConnected = async (connection) =>
         {

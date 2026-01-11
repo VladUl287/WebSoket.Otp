@@ -5,7 +5,6 @@ using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Services;
-using WebSockets.Otp.Core.Services.Authorization;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.MessageProcessors;
 using WebSockets.Otp.Core.Services.Serializers;
@@ -51,7 +50,6 @@ public static class WsServiceCollectionsExtensions
 
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
-        services.AddSingleton<IWsAuthorizationService, WsAuthorizationService>();
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
         services.AddSingleton<IWsService, WsService>();
 
@@ -60,7 +58,10 @@ public static class WsServiceCollectionsExtensions
             {
                 PropertyNameCaseInsensitive = true,
             }));
+
         services.AddSingleton<IHandshakeRequestProcessor, HandshakeRequestProcessor>();
+
+        services.AddSingleton<ITokenIdService, TokenIdService>();
 
         services.AddSingleton<IWsRequestProcessor, RequestProcessor>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();

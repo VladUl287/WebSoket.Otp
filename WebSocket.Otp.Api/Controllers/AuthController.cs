@@ -4,19 +4,27 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using WebSockets.Otp.Api.Database;
+using WebSockets.Otp.Api.Database.Models;
 using WebSockets.Otp.Api.DTOs;
 
 namespace WebSockets.Otp.Api.Controllers;
 
 [Route("[controller]/[action]")]
-public class AuthController(DatabaseContext database) : ControllerBase
+public class AuthController() : ControllerBase
 {
     [HttpPost]
     public IActionResult Login([FromBody] LoginRequest request)
     {
-        var user = database.Users.FirstOrDefault(c => c.Name == request.Name && c.Password == request.Password);
-        if (user is null)
-            return Problem("", "", StatusCodes.Status404NotFound, "", "");
+        //var user = database.Users.FirstOrDefault(c => c.Name == request.Name && c.Password == request.Password);
+        //if (user is null)
+        //    return Problem("", "", StatusCodes.Status404NotFound, "", "");
+
+        var user = new User()
+        {
+            Id = 1,
+            Name = "default",
+            Password = "password"
+        };
 
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes("secretsecretsecretsecretsecretsecretsecretsecretsecret");

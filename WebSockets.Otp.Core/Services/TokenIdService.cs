@@ -10,7 +10,7 @@ public sealed class TokenIdService : ITokenIdService
 
     public bool TryExclude(HttpContext ctx, [NotNullWhen(true)] out string? tokenId)
     {
-        const string QueryKey = "";
+        const string QueryKey = "id";
 
         if(ctx.Request.Query.TryGetValue(QueryKey, out var values) && values is { Count: > 0 })
         {

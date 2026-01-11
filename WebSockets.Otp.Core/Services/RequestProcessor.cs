@@ -14,15 +14,17 @@ public sealed class RequestProcessor(
     ITokenIdService tokenIdService,
     ILogger<RequestProcessor> logger) : IWsRequestProcessor
 {
-    public bool IsWebSocketRequest(HttpContext ctx, WsMiddlewareOptions options) =>
-        ctx.WebSockets.IsWebSocketRequest && ctx.Request.Path.Equals(options.Paths.RequestPath);
-
     public async Task HandleRequestAsync(HttpContext ctx, WsMiddlewareOptions options)
     {
         var cancellationToken = ctx.RequestAborted;
         var traceId = new TraceId(ctx);
 
         logger.WsRequestProcessorStarted(traceId);
+
+        if (!ctx.WebSockets.IsWebSocketRequest)
+        {
+            return;
+        }
 
         if (!tokenIdService.TryExclude(ctx, out var tokenId))
         {
