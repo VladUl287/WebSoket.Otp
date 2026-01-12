@@ -9,6 +9,7 @@ public interface IMessageBuffer : IDisposable
     ReadOnlySpan<byte> Span { get; }
     IMemoryOwner<byte> Manager { get; }
     void Write(ReadOnlySpan<byte> data);
+    void Write(ReadOnlySequence<byte> data);
     void SetLength(int length);
     void Shrink();
 }

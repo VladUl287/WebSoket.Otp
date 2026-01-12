@@ -20,10 +20,10 @@ public sealed class RequestProcessor(
 
     public async Task HandleRequestAsync(ConnectionContext ctx, WsMiddlewareOptions options)
     {
-        var handshakeOptions = await HandshakeAsync(ctx, default);
+        //var handshakeOptions = await HandshakeAsync(ctx, default);
 
-        if (handshakeOptions is null)
-            return;
+        //if (handshakeOptions is null)
+        //    return;
 
         await wsService.HandleRequestAsync(ctx, options);
     }

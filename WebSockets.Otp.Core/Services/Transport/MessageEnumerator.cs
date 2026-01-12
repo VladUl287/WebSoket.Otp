@@ -7,11 +7,11 @@ using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class MessageEnumerator(
-    IMessageReceiver messageReceiver, IMessageBufferFactory bufferFactory) : IMessageEnumerator
+public sealed class MessageEnumerator(IMessageBufferFactory bufferFactory) : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        ConnectionContext context, WsMiddlewareOptions options, [EnumeratorCancellation] CancellationToken token)
+        IMessageReceiver messageReceiver, ConnectionContext context, 
+        WsMiddlewareOptions options, [EnumeratorCancellation] CancellationToken token)
     {
         await using var bufferPool = new AsyncObjectPool<int, IMessageBuffer>(
             options.Memory.MaxBufferPoolSize, bufferFactory.Create);

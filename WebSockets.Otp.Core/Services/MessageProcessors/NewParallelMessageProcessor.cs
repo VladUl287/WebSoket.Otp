@@ -6,7 +6,8 @@ using WebSockets.Otp.Abstractions.Options;
 namespace WebSockets.Otp.Core.Services.MessageProcessors;
 
 public class NewParallelMessageProcessor(
-    IMessageEnumerator enumerator, IMessageDispatcher dispatcher, ISerializerResolver serializerFactory) : INewMessageProcessor
+    IMessageEnumerator enumerator, IMessageDispatcher dispatcher, ISerializerResolver serializerFactory,
+    IMessageReceiverResolver messageReceiverResolver) : INewMessageProcessor
 {
     public string Name => ProcessingMode.Parallel;
 
@@ -22,7 +23,10 @@ public class NewParallelMessageProcessor(
         if (!serializerFactory.TryResolve(connectionOptions.Protocol, out var serializer))
             return;
 
-        var messages = enumerator.EnumerateAsync(context, options, token);
+        if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out var messageReceiver))
+            return;
+
+        var messages = enumerator.EnumerateAsync(messageReceiver, context, options, token);
 
         await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
         {

@@ -3,11 +3,13 @@ using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Contracts.Transport;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.MessageProcessors;
 using WebSockets.Otp.Core.Services.Serializers;
+using WebSockets.Otp.Core.Services.Transport;
 using WebSockets.Otp.Core.Services.Validators;
 using WebSockets.Otp.Core.Utils;
 
@@ -50,6 +52,11 @@ public static class WsServiceCollectionsExtensions
 
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
+        services.AddSingleton<IMessageReceiverResolver, MessageReceiverResolver>();
+        services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
+        services.AddSingleton<IMessageReceiver, TextMessageReceiver>();
+        services.AddSingleton<INewMessageProcessor, NewParallelMessageProcessor>();
+
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
         services.AddSingleton<IWsService, WsService>();
 

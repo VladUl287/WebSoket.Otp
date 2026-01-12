@@ -22,27 +22,27 @@ public static class WsMiddlewareExtensions
         var httpOptions = new HttpConnectionDispatcherOptions();
         configureOptions?.Invoke(httpOptions);
 
-        var conventionBuilder = builder
-            .Map(options.RequestPath, (context) =>
-            {
-                return context.RequestServices
-                    .GetRequiredService<IWsRequestProcessor>()
-                    .HandleRequestAsync(context, options);
-            })
-            .DisableAntiforgery()
-            .RequireCors()
-            ;
-
         //var conventionBuilder = builder
-        //    .MapConnections(options.RequestPath, httpOptions, (context) =>
+        //    .Map(options.RequestPath, (context) =>
         //    {
-        //        var requestProcessor = context.ApplicationServices.GetRequiredService<IWsRequestProcessor>();
-        //        context.Use((next) => (context) => 
-        //            requestProcessor.HandleRequestAsync(context, options));
+        //        return context.RequestServices
+        //            .GetRequiredService<IWsRequestProcessor>()
+        //            .HandleRequestAsync(context, options);
         //    })
         //    .DisableAntiforgery()
         //    .RequireCors()
         //    ;
+
+        var conventionBuilder = builder
+            .MapConnections(options.RequestPath, httpOptions, (context) =>
+            {
+                var requestProcessor = context.ApplicationServices.GetRequiredService<IWsRequestProcessor>();
+                context.Use((next) => (context) =>
+                    requestProcessor.HandleRequestAsync(context, options));
+            })
+            .DisableAntiforgery()
+            .RequireCors()
+            ;
 
         if (options.Authorization is not null)
             conventionBuilder.WithMetadata(options.Authorization);

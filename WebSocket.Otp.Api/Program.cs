@@ -85,20 +85,20 @@ var app = builder.Build();
 
             opt.Processing.Mode = ProcessingMode.Parallel;
 
-            opt.Authorization = new();
+            //opt.Authorization = new();
 
-            opt.OnConnected = async (connection) =>
-            {
-                var userId = connection.Context.User.GetUserId<long>();
-                var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
-                await storage.Add(userId, connection.Id);
-            };
-            opt.OnDisconnected = async (connection) =>
-            {
-                var userId = connection.Context.User.GetUserId<long>();
-                var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
-                await storage.Delete(userId, connection.Id);
-            };
+            //opt.OnConnected = async (connection) =>
+            //{
+            //    var userId = connection.Context.User.GetUserId<long>();
+            //    var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
+            //    await storage.Add(userId, connection.Id);
+            //};
+            //opt.OnDisconnected = async (connection) =>
+            //{
+            //    var userId = connection.Context.User.GetUserId<long>();
+            //    var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
+            //    await storage.Delete(userId, connection.Id);
+            //};
         },
         null);
 

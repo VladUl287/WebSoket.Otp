@@ -19,6 +19,12 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
     public ReadOnlySpan<byte> Span => new Span<byte>(_buffer, _length);
     public IMemoryOwner<byte> Manager => new MemoryManager(_buffer, _length);
 
+    public void Write(ReadOnlySequence<byte> data)
+    {
+        foreach (var part in data)
+            Write(part.Span);
+    }
+
     public void Write(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

@@ -38,12 +38,7 @@ public class MessageDispatcher(
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        var endpointInstance = scope.ServiceProvider.GetService(endpointType);
-        if (endpointInstance is null)
-        {
-            logger.LogEndpointServiceNotFound(connectionId, endpointType.Name);
-            throw new EndpointNotFoundException($"Endoind with type '{endpointType}' not found");
-        }
+        var endpointInstance = scope.ServiceProvider.GetRequiredService(endpointType);
 
         logger.LogEndpointResolved(connectionId, endpointType.Name);
 

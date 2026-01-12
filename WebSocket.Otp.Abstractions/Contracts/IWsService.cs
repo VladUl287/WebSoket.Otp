@@ -6,6 +6,6 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IWsService
 {
-    Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options);
+    Task HandleRequestAsync(HttpContext context, WsMiddlewareOptions options) => Task.CompletedTask;
     Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options);
 }
