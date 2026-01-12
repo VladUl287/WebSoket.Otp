@@ -19,7 +19,7 @@ public sealed class AsyncObjectPool<TState, TObject>(int size, Func<TState, TObj
     private int _created;
     private readonly Lock _creationLock = new();
 
-    public ValueTask<TObject> Rent(TState state)
+    public ValueTask<TObject> Rent(TState state, CancellationToken token = default)
     {
         ThrowIfDisposed();
 
@@ -27,7 +27,7 @@ public sealed class AsyncObjectPool<TState, TObject>(int size, Func<TState, TObj
             return new ValueTask<TObject>(obj);
 
         if (Volatile.Read(ref _created) >= size)
-            return _channel.Reader.ReadAsync();
+            return _channel.Reader.ReadAsync(token);
 
         lock (_creationLock)
         {
@@ -38,7 +38,7 @@ public sealed class AsyncObjectPool<TState, TObject>(int size, Func<TState, TObj
             }
         }
 
-        return _channel.Reader.ReadAsync();
+        return _channel.Reader.ReadAsync(token);
     }
 
     public ValueTask Return(TObject obj)

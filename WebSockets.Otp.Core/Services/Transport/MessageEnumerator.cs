@@ -18,7 +18,7 @@ public sealed class MessageEnumerator(IMessageBufferFactory bufferFactory) : IMe
 
         while (!token.IsCancellationRequested)
         {
-            var messageBuffer = await bufferPool.Rent(options.Memory.InitialBufferSize);
+            var messageBuffer = await bufferPool.Rent(options.Memory.InitialBufferSize, token);
 
             await messageReceiver.Receive(context, messageBuffer, token);
 
