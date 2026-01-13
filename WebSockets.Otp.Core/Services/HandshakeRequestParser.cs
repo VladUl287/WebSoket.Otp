@@ -1,16 +1,24 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : IHandshakeRequestParser
+public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : IHandshakeParser
 {
-    public ValueTask<WsConnectionOptions> Parse(IMessageBuffer data)
+    public bool TryParse(IMessageBuffer data, [NotNullWhen(true)] out WsConnectionOptions? options)
     {
-        var connectionOptions = JsonSerializer.Deserialize<WsConnectionOptions>(data.Span, jsonOptions) ??
-            throw new NullReferenceException("Fail to parse handshake message");
+        options = null;
 
-        return new ValueTask<WsConnectionOptions>(connectionOptions);
+        try
+        {
+            options = JsonSerializer.Deserialize<WsConnectionOptions>(data.Span, jsonOptions);
+            return options is not null;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

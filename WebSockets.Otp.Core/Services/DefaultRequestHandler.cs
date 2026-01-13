@@ -1,16 +1,17 @@
-﻿using WebSockets.Otp.Core.Logging;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Connections;
-using WebSockets.Otp.Abstractions.Options;
+﻿using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Contracts.Transport;
+using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Core.Logging;
+using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
-    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, 
-    IHandshakeRequestParser handshakeRequestParser,
+    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
+    IHandshakeParser handshakeRequestParser,
     INewMessageProcessor messageProcessor, IMessageEnumerator messageEnumerator,
     IMessageReceiverResolver messageReceiverResolver, ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
@@ -19,6 +20,7 @@ public sealed partial class DefaultRequestHandler(
     public async Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options)
     {
         var httpContext = context.GetHttpContext();
+
         ArgumentNullException.ThrowIfNull(httpContext);
 
         var cancelToken = httpContext.RequestAborted;
@@ -29,19 +31,29 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        var messages = messageEnumerator.EnumerateAsync(messageReceiver, context, options, cancelToken);
-        
-        WsConnectionOptions? connectionOptions = null;
-        await foreach (var handshakeMessage in messages)
+        var messagesEnumerable = messageEnumerator.EnumerateAsync(messageReceiver, context, options, cancelToken);
+
+        var handshakeMessage = await messagesEnumerable.FirstOrDefault();
+        if (handshakeMessage is null)
         {
-            connectionOptions = await handshakeRequestParser.Parse(handshakeMessage);
-            break;
+            logger.LogError("empty message");
+            return;
         }
 
-        var transport = new DuplexPipeTransport(context.Transport);
-        var connection = connectionFactory.Create(httpContext, transport);
-        if (!connectionManager.TryAdd(connection))
+        if (!handshakeRequestParser.TryParse(handshakeMessage, out var connectionOptions))
+        {
+            logger.LogError("empty message");
             return;
+        }
+
+        var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
+        var connection = connectionFactory.Create(httpContext, duplectPipeTransport);
+
+        if (!connectionManager.TryAdd(connection))
+        {
+            logger.LogError("empty message");
+            return;
+        }
 
         try
         {

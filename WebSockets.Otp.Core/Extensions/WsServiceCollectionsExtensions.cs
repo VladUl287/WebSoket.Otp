@@ -60,7 +60,7 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
-        services.AddSingleton<IHandshakeRequestParser>(
+        services.AddSingleton<IHandshakeParser>(
             new HandshakeRequestParser(new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
