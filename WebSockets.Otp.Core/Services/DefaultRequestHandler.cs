@@ -9,7 +9,8 @@ using WebSockets.Otp.Abstractions.Contracts.Transport;
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
-    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeRequestParser handshakeRequestParser,
+    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, 
+    IHandshakeRequestParser handshakeRequestParser,
     INewMessageProcessor messageProcessor, IMessageEnumerator messageEnumerator,
     IMessageReceiverResolver messageReceiverResolver, ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
@@ -17,13 +18,18 @@ public sealed partial class DefaultRequestHandler(
 
     public async Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options)
     {
+        var httpContext = context.GetHttpContext();
+        ArgumentNullException.ThrowIfNull(httpContext);
+
+        var cancelToken = httpContext.RequestAborted;
+
         if (!messageReceiverResolver.TryResolve(DefaultHandshakeProtocol, out var messageReceiver))
         {
             logger.LogError("Fail to resolve handshake protocol {DefaultHandshakeProtocol}.", DefaultHandshakeProtocol);
             return;
         }
 
-        var messages = messageEnumerator.EnumerateAsync(messageReceiver, context, options, default);
+        var messages = messageEnumerator.EnumerateAsync(messageReceiver, context, options, cancelToken);
         
         WsConnectionOptions? connectionOptions = null;
         await foreach (var handshakeMessage in messages)
@@ -32,7 +38,8 @@ public sealed partial class DefaultRequestHandler(
             break;
         }
 
-        var connection = connectionFactory.Create(context.GetHttpContext(), null);
+        var transport = new DuplexPipeTransport(context.Transport);
+        var connection = connectionFactory.Create(httpContext, transport);
         if (!connectionManager.TryAdd(connection))
             return;
 
@@ -42,7 +49,7 @@ public sealed partial class DefaultRequestHandler(
                 await SafeExecuteAsync((state) => state.options.OnConnected!(state.connection),
                     (options, connection), "OnConnected", logger);
 
-            await messageProcessor.Process(context, connection, options, connectionOptions, default);
+            await messageProcessor.Process(context, connection, options, connectionOptions, cancelToken);
         }
         finally
         {
