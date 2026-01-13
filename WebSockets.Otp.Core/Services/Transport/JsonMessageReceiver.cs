@@ -5,11 +5,11 @@ using WebSockets.Otp.Abstractions.Contracts.Transport;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class TextMessageReceiver : IMessageReceiver
+public sealed class JsonMessageReceiver : IMessageReceiver
 {
-    public const byte RecordSeparator = 0x1e;
+    private const byte RecordSeparator = 0x1e;
 
-    public string Protocol => "json";
+    public string ProtocolName => "json";
 
     public async ValueTask Receive(ConnectionContext context, IMessageBuffer messageBuffer, CancellationToken token)
     {

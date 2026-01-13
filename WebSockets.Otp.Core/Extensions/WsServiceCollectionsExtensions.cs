@@ -54,7 +54,7 @@ public static class WsServiceCollectionsExtensions
     {
         services.AddSingleton<IMessageReceiverResolver, MessageReceiverResolver>();
         services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
-        services.AddSingleton<IMessageReceiver, TextMessageReceiver>();
+        services.AddSingleton<IMessageReceiver, JsonMessageReceiver>();
         services.AddSingleton<INewMessageProcessor, NewParallelMessageProcessor>();
 
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();

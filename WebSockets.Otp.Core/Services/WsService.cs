@@ -1,46 +1,40 @@
-﻿using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Http.Connections;
+﻿using WebSockets.Otp.Core.Logging;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
+using Microsoft.AspNetCore.Connections;
+using WebSockets.Otp.Abstractions.Options;
+using Microsoft.AspNetCore.Http.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Contracts.Transport;
-using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class WsService(
-    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IMessageProcessorFactory processorFactory,
+    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeRequestParser handshakeRequestParser,
     INewMessageProcessor messageProcessor, IMessageEnumerator messageEnumerator,
-    IMessageReceiverResolver messageReceiver, ISerializerResolver serializerResolver, ILogger<WsService> logger) : IWsService
+    IMessageReceiverResolver messageReceiverResolver, ILogger<WsService> logger) : IWsService
 {
+    private const string DefaultHandshakeProtocol = "json";
+
     public async Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options)
     {
-        var connection = connectionFactory.Create(context.GetHttpContext(), null);
-
-        if (!connectionManager.TryAdd(connection))
+        if (!messageReceiverResolver.TryResolve(DefaultHandshakeProtocol, out var messageReceiver))
         {
+            logger.LogError("Fail to resolve handshake protocol {DefaultHandshakeProtocol}.", DefaultHandshakeProtocol);
             return;
         }
 
-        if (!messageReceiver.TryResolve("json", out var textReceiver))
-        {
-            return;
-        }
-
-        var messages = messageEnumerator.EnumerateAsync(textReceiver, context, options, default);
-
+        var messages = messageEnumerator.EnumerateAsync(messageReceiver, context, options, default);
+        
         WsConnectionOptions? connectionOptions = null;
-        await foreach (var handshake in messages)
+        await foreach (var handshakeMessage in messages)
         {
-            connectionOptions = JsonSerializer.Deserialize<WsConnectionOptions>(
-                handshake.Span,
-                new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true,
-                });
+            connectionOptions = await handshakeRequestParser.Parse(handshakeMessage);
             break;
         }
+
+        var connection = connectionFactory.Create(context.GetHttpContext(), null);
+        if (!connectionManager.TryAdd(connection))
+            return;
 
         try
         {

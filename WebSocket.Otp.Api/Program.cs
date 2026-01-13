@@ -75,7 +75,10 @@ var app = builder.Build();
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.UseWebSockets();
+    app.UseWebSockets(new()
+    {
+        KeepAliveInterval = TimeSpan.FromSeconds(10)
+    });
 
     app.MapWsEndpoints(
         (opt) =>
