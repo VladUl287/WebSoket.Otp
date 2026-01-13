@@ -8,10 +8,10 @@ using WebSockets.Otp.Abstractions.Contracts.Transport;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed partial class WsService(
+public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeRequestParser handshakeRequestParser,
     INewMessageProcessor messageProcessor, IMessageEnumerator messageEnumerator,
-    IMessageReceiverResolver messageReceiverResolver, ILogger<WsService> logger) : IWsService
+    IMessageReceiverResolver messageReceiverResolver, ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
     private const string DefaultHandshakeProtocol = "json";
 
@@ -54,7 +54,7 @@ public sealed partial class WsService(
         }
     }
 
-    private static async Task SafeExecuteAsync<TState>(Func<TState, Task> action, TState state, string operationName, ILogger<WsService> logger)
+    private static async Task SafeExecuteAsync<TState>(Func<TState, Task> action, TState state, string operationName, ILogger<DefaultRequestHandler> logger)
     {
         try
         {

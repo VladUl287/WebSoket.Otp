@@ -1,16 +1,16 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Contracts.Transport;
 
 namespace WebSockets.Otp.Core.Models;
 
-public sealed class WsConnection(string id, HttpContext context, WebSocket socket) : IWsConnection
+public sealed class WsConnection(string id, HttpContext context, IWsTransport transport) : IWsConnection
 {
     public string Id => id;
 
     public HttpContext Context => context;
 
-    public WebSocket Socket => socket;
+    public IWsTransport Transport => transport;
 
-    public void Dispose() => socket.Dispose();
+    public void Dispose() => transport.Dispose();
 }

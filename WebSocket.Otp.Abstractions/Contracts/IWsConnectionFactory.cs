@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Net.WebSockets;
+using WebSockets.Otp.Abstractions.Contracts.Transport;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IWsConnectionFactory
 {
-    IWsConnection Create(HttpContext context, WebSocket socket);
+    IWsConnection Create(HttpContext context, IWsTransport transport);
 }

@@ -18,7 +18,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     public async Task SendAsync(string connectionId, ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         var connection = Get(connectionId);
-        await connection.Socket.SendAsync(payload, default, true, token);
+        //await connection.Transport.Output.WriteAsync(payload, token);
     }
 
     public async Task SendAsync(IEnumerable<string> connectionIds, ReadOnlyMemory<byte> payload, CancellationToken token)
@@ -26,7 +26,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         var connectionIdsArr = connectionIds.ToHashSet();
         foreach (var connection in map.Values.Where(c => connectionIdsArr.Contains(c.Id)))
         {
-            await connection.Socket.SendAsync(payload, default, true, token);
+            //await connection.Transport.Output.WriteAsync(payload, token);
         }
     }
 }

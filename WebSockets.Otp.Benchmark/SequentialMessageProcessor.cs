@@ -68,7 +68,7 @@ public class SequentialMessageProcessorBenchmark
         mockHttpContext.Setup(x => x.RequestAborted)
             .Returns(cancellationTokenSource.Token);
 
-        smallSocketConnection = new WsConnection(Guid.NewGuid().ToString(), mockHttpContext.Object, webSocket);
+        //smallSocketConnection = new WsConnection(Guid.NewGuid().ToString(), mockHttpContext.Object, webSocket);
     }
 
     [GlobalCleanup]

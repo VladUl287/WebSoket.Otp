@@ -58,7 +58,7 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<INewMessageProcessor, NewParallelMessageProcessor>();
 
         services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
-        services.AddSingleton<IWsService, WsService>();
+        services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
         services.AddSingleton<IHandshakeRequestParser>(
             new HandshakeRequestParser(new System.Text.Json.JsonSerializerOptions
@@ -66,7 +66,7 @@ public static class WsServiceCollectionsExtensions
                 PropertyNameCaseInsensitive = true,
             }));
 
-        services.AddSingleton<IWsRequestProcessor, RequestProcessor>();
+        services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
     }
 
@@ -84,8 +84,8 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
         services.AddSingleton<IMessageProcessorFactory, MessageProcessorFactory>();
-        services.AddSingleton<IMessageProcessor, SequentialMessageProcessor>();
-        return services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
+
+        return services;
     }
 
     private static IServiceCollection AddSerializationServices(this IServiceCollection services)

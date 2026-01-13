@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
-using System.Net.WebSockets;
+using WebSockets.Otp.Abstractions.Contracts.Transport;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
@@ -9,5 +9,5 @@ public interface IWsConnection : IDisposable
 
     HttpContext Context { get; }
 
-    WebSocket Socket { get; }
+    IWsTransport Transport { get; }
 }
