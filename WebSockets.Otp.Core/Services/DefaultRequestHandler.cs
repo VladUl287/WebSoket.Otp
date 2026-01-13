@@ -33,7 +33,7 @@ public sealed partial class DefaultRequestHandler(
 
         var messagesEnumerable = messageEnumerator.EnumerateAsync(messageReceiver, context, options, cancelToken);
 
-        var handshakeMessage = await messagesEnumerable.FirstOrDefault();
+        var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync();
         if (handshakeMessage is null)
         {
             logger.LogError("empty message");

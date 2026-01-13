@@ -2,7 +2,7 @@
 
 internal static class AsyncEnumerableExtensions
 {
-    internal static async ValueTask<T> FirstOrDefault<T>(this IAsyncEnumerable<T> values)
+    internal static async ValueTask<T> FirstOrDefaultAsync<T>(this IAsyncEnumerable<T> values)
     {
         await using var enumerator = values.GetAsyncEnumerator();
 
