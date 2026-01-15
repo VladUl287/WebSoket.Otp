@@ -51,7 +51,7 @@ public sealed class DefaultDelegateFactory : IHandleDelegateFactory
         var handler = CreateHandlerDelegate(baseEndpType, reqType, handleMethod);
         return (endpointInst, execCtx, token) =>
         {
-            var requestData = execCtx.Serializer.Deserialize(reqType, execCtx.RawPayload.Span) ??
+            var requestData = execCtx.Serializer.Deserialize(reqType, execCtx.Payload.Span) ??
                 throw new NullReferenceException();
 
             return handler(endpointInst, requestData, execCtx, token);

@@ -5,28 +5,35 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class InMemoryConnectionManager : IWsConnectionManager
 {
-    private readonly ConcurrentDictionary<string, IWsConnection> map = new();
+    private readonly ConcurrentDictionary<string, IWsConnection> _store = new();
 
-    public bool TryAdd(IWsConnection connection) => map.TryAdd(connection.Id, connection);
+    public bool TryAdd(IWsConnection connection) => _store.TryAdd(connection.Id, connection);
 
-    public IWsConnection Get(string connectionId) => map[connectionId];
+    public bool TryRemove(string connectionId) => _store.TryRemove(connectionId, out _);
 
-    public IEnumerable<string> EnumerateIds() => map.Keys.AsEnumerable();
+    public IEnumerable<string> All() => _store.Keys.AsEnumerable();
 
-    public bool TryRemove(string connectionId) => map.TryRemove(connectionId, out _);
+    public IEnumerable<string> All(string groupName) => _store.Keys.AsEnumerable();
 
-    public async Task SendAsync(string connectionId, ReadOnlyMemory<byte> payload, CancellationToken token)
+    public IWsConnection Get(string connectionId) => _store[connectionId];
+
+    public ValueTask AddToGroupAsync(string connectionId, string groupName)
     {
-        var connection = Get(connectionId);
-        //await connection.Transport.Output.WriteAsync(payload, token);
+        throw new NotImplementedException();
     }
 
-    public async Task SendAsync(IEnumerable<string> connectionIds, ReadOnlyMemory<byte> payload, CancellationToken token)
+    public ValueTask RemoveFromGroupAsync(string connectionId, string groupName)
     {
-        var connectionIdsArr = connectionIds.ToHashSet();
-        foreach (var connection in map.Values.Where(c => connectionIdsArr.Contains(c.Id)))
-        {
-            //await connection.Transport.Output.WriteAsync(payload, token);
-        }
+        throw new NotImplementedException();
+    }
+
+    public ValueTask SendAsync(string connectionId, ReadOnlyMemory<byte> payload, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask SendAsync(IEnumerable<string> connectionIds, ReadOnlyMemory<byte> payload, CancellationToken token)
+    {
+        throw new NotImplementedException();
     }
 }

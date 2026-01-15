@@ -1,11 +1,16 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts;
+﻿using Microsoft.AspNetCore.Http;
+
+namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IWsExecutionContext
 {
-    string Key { get; }
-    IWsConnection Connection { get; }
-    CancellationToken Cancellation { get; }
+    HttpContext Context { get; }
+    string ConnectionId { get; }
+
     ISerializer Serializer { get; }
-    IMessageBuffer RawPayload { get; }
-    Type Endpoint { get; }
+    IMessageBuffer Payload { get; }
+
+    CancellationToken Cancellation { get; }
+
+    ConnectionManager Manager { get; }
 }

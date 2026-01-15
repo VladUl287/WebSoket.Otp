@@ -12,7 +12,7 @@ public sealed class EndpointInvoker(IHandleDelegateFactory delegateFactory, ILog
     public async Task InvokeEndpointAsync(object endpointInstance, IWsExecutionContext ctx, CancellationToken ct)
     {
         var endpointType = endpointInstance.GetType();
-        var connectionId = ctx.Connection.Id;
+        var connectionId = ctx.ConnectionId;
 
         try
         {

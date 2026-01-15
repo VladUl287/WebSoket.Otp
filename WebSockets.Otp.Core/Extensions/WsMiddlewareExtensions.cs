@@ -10,7 +10,7 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class WsMiddlewareExtensions
 {
-    public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder,
+    public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder, string pattern,
         Action<WsMiddlewareOptions> configure, Action<HttpConnectionDispatcherOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
@@ -34,7 +34,7 @@ public static class WsMiddlewareExtensions
         //    ;
 
         var conventionBuilder = builder
-            .MapConnections(options.RequestPath, httpOptions, (context) =>
+            .MapConnections(pattern, httpOptions, (context) =>
             {
                 var requestProcessor = context.ApplicationServices.GetRequiredService<IWsRequestHandler>();
                 context.Use((next) => (context) =>

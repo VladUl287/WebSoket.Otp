@@ -1,15 +1,20 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
+﻿using Microsoft.AspNetCore.Http;
+using WebSockets.Otp.Abstractions;
+using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Models;
 
-public sealed class WsExecutionContext(
-    string endpointKey, Type endpointType, IWsConnection connection,
-    IMessageBuffer rawPayload, ISerializer serializer, CancellationToken cancellation) : IWsExecutionContext
+public sealed class WsExecutionContext : IWsExecutionContext
 {
-    public string Key => endpointKey;
-    public IWsConnection Connection => connection;
-    public ISerializer Serializer => serializer;
-    public IMessageBuffer RawPayload => rawPayload;
-    public CancellationToken Cancellation => cancellation;
-    public Type Endpoint => endpointType;
+    public HttpContext Context => throw new NotImplementedException();
+
+    public string ConnectionId => throw new NotImplementedException();
+
+    public ISerializer Serializer => throw new NotImplementedException();
+
+    public IMessageBuffer Payload => throw new NotImplementedException();
+
+    public ConnectionManager Manager => throw new NotImplementedException();
+
+    public CancellationToken Cancellation => throw new NotImplementedException();
 }

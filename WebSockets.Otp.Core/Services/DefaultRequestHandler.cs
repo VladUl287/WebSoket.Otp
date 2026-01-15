@@ -47,7 +47,7 @@ public sealed partial class DefaultRequestHandler(
         }
 
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
-        var connection = connectionFactory.Create(httpContext, duplectPipeTransport);
+        var connection = connectionFactory.Create(duplectPipeTransport);
 
         if (!connectionManager.TryAdd(connection))
         {
@@ -58,7 +58,7 @@ public sealed partial class DefaultRequestHandler(
         try
         {
             if (options.OnConnected is not null)
-                await SafeExecuteAsync((state) => state.options.OnConnected!(state.connection),
+                await SafeExecuteAsync((state) => state.options.OnConnected!(null),
                     (options, connection), "OnConnected", logger);
 
             await messageProcessor.Process(context, connection, options, connectionOptions, cancelToken);
@@ -68,7 +68,7 @@ public sealed partial class DefaultRequestHandler(
             connectionManager.TryRemove(connection.Id);
 
             if (options.OnDisconnected is not null)
-                await SafeExecuteAsync((state) => state.options.OnDisconnected!(state.connection),
+                await SafeExecuteAsync((state) => state.options.OnDisconnected!(null),
                     (options, connection), "OnDisconnected", logger);
         }
     }

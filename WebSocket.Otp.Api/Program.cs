@@ -81,27 +81,23 @@ var app = builder.Build();
     });
 
     app.MapWsEndpoints(
+        "/ws",
         (opt) =>
         {
-            opt.RequestPath = "/ws";
-            opt.HandshakePath = "/ws/_handshake";
-
             opt.Processing.Mode = ProcessingMode.Parallel;
 
             //opt.Authorization = new();
 
-            //opt.OnConnected = async (connection) =>
-            //{
-            //    var userId = connection.Context.User.GetUserId<long>();
-            //    var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
-            //    await storage.Add(userId, connection.Id);
-            //};
-            //opt.OnDisconnected = async (connection) =>
-            //{
-            //    var userId = connection.Context.User.GetUserId<long>();
-            //    var storage = connection.Context.RequestServices.GetRequiredService<IStorage<long>>();
-            //    await storage.Delete(userId, connection.Id);
-            //};
+            opt.OnConnected = async (context) =>
+            {
+                var userId = context.Context.User.GetUserId<long>();
+                await context.Manager.AddToGroupAsync(userId.ToString(), context.ConnectionId);
+            };
+            opt.OnDisconnected = async (context) =>
+            {
+                var userId = context.Context.User.GetUserId<long>();
+                await context.Manager.RemoveFromGroupAsync(userId.ToString(), context.ConnectionId);
+            };
         },
         null);
 

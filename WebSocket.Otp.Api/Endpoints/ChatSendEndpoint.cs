@@ -14,7 +14,7 @@ public sealed class ChatSendEndpoint(IWsConnectionManager connectionManager, ISt
 {
     public override async Task HandleAsync(ChatMessage request, IWsExecutionContext ctx, CancellationToken token)
     {
-        var userId = ctx.Connection.Context.User.GetUserId<long>();
+        var userId = ctx.Context.User.GetUserId<long>();
 
         var userInChat = await dbContext.ChatsUsers.AnyAsync(c => c.UserId == userId && c.ChatId == request.ChatId, token);
         if (!userInChat)
@@ -45,6 +45,6 @@ public sealed class ChatSendEndpoint(IWsConnectionManager connectionManager, ISt
                 Timestamp = request.Timestamp,
                 ChatId = request.ChatId,
             });
-        await connectionManager.SendAsync(connectionsIds, message, token);
+        await connectionManager.SendAsync("", message, token);
     }
 }
