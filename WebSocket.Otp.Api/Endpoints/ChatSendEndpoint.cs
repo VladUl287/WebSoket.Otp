@@ -12,7 +12,7 @@ namespace WebSockets.Otp.Api.Endpoints;
 [WsEndpoint("chat/message/send")]
 public sealed class ChatSendEndpoint(IWsConnectionManager connectionManager, IStorage<long> storage, DatabaseContext dbContext) : WsEndpoint<ChatMessage>
 {
-    public override async Task HandleAsync(ChatMessage request, IWsExecutionContext ctx, CancellationToken token)
+    public override async Task HandleAsync(ChatMessage request, IEndpointExecutionContext ctx, CancellationToken token)
     {
         var userId = ctx.Context.User.GetUserId<long>();
 

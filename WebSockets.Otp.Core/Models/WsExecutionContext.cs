@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Models;
 
-public sealed class WsExecutionContext : IWsExecutionContext
+public sealed class WsExecutionContext : IEndpointExecutionContext
 {
     public HttpContext Context => throw new NotImplementedException();
 

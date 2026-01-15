@@ -2,7 +2,7 @@
 
 namespace WebSockets.Otp.Abstractions;
 
-public readonly struct ConnectionManager(IWsExecutionContext context, IWsConnectionManager connectionManager)
+public readonly struct ConnectionManager(IEndpointExecutionContext context, IWsConnectionManager connectionManager)
 {
     public readonly ValueTask SendAsync<TResponse>(string connectionId, TResponse data, CancellationToken token)
         where TResponse : notnull

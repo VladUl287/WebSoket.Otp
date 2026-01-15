@@ -7,9 +7,9 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class EndpointInvoker(IHandleDelegateFactory delegateFactory, ILogger<EndpointInvoker> logger) : IEndpointInvoker
 {
-    private readonly ConcurrentDictionary<Type, Func<object, IWsExecutionContext, CancellationToken, Task>> _cache = new();
+    private readonly ConcurrentDictionary<Type, Func<object, IEndpointExecutionContext, CancellationToken, Task>> _cache = new();
 
-    public async Task InvokeEndpointAsync(object endpointInstance, IWsExecutionContext ctx, CancellationToken ct)
+    public async Task InvokeEndpointAsync(object endpointInstance, IEndpointExecutionContext ctx, CancellationToken ct)
     {
         var endpointType = endpointInstance.GetType();
         var connectionId = ctx.ConnectionId;
@@ -30,7 +30,7 @@ public sealed class EndpointInvoker(IHandleDelegateFactory delegateFactory, ILog
         }
     }
 
-    public Func<object, IWsExecutionContext, CancellationToken, Task> GetOrAddInvoker(Type endpointType)
+    public Func<object, IEndpointExecutionContext, CancellationToken, Task> GetOrAddInvoker(Type endpointType)
     {
         if (_cache.TryGetValue(endpointType, out var cachedInvoker))
         {

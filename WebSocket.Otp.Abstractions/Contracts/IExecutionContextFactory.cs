@@ -2,7 +2,7 @@
 
 public interface IExecutionContextFactory
 {
-    IWsExecutionContext Create(
+    IEndpointExecutionContext Create(
         string endpointKey, Type endpointType, IWsConnection connection,
         IMessageBuffer payload, ISerializer serializer, CancellationToken token);
 }

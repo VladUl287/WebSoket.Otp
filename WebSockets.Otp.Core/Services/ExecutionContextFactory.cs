@@ -5,7 +5,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class ExecutionContextFactory : IExecutionContextFactory
 {
-    public IWsExecutionContext Create(
+    public IEndpointExecutionContext Create(
         string endpointKey, Type endpointType, IWsConnection connection,
         IMessageBuffer payload, ISerializer serializer, CancellationToken token)
     {
