@@ -3,24 +3,16 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Abstractions;
 
-public readonly struct SendManager
+public readonly struct SendManager(
+   IWsConnectionManager manager,
+   ImmutableArray<string> connectionIds,
+   ImmutableArray<string> groups,
+   bool targetAll)
 {
-    private readonly IWsConnectionManager _manager;
-    private readonly ImmutableArray<string> _connectionIds;
-    private readonly ImmutableArray<string> _groups;
-    private readonly bool _targetAll;
-
-    private SendManager(
-       IWsConnectionManager manager,
-       ImmutableArray<string> connectionIds,
-       ImmutableArray<string> groups,
-       bool targetAll)
-    {
-        _manager = manager;
-        _groups = groups;
-        _targetAll = targetAll;
-        _connectionIds = connectionIds;
-    }
+    private readonly IWsConnectionManager _manager = manager;
+    private readonly ImmutableArray<string> _connectionIds = connectionIds;
+    private readonly ImmutableArray<string> _groups = groups;
+    private readonly bool _targetAll = targetAll;
 
     public readonly SendManager Client(string connectionId)
     {
