@@ -16,7 +16,7 @@ public interface IEndpointContext : IGlobalContext
     CancellationToken Cancellation { get; }
 }
 
-public abstract class EndpointContextBase : IEndpointContext
+public abstract class BaseEndpointContext : IEndpointContext
 {
     public ISerializer Serializer => throw new NotImplementedException();
 
@@ -31,12 +31,12 @@ public abstract class EndpointContextBase : IEndpointContext
     public GroupManager Groups => throw new NotImplementedException();
 }
 
-public sealed class EndpointContext : EndpointContextBase
+public sealed class EndpointContext : BaseEndpointContext
 {
     public SendManager Send { get; }
 }
 
-public sealed class EndpointContext<TResponse> : EndpointContextBase
+public sealed class EndpointContext<TResponse> : BaseEndpointContext
     where TResponse : notnull
 {
     public SendManager<TResponse> Send { get; }
