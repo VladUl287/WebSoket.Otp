@@ -16,13 +16,23 @@ public sealed class WsExecutionContext : IEndpointContext
 
     public CancellationToken Cancellation => throw new NotImplementedException();
 
-    public ValueTask AddToGroupAsync(string groupName, string connectionId)
-    {
-        throw new NotImplementedException();
-    }
+    public GroupManager Groups => throw new NotImplementedException();
+}
 
-    public ValueTask RemoveFromGroupAsync(string groupName, string connectionId)
-    {
-        throw new NotImplementedException();
-    }
+public sealed class WsExecutionContext<TResponse> : IEndpointContext<TResponse>
+    where TResponse : notnull
+{
+    public HttpContext Context => throw new NotImplementedException();
+
+    public string ConnectionId => throw new NotImplementedException();
+
+    public ISerializer Serializer => throw new NotImplementedException();
+
+    public IMessageBuffer Payload => throw new NotImplementedException();
+
+    public CancellationToken Cancellation => throw new NotImplementedException();
+
+    public GroupManager Groups => throw new NotImplementedException();
+
+    public SendManager<TResponse> Send => throw new NotImplementedException();
 }

@@ -45,6 +45,9 @@ public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
             ChatId = request.ChatId,
         };
 
-        await ctx.SendAsync("", message, token);
+        await ctx.Send
+            .Group(userId.ToString())
+            .SendAsync(message, token);
+        //await ctx.SendAsync("", message, token);
     }
 }

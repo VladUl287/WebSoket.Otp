@@ -6,8 +6,7 @@ public interface IGlobalContext
 {
     HttpContext Context { get; }
     string ConnectionId { get; }
-    ValueTask AddToGroupAsync(string groupName, string connectionId);
-    ValueTask RemoveFromGroupAsync(string groupName, string connectionId);
+    GroupManager Groups { get; }
 }
 
 public interface IEndpointContext : IGlobalContext
@@ -20,5 +19,5 @@ public interface IEndpointContext : IGlobalContext
 public interface IEndpointContext<TResponse> : IEndpointContext
     where TResponse : notnull
 {
-    ValueTask SendAsync(string connectionId, TResponse data, CancellationToken token);
+    SendManager<TResponse> Send { get; }
 }
