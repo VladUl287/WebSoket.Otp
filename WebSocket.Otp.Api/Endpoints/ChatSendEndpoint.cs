@@ -32,12 +32,12 @@ public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
             Date = request.Timestamp.UtcDateTime,
         }, token);
 
-        var usersForChat = await dbContext.ChatsUsers
+        await dbContext.SaveChangesAsync(token);
+
+        var usersIds = dbContext.ChatsUsers
             .Where(c => c.ChatId == request.ChatId)
             .Select(c => c.UserId)
-            .ToArrayAsync(token);
-
-        await dbContext.SaveChangesAsync(token);
+            .AsAsyncEnumerable();
 
         var message = new ChatMessage
         {
@@ -47,8 +47,23 @@ public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
             ChatId = request.ChatId,
         };
 
-        await ctx.Send
-            .Group(userId.ToString())
-            .SendAsync(message, token);
+        const int SendThreshold = 100;
+        var counter = 0;
+        var send = ctx.Send;
+
+        await foreach (var chatUser in usersIds)
+        {
+            if (token.IsCancellationRequested)
+                break;
+
+            send.Group(chatUser.ToString());
+
+            if (counter > SendThreshold)
+            {
+                await send.SendAsync(message, token);
+                send.Reset();
+                counter = 0;
+            }
+        }
     }
 }
