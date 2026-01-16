@@ -24,20 +24,16 @@ public readonly struct SendManager
 
     public readonly SendManager Client(string connectionId)
     {
-        if (_targetAll)
-            return this;
+        if (_targetAll) return this;
 
-        return new(
-            _manager, _connectionIds.Add(connectionId), _groups, _targetAll);
+        return new(_manager, _connectionIds.Add(connectionId), _groups, _targetAll);
     }
 
     public readonly SendManager Group(string groupName)
     {
-        if (_targetAll)
-            return this;
+        if (_targetAll) return this;
 
-        return new(
-            _manager, _connectionIds, _groups.Add(groupName), _targetAll);
+        return new(_manager, _connectionIds, _groups.Add(groupName), _targetAll);
     }
 
     public readonly SendManager All => new(_manager, _connectionIds, _groups, true);
@@ -53,7 +49,7 @@ public readonly struct SendManager<TResponse>(SendManager manager) where TRespon
     public readonly SendManager<TResponse> Client(string connectionId) =>
         new(manager.Client(connectionId));
 
-    public readonly SendManager<TResponse> Group(string groupName) =>
+    public readonly SendManager<TResponse> Group(string groupName) => 
         new(manager.Group(groupName));
 
     public readonly SendManager<TResponse> All => new(manager.All);
