@@ -12,7 +12,7 @@ namespace WebSockets.Otp.Api.Endpoints;
 public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
     WsEndpoint<ChatMessage, ChatMessage>
 {
-    public override async Task HandleAsync(ChatMessage request, IEndpointContext<ChatMessage> ctx)
+    public override async Task HandleAsync(ChatMessage request, EndpointContext<ChatMessage> ctx)
     {
         var token = ctx.Cancellation;
 
