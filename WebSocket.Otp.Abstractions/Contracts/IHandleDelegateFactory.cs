@@ -2,5 +2,5 @@
 
 public interface IHandleDelegateFactory
 {
-    Func<object, IEndpointExecutionContext, CancellationToken, Task> CreateHandleDelegate(Type endpointType);
+    Func<object, IEndpointContext, CancellationToken, Task> CreateHandleDelegate(Type endpointType);
 }

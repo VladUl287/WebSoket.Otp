@@ -10,7 +10,7 @@ public sealed class WsMiddlewareOptions
     public WsMemoryManagementOptions Memory { get; set; } = new();
     public WsMessageProcessingOptions Processing { get; set; } = new();
 
-    public Func<IGlobalExecutionContext, Task>? OnConnected { get; set; }
-    public Func<IGlobalExecutionContext, Task>? OnDisconnected { get; set; }
+    public Func<IGlobalContext, Task>? OnConnected { get; set; }
+    public Func<IGlobalContext, Task>? OnDisconnected { get; set; }
 }
 

@@ -91,12 +91,12 @@ var app = builder.Build();
             opt.OnConnected = async (context) =>
             {
                 var userId = context.Context.User.GetUserId<long>();
-                await context.Manager.AddToGroupAsync(userId.ToString(), context.ConnectionId);
+                await context.AddToGroupAsync(userId.ToString(), context.ConnectionId);
             };
             opt.OnDisconnected = async (context) =>
             {
                 var userId = context.Context.User.GetUserId<long>();
-                await context.Manager.RemoveFromGroupAsync(userId.ToString(), context.ConnectionId);
+                await context.RemoveFromGroupAsync(userId.ToString(), context.ConnectionId);
             };
         },
         null);

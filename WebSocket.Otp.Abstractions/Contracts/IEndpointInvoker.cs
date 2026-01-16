@@ -2,5 +2,5 @@
 
 public interface IEndpointInvoker
 {
-    Task InvokeEndpointAsync(object endpointInstance, IEndpointExecutionContext ctx, CancellationToken ct);
+    Task InvokeEndpointAsync(object endpointInstance, IEndpointContext ctx, CancellationToken ct);
 }

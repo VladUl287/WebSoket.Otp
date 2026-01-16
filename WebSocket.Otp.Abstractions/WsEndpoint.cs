@@ -4,10 +4,16 @@ namespace WebSockets.Otp.Abstractions;
 
 public abstract class WsEndpoint
 {
-    public abstract Task HandleAsync(IEndpointExecutionContext connection, CancellationToken token);
+    public abstract Task HandleAsync(IEndpointContext connection, CancellationToken token);
 }
 
 public abstract class WsEndpoint<TRequest>
 {
-    public abstract Task HandleAsync(TRequest request, IEndpointExecutionContext context, CancellationToken token);
+    public abstract Task HandleAsync(TRequest request, IEndpointContext context, CancellationToken token);
+}
+
+public abstract class WsEndpoint<TRequest, TResponse>
+    where TResponse : notnull
+{
+    public abstract Task HandleAsync(TRequest request, IEndpointContext<TResponse> context, CancellationToken token);
 }
