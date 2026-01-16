@@ -36,4 +36,14 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         throw new NotImplementedException();
     }
+
+    public ValueTask SendToGroupAsync(string group, ReadOnlyMemory<byte> data, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask SendToGroupAsync(IEnumerable<string> groups, ReadOnlyMemory<byte> data, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
 }

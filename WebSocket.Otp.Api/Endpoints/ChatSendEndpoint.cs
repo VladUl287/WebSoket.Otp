@@ -12,8 +12,10 @@ namespace WebSockets.Otp.Api.Endpoints;
 public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
     WsEndpoint<ChatMessage, ChatMessage>
 {
-    public override async Task HandleAsync(ChatMessage request, IEndpointContext<ChatMessage> ctx, CancellationToken token)
+    public override async Task HandleAsync(ChatMessage request, IEndpointContext<ChatMessage> ctx)
     {
+        var token = ctx.Cancellation;
+
         var userId = ctx.Context.User.GetUserId<long>();
 
         var userInChat = await dbContext.ChatsUsers
@@ -48,6 +50,5 @@ public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
         await ctx.Send
             .Group(userId.ToString())
             .SendAsync(message, token);
-        //await ctx.SendAsync("", message, token);
     }
 }

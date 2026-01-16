@@ -47,6 +47,7 @@ public sealed partial class DefaultRequestHandler(
         }
 
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
+
         var connection = connectionFactory.Create(duplectPipeTransport);
 
         if (!connectionManager.TryAdd(connection))
