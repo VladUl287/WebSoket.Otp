@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Contracts.Transport;
 using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services.Transport;
@@ -10,7 +10,7 @@ namespace WebSockets.Otp.Core.Services.Transport;
 public sealed class MessageEnumerator(IMessageBufferFactory bufferFactory) : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        IMessageReceiver messageReceiver, ConnectionContext context, 
+        IMessageReceiver messageReceiver, ConnectionContext context,
         WsMiddlewareOptions options, [EnumeratorCancellation] CancellationToken token)
     {
         await using var bufferPool = new AsyncObjectPool<int, IMessageBuffer>(

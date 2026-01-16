@@ -1,6 +1,6 @@
-﻿using WebSockets.Otp.Core.Models;
-using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Contracts.Transport;
+﻿using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Transport;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 

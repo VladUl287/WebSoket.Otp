@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using System.Security.Claims;
 
 namespace WebSockets.Otp.Api.Hubs;
 

@@ -2,6 +2,7 @@
 using System.Reflection;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core.Services;

@@ -2,10 +2,10 @@
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Contracts.Transport;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Core.Logging;
+using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -47,7 +47,6 @@ public sealed partial class DefaultRequestHandler(
         }
 
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
-
         var connection = connectionFactory.Create(duplectPipeTransport);
 
         if (!connectionManager.TryAdd(connection))
