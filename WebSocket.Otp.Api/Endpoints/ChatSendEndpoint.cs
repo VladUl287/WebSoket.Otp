@@ -5,18 +5,20 @@ using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Database.Models;
 using WebSockets.Otp.Api.Models;
-using WebSockets.Otp.Api.Services.Contracts;
 
 namespace WebSockets.Otp.Api.Endpoints;
 
 [WsEndpoint("chat/message/send")]
-public sealed class ChatSendEndpoint(IWsConnectionManager connectionManager, IStorage<long> storage, DatabaseContext dbContext) : WsEndpoint<ChatMessage>
+public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
+    WsEndpoint<ChatMessage, ChatMessage>
 {
-    public override async Task HandleAsync(ChatMessage request, IEndpointContext ctx, CancellationToken token)
+    public override async Task HandleAsync(ChatMessage request, IEndpointContext<ChatMessage> ctx, CancellationToken token)
     {
         var userId = ctx.Context.User.GetUserId<long>();
 
-        var userInChat = await dbContext.ChatsUsers.AnyAsync(c => c.UserId == userId && c.ChatId == request.ChatId, token);
+        var userInChat = await dbContext.ChatsUsers
+            .AnyAsync(c => c.UserId == userId && c.ChatId == request.ChatId, token);
+
         if (!userInChat)
             return;
 
@@ -35,16 +37,14 @@ public sealed class ChatSendEndpoint(IWsConnectionManager connectionManager, ISt
 
         await dbContext.SaveChangesAsync(token);
 
-        var connectionsIds = await storage.Get(usersForChat);
+        var message = new ChatMessage
+        {
+            Key = "chat/message/receive",
+            Content = request.Content,
+            Timestamp = request.Timestamp,
+            ChatId = request.ChatId,
+        };
 
-        var message = ctx.Serializer.Serialize(
-            new ChatMessage
-            {
-                Key = "chat/message/receive",
-                Content = request.Content,
-                Timestamp = request.Timestamp,
-                ChatId = request.ChatId,
-            });
-        await connectionManager.SendAsync("", message, token);
+        await ctx.SendAsync("", message, token);
     }
 }
