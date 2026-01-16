@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Connections;
 
-namespace WebSockets.Otp.Abstractions.Contracts.Transport;
+namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageReceiver
 {

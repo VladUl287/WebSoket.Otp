@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using WebSockets.Otp.Abstractions.Options;
 
-namespace WebSockets.Otp.Abstractions.Contracts.Transport;
+namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageEnumerator
 {

@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace WebSockets.Otp.Abstractions.Contracts.Transport;
+namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageReceiverResolver
 {
