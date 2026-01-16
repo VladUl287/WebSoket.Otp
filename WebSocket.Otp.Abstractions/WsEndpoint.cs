@@ -10,6 +10,13 @@ public abstract class WsEndpoint
 public abstract class WsEndpoint<TRequest>
 {
     public abstract Task HandleAsync(TRequest request, IEndpointContext context);
+
+    //public abstract Task HandleAsync(IEndpointContext context);
+    //public abstract Task HandleAsync(TRequest request);
+    //public abstract Task HandleAsync(TRequest request, IEndpointContext context);
+    //public abstract ValueTask HandleValueAsync(IEndpointContext context);
+    //public abstract ValueTask HandleValueAsync(TRequest request);
+    //public abstract ValueTask HandleValueAsync(TRequest request, IEndpointContext context);
 }
 
 public abstract class WsEndpoint<TRequest, TResponse>
