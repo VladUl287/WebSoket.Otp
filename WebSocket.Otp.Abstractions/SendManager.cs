@@ -23,13 +23,18 @@ public sealed class SendManager(IWsConnectionManager manager)
         return this;
     }
 
-    public SendManager All
+    public SendManager All()
     {
-        get
-        {
-            _targetAll = true;
-            return this;
-        }
+        _targetAll = true;
+        return this;
+    }
+
+    public SendManager Reset()
+    {
+        _connectionIds.Clear();
+        _groups.Clear();
+        _targetAll = false;
+        return this;
     }
 
     public ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token)
@@ -41,13 +46,29 @@ public sealed class SendManager(IWsConnectionManager manager)
 public sealed class SendManager<TResponse>(SendManager Manager)
     where TResponse : notnull
 {
-    public SendManager<TResponse> Client(string connectionId) =>
-        new(Manager.Client(connectionId));
+    public SendManager<TResponse> Client(string connectionId)
+    {
+        Manager.Client(connectionId);
+        return this;
+    }
 
-    public SendManager<TResponse> Group(string groupName) =>
-        new(Manager.Group(groupName));
+    public SendManager<TResponse> Group(string groupName)
+    {
+        Manager.Group(groupName);
+        return this;
+    }
 
-    public SendManager<TResponse> All => new(Manager.All);
+    public SendManager<TResponse> All()
+    {
+        Manager.All();
+        return this;
+    }
+
+    public SendManager<TResponse> Reset()
+    {
+        Manager.Reset();
+        return this;
+    }
 
     public ValueTask SendAsync(TResponse data, CancellationToken token) =>
         Manager.SendAsync(data, token);
