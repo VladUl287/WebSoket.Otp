@@ -5,15 +5,28 @@ namespace WebSockets.Otp.Abstractions.Endpoints;
 
 public abstract class BaseEndpointContext : IEndpointContext
 {
-    public ISerializer Serializer => throw new NotImplementedException();
+    protected BaseEndpointContext(
+        IGlobalContext globalContext,
+        IWsConnectionManager manager,
+        ISerializer serializer,
+        IMessageBuffer payload,
+        CancellationToken cancellation)
+    {
+        Context = globalContext.Context;
+        ConnectionId = globalContext.ConnectionId;
+        ConnectionManager = manager;
+        Serializer = serializer;
+        Payload = payload;
+        Cancellation = cancellation;
+    }
 
-    public IMessageBuffer Payload => throw new NotImplementedException();
+    protected IWsConnectionManager ConnectionManager { get; init; }
 
-    public CancellationToken Cancellation => throw new NotImplementedException();
+    public HttpContext Context { get; init; }
+    public string ConnectionId { get; init; }
+    public ISerializer Serializer { get; init; }
+    public IMessageBuffer Payload { get; init; }
+    public CancellationToken Cancellation { get; init; }
 
-    public HttpContext Context => throw new NotImplementedException();
-
-    public string ConnectionId => throw new NotImplementedException();
-
-    public GroupManager Groups => throw new NotImplementedException();
+    public GroupManager Groups => new(ConnectionManager);
 }
