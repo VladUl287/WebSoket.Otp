@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using WebSockets.Otp.Abstractions.Endpoints;
+﻿using WebSockets.Otp.Abstractions.Endpoints;
 
 namespace WebSockets.Otp.Abstractions.Pipeline;
 

@@ -5,7 +5,7 @@ using WebSockets.Otp.Core.Pipeline.Steps;
 
 namespace WebSockets.Otp.Core.Pipeline;
 
-public sealed class PipelineFactory(IHandleDelegateFactory delegateFactory) : IPipelineFactory
+public sealed class PipelineFactory(IEndpointInvoker delegateFactory) : IPipelineFactory
 {
     private readonly ConcurrentDictionary<Type, ExecutionPipeline> _cache = new();
 
@@ -13,13 +13,11 @@ public sealed class PipelineFactory(IHandleDelegateFactory delegateFactory) : IP
     {
         return _cache.GetOrAdd(
             endpoint,
-            (key, state) =>
+            (key, factory) =>
             {
                 return new ExecutionPipeline(1)
-                    .AddStep(new EndpointStep(state.delegateFactory, state.endpoint));
+                    .AddStep(new EndpointStep(factory));
             },
-            (delegateFactory, endpoint));
-
-
+            delegateFactory);
     }
 }

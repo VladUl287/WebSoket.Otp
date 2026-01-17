@@ -1,14 +1,27 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
 using System.Linq.Expressions;
+using System.Reflection;
 using WebSockets.Otp.Abstractions;
-using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class DefaultDelegateFactory : IHandleDelegateFactory
+public sealed class EndpointInvoker : IEndpointInvoker
 {
+    private readonly ConcurrentDictionary<Type, Func<object, object, Task>> _cache = new();
+
+    public Task Invoke(object endpoint, IEndpointContext context)
+    {
+        var endpointType = endpoint.GetType();
+        var invokeDelegate = _cache.GetOrAdd(
+            endpointType,
+            (key, type) => CreateHandleDelegate(type),
+            endpointType);
+        return invokeDelegate(endpoint, context);
+    }
+
     public Func<object, object, Task> CreateHandleDelegate(Type endpointType)
     {
         var baseEndpointType = endpointType.GetBaseEndpointType()!;
