@@ -1,8 +1,6 @@
-﻿using WebSockets.Otp.Abstractions;
+﻿namespace WebSockets.Otp.Api.Models;
 
-namespace WebSockets.Otp.Api.Models;
-
-public sealed class ChatMessage : WsMessage
+public sealed class ChatMessage
 {
     public Guid ChatId { get; init; }
     public string Content { get; init; } = string.Empty;

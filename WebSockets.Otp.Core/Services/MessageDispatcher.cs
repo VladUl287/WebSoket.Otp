@@ -1,51 +1,28 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Core.Exceptions;
-using WebSockets.Otp.Core.Logging;
+using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
 public class MessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsEndpointRegistry endpointRegistry, IExecutionContextFactory contextFactory,
-    IEndpointInvoker invoker, IStringPool stringPool, ILogger<MessageDispatcher> logger) : IMessageDispatcher
+    IEndpointInvoker invoker, IStringPool stringPool) : IMessageDispatcher
 {
-    private readonly ReadOnlyMemory<byte> KeyField = stringPool.Encoding.GetBytes(nameof(WsMessage.Key).ToLowerInvariant()).AsMemory();
+    private readonly ReadOnlyMemory<byte> Key = stringPool.Encoding.GetBytes(WsMessageFields.Key).AsMemory();
 
     public async Task DispatchMessage(IWsConnection connection, ISerializer serializer, IMessageBuffer buffer, CancellationToken token)
     {
-        var connectionId = connection.Id;
+        var endpointKey = serializer.ExtractField(Key.Span, buffer.Span, stringPool);
 
-        var payload = buffer.Span;
-
-        logger.LogDispatchingMessage(connectionId, "Unknown", payload.Length);
-
-        var endpointKey = serializer.ExtractField(KeyField.Span, payload);
-
-        if (endpointKey is null)
-        {
-            logger.LogKeyExtractionFailed(connectionId);
-            throw new MessageFormatException("Unable to determine message route from payload");
-        }
-
-        var endpointType = endpointRegistry.Resolve(endpointKey);
-        if (endpointType is null)
-        {
-            logger.LogEndpointNotFound(connectionId, endpointKey);
-            throw new EndpointNotFoundException($"Endpoint for route '{endpointKey}' not found");
-        }
+        if (!endpointRegistry.TryResolve(endpointKey, out var endpointType))
+            throw new InvalidOperationException($"Endpoint for key '{endpointKey}' not found");
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
         var endpointInstance = scope.ServiceProvider.GetRequiredService(endpointType);
 
-        logger.LogEndpointResolved(connectionId, endpointType.Name);
-
         var execCtx = contextFactory.Create(endpointKey, endpointType, connection, buffer, serializer, token);
 
         await invoker.InvokeEndpointAsync(endpointInstance, execCtx, token);
-
-        logger.LogMessageDispatched(connectionId, endpointKey);
     }
 }

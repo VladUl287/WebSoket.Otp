@@ -9,4 +9,6 @@ public interface ISerializer
     object? Deserialize(Type type, ReadOnlySpan<byte> data);
 
     string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data);
+
+    string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data, IStringPool stringPool);
 }

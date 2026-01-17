@@ -3,7 +3,7 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
-public sealed class JsonMessageSerializer(IStringPool stringPool) : ISerializer
+public sealed class JsonMessageSerializer : ISerializer
 {
     private static readonly JsonSerializerOptions _default = new()
     {
@@ -33,14 +33,31 @@ public sealed class JsonMessageSerializer(IStringPool stringPool) : ISerializer
 
     public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8)
     {
-        if (field.IsEmpty)
-            throw new ArgumentException("Field argument is empty", nameof(field));
+        var reader = new Utf8JsonReader(jsonUtf8);
 
-        if (jsonUtf8.IsEmpty)
-            throw new ArgumentException("Data argument is empty", nameof(jsonUtf8));
+        while (reader.Read())
+        {
+            if (reader.TokenType is not JsonTokenType.PropertyName)
+                continue;
 
-        ArgumentNullException.ThrowIfNull(stringPool, nameof(stringPool));
+            if (reader.ValueTextEquals(field))
+            {
+                reader.Read();
 
+                if (reader.TokenType is not JsonTokenType.String)
+                    break;
+
+                return reader.GetString() ?? throw new NullReferenceException();
+            }
+
+            reader.Skip();
+        }
+
+        throw new NullReferenceException();
+    }
+
+    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool)
+    {
         var reader = new Utf8JsonReader(jsonUtf8);
 
         while (reader.Read())

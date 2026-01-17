@@ -12,7 +12,7 @@ public sealed class WsEndpointRegistry : IWsEndpointRegistry
     public WsEndpointRegistry() { }
     public WsEndpointRegistry(IEnumerable<Type> types) => Register(types);
 
-    public Type? Resolve(string path) => _map.TryGetValue(path, out var value) ? value : null;
+    public Type? TryResolve(string path) => _map.TryGetValue(path, out var value) ? value : null;
 
     public IEnumerable<Type> Enumerate() => _map.Values.AsEnumerable();
 

@@ -1,8 +1,10 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IWsEndpointRegistry
 {
-    Type? Resolve(string path);
+    bool TryResolve(string path, [NotNullWhen(true)] out Type? endpoint);
 
     IEnumerable<Type> Enumerate();
 
