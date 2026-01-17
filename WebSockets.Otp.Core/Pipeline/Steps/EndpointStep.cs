@@ -11,58 +11,50 @@ public sealed class EndpointStep(Type endpointType) : IPipelineStep
 {
     public Task ProcessAsync(object endpoint, IEndpointContext context)
     {
-        if (endpointType == typeof(WsEndpoint))
+        var baseEndpointType = endpointType.GetBaseEndpointType();
+
+        if (baseEndpointType == typeof(WsEndpoint))
             return (endpoint as WsEndpoint)!.HandleAsync((context as EndpointContext)!);
 
-        var baseEndpointType = endpointType.GetBaseEndpointType();
-        if (baseEndpointType.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
+        var requestType = endpointType.GetRequestType();
+
+        var handleMethod = baseEndpointType.GetMethod(
+            nameof(WsEndpoint.HandleAsync), BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic) ??
+                throw new InvalidOperationException($"Handle Method not found for endpoint type '{endpointType}'");
+
+        var requestData = context.Serializer.Deserialize(requestType, context.Payload.Span);
+
+        var baseDefinition = baseEndpointType.GetGenericTypeDefinition();
+
+        if (baseDefinition == typeof(WsEndpoint<>))
         {
-            var requestType = endpointType.GetRequestType();
-            Type[] types = [requestType, typeof(EndpointContext)];
-
-            var handleMethod = baseEndpointType.GetMethod(
-                nameof(WsEndpoint.HandleAsync), BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, types) ??
-                throw new InvalidOperationException("Method not found");
-
-            var invoker = CreateDelegate(baseEndpointType, requestType, handleMethod);
-
-            var requestData = context.Serializer.Deserialize(requestType, context.Payload.Span);
-
-            return invoker(endpoint, requestData, (context as EndpointContext)!);
+            var invoker = CreateDelegate(baseEndpointType, requestType, typeof(EndpointContext), handleMethod);
+            return invoker(endpoint, requestData, context);
         }
 
-        if (baseEndpointType.GetGenericTypeDefinition() == typeof(WsEndpoint<,>))
+        if (baseDefinition == typeof(WsEndpoint<,>))
         {
-            var requestType = endpointType.GetRequestType();
-            Type[] types = [requestType, typeof(EndpointContext)];
-
-            var handleMethod = baseEndpointType.GetMethod(
-                nameof(WsEndpoint.HandleAsync), BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, types) ??
-                throw new InvalidOperationException("Method not found");
-
-            var invoker = CreateDelegate(baseEndpointType, requestType, handleMethod);
-
-            var requestData = context.Serializer.Deserialize(requestType, context.Payload.Span);
-
-            return invoker(endpoint, requestData, (context as EndpointContext)!);
+            var invoker = CreateDelegate(baseEndpointType, requestType, typeof(EndpointContext<>), handleMethod);
+            return invoker(endpoint, requestData, context);
         }
 
-        return Task.CompletedTask;
+        throw new InvalidOperationException();
     }
 
-    private static Func<object, object, EndpointContext, Task> CreateDelegate(
-        Type endpointType, Type requestType, MethodInfo handleMethod)
+    private static Func<object, object, object, Task> CreateDelegate(
+        Type endpointType, Type requestType, Type contextType, MethodInfo handleMethod)
     {
         var instanceParam = Expression.Parameter(typeof(object));
         var messageParam = Expression.Parameter(typeof(object));
-        var contextParam = Expression.Parameter(typeof(EndpointContext));
+        var contextParam = Expression.Parameter(typeof(object));
 
         var typedInstance = Expression.Convert(instanceParam, endpointType);
         var typedMessage = Expression.Convert(messageParam, requestType);
+        var typedContext = Expression.Convert(contextParam, contextType);
 
-        var callExpression = Expression.Call(typedInstance, handleMethod, typedMessage, contextParam);
+        var callExpression = Expression.Call(typedInstance, handleMethod, typedMessage, typedContext);
 
-        var lambda = Expression.Lambda<Func<object, object, EndpointContext, Task>>(
+        var lambda = Expression.Lambda<Func<object, object, object, Task>>(
             callExpression, instanceParam, messageParam, contextParam);
 
         return lambda.Compile();
