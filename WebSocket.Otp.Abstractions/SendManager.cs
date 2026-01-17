@@ -2,74 +2,47 @@
 
 namespace WebSockets.Otp.Abstractions;
 
-public sealed class SendManager(IWsConnectionManager manager)
+public abstract class SendManagerBase(IWsConnectionManager manager)
 {
-    private readonly IWsConnectionManager _manager = manager;
-    private readonly HashSet<string> _connectionIds = [];
-    private readonly HashSet<string> _groups = [];
-    private bool _targetAll = false;
+    protected readonly IWsConnectionManager _manager = manager;
+    protected readonly HashSet<string> _connectionIds = [];
+    protected readonly HashSet<string> _groups = [];
+    protected bool _targetAll = false;
 
-    public SendManager Client(string connectionId)
+    public SendManagerBase Client(string connectionId)
     {
         if (_targetAll) return this;
         _connectionIds.Add(connectionId);
         return this;
     }
 
-    public SendManager Group(string groupName)
+    public SendManagerBase Group(string groupName)
     {
         if (_targetAll) return this;
         _groups.Add(groupName);
         return this;
     }
 
-    public SendManager All()
+    public SendManagerBase All()
     {
         _targetAll = true;
         return this;
     }
+}
 
-    public SendManager Reset()
-    {
-        _connectionIds.Clear();
-        _groups.Clear();
-        _targetAll = false;
-        return this;
-    }
-
+public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase(manager)
+{
     public ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token)
     {
         return _manager.AddToGroupAsync(string.Empty, string.Empty);
     }
 }
 
-public sealed class SendManager<TResponse>(SendManager Manager)
+public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendManagerBase(manager)
     where TResponse : notnull
 {
-    public SendManager<TResponse> Client(string connectionId)
+    public ValueTask SendAsync(TResponse data, CancellationToken token)
     {
-        Manager.Client(connectionId);
-        return this;
+        return _manager.AddToGroupAsync(string.Empty, string.Empty);
     }
-
-    public SendManager<TResponse> Group(string groupName)
-    {
-        Manager.Group(groupName);
-        return this;
-    }
-
-    public SendManager<TResponse> All()
-    {
-        Manager.All();
-        return this;
-    }
-
-    public SendManager<TResponse> Reset()
-    {
-        Manager.Reset();
-        return this;
-    }
-
-    public ValueTask SendAsync(TResponse data, CancellationToken token) =>
-        Manager.SendAsync(data, token);
 }
