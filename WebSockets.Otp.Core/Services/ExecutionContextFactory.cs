@@ -10,6 +10,6 @@ public sealed class ExecutionContextFactory : IExecutionContextFactory
         string endpointKey, Type endpointType, IWsConnection connection,
         IMessageBuffer payload, ISerializer serializer, CancellationToken token)
     {
-        return new WsEndpointContext();
+        return new WsEndpointContext(null, null, null, null, default);
     }
 }

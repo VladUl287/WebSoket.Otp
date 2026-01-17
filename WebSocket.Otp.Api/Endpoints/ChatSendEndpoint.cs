@@ -61,7 +61,7 @@ public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
             if (counter > SendThreshold)
             {
                 await send.SendAsync(message, token);
-                send.Reset();
+                send = ctx.Send;
                 counter = 0;
             }
         }
