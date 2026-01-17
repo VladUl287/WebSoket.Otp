@@ -1,13 +1,14 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
 public class MessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IWsEndpointRegistry endpointRegistry, 
-    IExecutionContextFactory contextFactory, IEndpointInvoker invoker, IStringPool stringPool) : IMessageDispatcher
+    IExecutionContextFactory contextFactory, IPipelineFactory pipelineFactory, IStringPool stringPool) : IMessageDispatcher
 {
     private readonly ReadOnlyMemory<byte> Key = stringPool.Encoding.GetBytes(WsMessageFields.Key).AsMemory();
 
@@ -21,10 +22,12 @@ public class MessageDispatcher(
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        var endpointInstance = scope.ServiceProvider.GetRequiredService(endpointType);
+        var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
         var execCtx = contextFactory.Create(globalContext, connectionManager, payload, serializer, token);
 
-        await invoker.InvokeEndpointAsync(endpointInstance, execCtx);
+        var pipeline = pipelineFactory.CreatePipeline(endpointType);
+
+        await pipeline.ExecuteAsync(endpoint, execCtx);
     }
 }

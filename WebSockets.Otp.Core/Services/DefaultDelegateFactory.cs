@@ -2,8 +2,6 @@
 using System.Linq.Expressions;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Core.Extensions;
-using WebSockets.Otp.Core.Pipeline.Steps;
-using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 
@@ -11,96 +9,66 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultDelegateFactory : IHandleDelegateFactory
 {
-    private static readonly string MethodName = nameof(WsEndpoint.HandleAsync);
-    private static readonly string MethodNotFoundMessage = $"Method '{nameof(WsEndpoint.HandleAsync)}' not found";
-    private static readonly Type[] WithoutRequestTypes = [typeof(IEndpointContext), typeof(CancellationToken)];
-
-    public ExecutionPipeline CreatePipeline(Type endpoint)
+    public Func<object, object, Task> CreateHandleDelegate(Type endpointType)
     {
-        var result = new ExecutionPipeline(1);
+        var baseEndpointType = endpointType.GetBaseEndpointType()!;
+        var requestType = baseEndpointType.GetRequestType()!;
 
-        result.AddStep(new EndpointStep(endpoint));
+        var handleMethod = baseEndpointType.GetMethod(
+            nameof(WsEndpoint.HandleAsync), BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic) ??
+                throw new InvalidOperationException($"Handle Method not found for endpoint type");
 
-        return result;
+        return CreateInvoker(baseEndpointType, handleMethod, requestType);
     }
 
-    public Func<object, IEndpointContext, CancellationToken, Task> CreateHandleDelegate(Type endpointType)
+    private static Func<object, object, Task> CreateInvoker(Type baseEndpointType, MethodInfo handleMethod, Type? requestType)
     {
-        var baseEndpType = endpointType.GetBaseEndpointType();
-        var reqType = baseEndpType.GetRequestTypeSafe();
+        if (requestType is null)
+            return CreateDelegate(baseEndpointType, typeof(EndpointContext), handleMethod);
 
-        var handleMethod = ResolveHandleMethod(baseEndpType, reqType);
-
-        return CreateInvoker(baseEndpType, reqType, handleMethod);
-    }
-
-    public static MethodInfo ResolveHandleMethod(Type baseEndpType, Type? reqType)
-    {
-        var flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic;
-
-        if (reqType is not null)
+        var handler = CreateDelegate(baseEndpointType, requestType, typeof(EndpointContext<>), handleMethod);
+        return (endpointInst, context) =>
         {
-            Type[] types = [reqType, typeof(IEndpointContext), typeof(CancellationToken)];
-            return baseEndpType.GetMethod(MethodName, flags, types: types) ??
-                throw new InvalidOperationException(MethodNotFoundMessage);
-        }
-
-        var handleMethod = baseEndpType.GetMethod(MethodName, flags, types: WithoutRequestTypes);
-        return handleMethod ??
-            throw new InvalidOperationException(MethodNotFoundMessage);
-    }
-
-    private static Func<object, IEndpointContext, CancellationToken, Task> CreateInvoker(Type baseEndpType, Type? reqType, MethodInfo handleMethod)
-    {
-        if (reqType is null)
-            return CreateHandlerDelegate(baseEndpType, handleMethod);
-
-        return CreateRequestHandlingInvoker(baseEndpType, reqType, handleMethod);
-    }
-
-    private static Func<object, IEndpointContext, CancellationToken, Task> CreateRequestHandlingInvoker(Type baseEndpType, Type reqType, MethodInfo handleMethod)
-    {
-        var handler = CreateHandlerDelegate(baseEndpType, reqType, handleMethod);
-        return (endpointInst, execCtx, token) =>
-        {
-            var requestData = execCtx.Serializer.Deserialize(reqType, execCtx.Payload.Span) ??
+            var endpointCtx = (context as IEndpointContext)!;
+            var requestData = endpointCtx.Serializer.Deserialize(requestType, endpointCtx.Payload.Span) ??
                 throw new NullReferenceException();
 
-            return handler(endpointInst, requestData, execCtx, token);
+            return handler(endpointInst, requestData, context);
         };
     }
 
-    private static Func<object, IEndpointContext, CancellationToken, Task> CreateHandlerDelegate(Type baseType, MethodInfo handleMethod)
+    private static Func<object, object, Task> CreateDelegate(
+        Type baseEndpointType, Type contextType, MethodInfo handleMethod)
     {
         var instanceParam = Expression.Parameter(typeof(object));
-        var contextParam = Expression.Parameter(typeof(IEndpointContext));
-        var cancellationParam = Expression.Parameter(typeof(CancellationToken));
+        var contextParam = Expression.Parameter(typeof(object));
 
-        var typedInstance = Expression.Convert(instanceParam, baseType);
+        var typedInstance = Expression.Convert(instanceParam, baseEndpointType);
+        var typedContext = Expression.Convert(contextParam, contextType);
 
-        var callExpression = Expression.Call(typedInstance, handleMethod, contextParam, cancellationParam);
+        var callExpression = Expression.Call(typedInstance, handleMethod, typedContext);
 
-        var lambda = Expression.Lambda<Func<object, IEndpointContext, CancellationToken, Task>>(
-            callExpression, instanceParam, contextParam, cancellationParam);
+        var lambda = Expression.Lambda<Func<object, object, Task>>(
+            callExpression, instanceParam, contextParam);
 
         return lambda.Compile();
     }
 
-    private static Func<object, object, IEndpointContext, CancellationToken, Task> CreateHandlerDelegate(
-        Type baseType, Type requestType, MethodInfo handleMethod)
+    private static Func<object, object, object, Task> CreateDelegate(
+        Type baseEndpointType, Type requestType, Type contextType, MethodInfo handleMethod)
     {
         var instanceParam = Expression.Parameter(typeof(object));
         var messageParam = Expression.Parameter(typeof(object));
-        var contextParam = Expression.Parameter(typeof(IEndpointContext));
-        var cancellationParam = Expression.Parameter(typeof(CancellationToken));
+        var contextParam = Expression.Parameter(typeof(object));
 
-        var typedInstance = Expression.Convert(instanceParam, baseType);
+        var typedInstance = Expression.Convert(instanceParam, baseEndpointType);
         var typedMessage = Expression.Convert(messageParam, requestType);
+        var typedContext = Expression.Convert(contextParam, contextType);
 
-        var callExpression = Expression.Call(typedInstance, handleMethod, typedMessage, contextParam, cancellationParam);
+        var callExpression = Expression.Call(typedInstance, handleMethod, typedMessage, typedContext);
 
-        var lambda = Expression.Lambda<Func<object, object, IEndpointContext, CancellationToken, Task>>(
-            callExpression, instanceParam, messageParam, contextParam, cancellationParam);
+        var lambda = Expression.Lambda<Func<object, object, object, Task>>(
+            callExpression, instanceParam, messageParam, contextParam);
 
         return lambda.Compile();
     }

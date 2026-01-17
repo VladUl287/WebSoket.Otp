@@ -4,7 +4,9 @@ using System.Text;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Transport;
+using WebSockets.Otp.Core.Pipeline;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.MessageProcessors;
@@ -80,7 +82,7 @@ public static class WsServiceCollectionsExtensions
     {
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IHandleDelegateFactory, DefaultDelegateFactory>();
-        services.AddSingleton<IEndpointInvoker, EndpointInvoker>();
+        services.AddSingleton<IPipelineFactory, PipelineFactory>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
         services.AddSingleton<IMessageProcessorFactory, MessageProcessorFactory>();
