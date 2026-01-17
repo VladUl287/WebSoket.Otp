@@ -1,4 +1,5 @@
 ﻿using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -12,7 +13,7 @@ public sealed class WsEndpointRegistry : IWsEndpointRegistry
     public WsEndpointRegistry() { }
     public WsEndpointRegistry(IEnumerable<Type> types) => Register(types);
 
-    public Type? TryResolve(string path) => _map.TryGetValue(path, out var value) ? value : null;
+    public bool TryResolve(string path, [NotNullWhen(true)] out Type? endpointType) => _map.TryGetValue(path, out endpointType);
 
     public IEnumerable<Type> Enumerate() => _map.Values.AsEnumerable();
 

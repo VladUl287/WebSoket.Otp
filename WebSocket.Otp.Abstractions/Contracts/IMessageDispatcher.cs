@@ -1,6 +1,9 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Endpoints;
+
+namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IMessageDispatcher
 {
-    Task DispatchMessage(IWsConnection connection, ISerializer serializer, IMessageBuffer messageBuffer, CancellationToken token);
+    Task DispatchMessage(
+        IGlobalContext globalContext, ISerializer serializer, IMessageBuffer payload, CancellationToken token);
 }

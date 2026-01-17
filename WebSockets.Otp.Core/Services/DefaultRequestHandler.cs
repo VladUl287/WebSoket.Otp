@@ -11,7 +11,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
-    IHandshakeParser handshakeRequestParser,
+    IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
     INewMessageProcessor messageProcessor, IMessageEnumerator messageEnumerator,
     IMessageReceiverResolver messageReceiverResolver, ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
@@ -55,21 +55,23 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
+        var globalContext = executionContextFactory.CreateGlobal(httpContext, connection.Id, connectionManager);
         try
         {
             if (options.OnConnected is not null)
-                await SafeExecuteAsync((state) => state.options.OnConnected!(null),
-                    (options, connection), "OnConnected", logger);
+                await SafeExecuteAsync((state) => state.options.OnConnected!(state.globalContext),
+                    (options, globalContext), "OnConnected", logger);
 
-            await messageProcessor.Process(context, connection, options, connectionOptions, cancelToken);
+            await messageProcessor.Process(
+                context, globalContext, options, connectionOptions, cancelToken);
         }
         finally
         {
             connectionManager.TryRemove(connection.Id);
 
             if (options.OnDisconnected is not null)
-                await SafeExecuteAsync((state) => state.options.OnDisconnected!(null),
-                    (options, connection), "OnDisconnected", logger);
+                await SafeExecuteAsync((state) => state.options.OnDisconnected!(state.globalContext),
+                    (options, globalContext), "OnDisconnected", logger);
         }
     }
 

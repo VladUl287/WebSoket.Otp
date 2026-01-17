@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 
@@ -11,8 +12,9 @@ public class NewParallelMessageProcessor(
 {
     public string Name => ProcessingMode.Parallel;
 
-    public async Task Process(ConnectionContext context, IWsConnection connection,
-        WsMiddlewareOptions options, WsConnectionOptions connectionOptions, CancellationToken token)
+    public async Task Process(
+        ConnectionContext context, IGlobalContext globalContext, WsMiddlewareOptions options,
+        WsConnectionOptions connectionOptions, CancellationToken token)
     {
         var parallelOptions = new ParallelOptions
         {
@@ -32,7 +34,7 @@ public class NewParallelMessageProcessor(
         {
             try
             {
-                await dispatcher.DispatchMessage(connection, serializer, buffer, token);
+                await dispatcher.DispatchMessage(globalContext, serializer, buffer, token);
             }
             finally
             {

@@ -3,7 +3,9 @@ using System.Reflection;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Core.Pipeline.Steps;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -12,6 +14,15 @@ public sealed class DefaultDelegateFactory : IHandleDelegateFactory
     private static readonly string MethodName = nameof(WsEndpoint.HandleAsync);
     private static readonly string MethodNotFoundMessage = $"Method '{nameof(WsEndpoint.HandleAsync)}' not found";
     private static readonly Type[] WithoutRequestTypes = [typeof(IEndpointContext), typeof(CancellationToken)];
+
+    public ExecutionPipeline CreatePipeline(Type endpoint)
+    {
+        var result = new ExecutionPipeline(1);
+
+        result.AddStep(new EndpointStep(endpoint));
+
+        return result;
+    }
 
     public Func<object, IEndpointContext, CancellationToken, Task> CreateHandleDelegate(Type endpointType)
     {

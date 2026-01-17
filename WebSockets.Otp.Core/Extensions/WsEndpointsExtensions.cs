@@ -37,6 +37,9 @@ public static class WsEndpointsExtensions
         Type? current = type;
         while (current is not null)
         {
+            if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(WsEndpoint<,>))
+                return current;
+
             if (current.IsGenericType && current.GetGenericTypeDefinition() == typeof(WsEndpoint<>))
                 return current;
 
