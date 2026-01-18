@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Text;
+using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
@@ -61,7 +62,6 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<IMessageReceiver, JsonMessageReceiver>();
         services.AddSingleton<INewMessageProcessor, NewParallelMessageProcessor>();
 
-        services.AddSingleton<IWsEndpointRegistry, EndpointRegistry>();
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
         services.AddSingleton<IHandshakeParser>(
@@ -110,8 +110,6 @@ public static class WsServiceCollectionsExtensions
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
 
-        services.AddSingleton<IWsEndpointRegistry>(new EndpointRegistry(endpointsTypes));
-
         var comparer = options.KeyOptions.IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var endpointsKeys = new HashSet<string>(comparer);
         foreach (var endpointType in endpointsTypes)
@@ -125,9 +123,9 @@ public static class WsServiceCollectionsExtensions
 
             _ = attribute.Scope switch
             {
-                ServiceLifetime.Singleton => services.AddSingleton(endpointType),
-                ServiceLifetime.Transient => services.AddTransient(endpointType),
-                _ => services.AddScoped(endpointType)
+                ServiceLifetime.Singleton => services.AddKeyedSingleton(serviceType: typeof(IWsEndpoint), key, implementationType: endpointType),
+                ServiceLifetime.Transient => services.AddKeyedSingleton(serviceType: typeof(IWsEndpoint), key, implementationType: endpointType),
+                _ => services.AddKeyedScoped(serviceType: typeof(IWsEndpoint), key, implementationType: endpointType)
             };
         }
 
