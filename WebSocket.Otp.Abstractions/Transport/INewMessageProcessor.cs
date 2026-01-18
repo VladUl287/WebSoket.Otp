@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Connections;
-using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Transport;
 

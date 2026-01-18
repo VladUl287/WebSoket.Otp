@@ -8,6 +8,6 @@ public interface IExecutionContextFactory
     IGlobalContext CreateGlobal(HttpContext context, string connectionId, IWsConnectionManager manager);
 
     IEndpointContext Create(
-        IGlobalContext global, IWsConnectionManager manager, IMessageBuffer payload, 
+        IGlobalContext global, IWsConnectionManager manager, IMessageBuffer payload,
         ISerializer serializer, CancellationToken token);
 }
