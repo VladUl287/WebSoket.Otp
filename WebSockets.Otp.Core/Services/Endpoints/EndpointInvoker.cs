@@ -32,10 +32,14 @@ public sealed class EndpointInvoker : IEndpointInvoker
         if (requestType is null)
             return CreateDelegate(baseEndpointType, typeof(EndpointContext), handleMethod);
 
-        var handler = CreateDelegate(baseEndpointType, requestType, typeof(EndpointContext<>), handleMethod);
+        var contextType = baseEndpointType.GetGenericTypeDefinition() == typeof(WsEndpoint<>) ?
+            typeof(EndpointContext) :
+            typeof(EndpointContext<>);
+
+        var handler = CreateDelegate(baseEndpointType, requestType, contextType, handleMethod);
         return (endpointInst, context) =>
         {
-            var endpointContext = (IEndpointContext)context;
+            var endpointContext = (BaseEndpointContext)context;
             var requestData = endpointContext.Serializer.Deserialize(requestType, endpointContext.Payload.Span) ??
                 throw new NullReferenceException($"Fail to deserialize message for endpoint '{endpointInst.GetType()}'");
             return handler(endpointInst, requestData, context);
