@@ -4,12 +4,7 @@ using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Abstractions.Endpoints;
 
-namespace WebSockets.Otp.Core.Services;
-
-public sealed class EndpointInvokerFactory : IEndpointInvokerFactory
-{
-    public IEndpointInvoker Create(Type endpointType) => new EndpointInvoker(endpointType);
-}
+namespace WebSockets.Otp.Core.Services.Endpoints;
 
 public sealed class EndpointInvoker : IEndpointInvoker
 {

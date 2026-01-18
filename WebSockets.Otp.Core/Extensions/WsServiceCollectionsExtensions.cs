@@ -9,6 +9,7 @@ using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Pipeline;
 using WebSockets.Otp.Core.Services;
+using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.MessageProcessors;
 using WebSockets.Otp.Core.Services.Serializers;
@@ -60,7 +61,7 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<IMessageReceiver, JsonMessageReceiver>();
         services.AddSingleton<INewMessageProcessor, NewParallelMessageProcessor>();
 
-        services.AddSingleton<IWsEndpointRegistry, WsEndpointRegistry>();
+        services.AddSingleton<IWsEndpointRegistry, EndpointRegistry>();
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
         services.AddSingleton<IHandshakeParser>(
@@ -108,7 +109,7 @@ public static class WsServiceCollectionsExtensions
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
 
-        services.AddSingleton<IWsEndpointRegistry>(new WsEndpointRegistry(endpointsTypes));
+        services.AddSingleton<IWsEndpointRegistry>(new EndpointRegistry(endpointsTypes));
 
         var comparer = options.KeyOptions.IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var endpointsKeys = new HashSet<string>(comparer);

@@ -4,14 +4,14 @@ using System.Reflection;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 
-namespace WebSockets.Otp.Core.Services;
+namespace WebSockets.Otp.Core.Services.Endpoints;
 
-public sealed class WsEndpointRegistry : IWsEndpointRegistry
+public sealed class EndpointRegistry : IWsEndpointRegistry
 {
     private FrozenDictionary<string, Type> _map = new Dictionary<string, Type>().ToFrozenDictionary();
 
-    public WsEndpointRegistry() { }
-    public WsEndpointRegistry(IEnumerable<Type> types) => Register(types);
+    public EndpointRegistry() { }
+    public EndpointRegistry(IEnumerable<Type> types) => Register(types);
 
     public bool TryResolve(string path, [NotNullWhen(true)] out Type? endpointType) => _map.TryGetValue(path, out endpointType);
 
