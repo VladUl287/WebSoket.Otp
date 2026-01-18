@@ -1,7 +1,10 @@
-﻿using System.Buffers;
+﻿using System;
+using System.Buffers;
+using System.Buffers.Binary;
 using System.Collections.Frozen;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using WebSockets.Otp.Abstractions.Contracts;
 
@@ -146,9 +149,27 @@ public sealed class PreloadedStringPool : IStringPool
         if (bytes.IsSingleSegment)
             return GetHashCode(bytes.FirstSpan);
 
-        var hasher = new XxHash3();
+        if (bytes.Length >= Array.MaxLength)
+        {
+            var hasher = new XxHash3();
+            foreach (var segment in bytes)
+                hasher.Append(segment.Span);
+            return hasher.GetCurrentHashAsUInt64();
+        }
+
+        var bytesCount = (int)bytes.Length;
+        var destinationStart = 0;
+
+        var destionation = ArrayPool<byte>.Shared.Rent(bytesCount);
+        Span<byte> destinationSpan = destionation.AsSpan();
         foreach (var segment in bytes)
-            hasher.Append(segment.Span);
-        return hasher.GetCurrentHashAsUInt64();
+        {
+            segment.Span.CopyTo(destinationSpan[destinationStart..]);
+            destinationStart += segment.Length;
+        }
+
+        var hashCode = XxHash3.HashToUInt64(destinationSpan);
+        ArrayPool<byte>.Shared.Return(destionation);
+        return hashCode;
     }
 }
