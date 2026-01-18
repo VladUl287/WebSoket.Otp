@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Transport;

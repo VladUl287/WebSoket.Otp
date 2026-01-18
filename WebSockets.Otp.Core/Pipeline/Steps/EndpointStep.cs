@@ -1,6 +1,5 @@
 ﻿using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Pipeline.Steps;
 

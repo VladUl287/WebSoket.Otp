@@ -2,15 +2,9 @@
 using System.Linq.Expressions;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Core.Extensions;
-using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 
 namespace WebSockets.Otp.Core.Services;
-
-public interface IEndpointInvokerFactory
-{
-    IEndpointInvoker Create(Type endpointType);
-}
 
 public sealed class EndpointInvokerFactory : IEndpointInvokerFactory
 {
