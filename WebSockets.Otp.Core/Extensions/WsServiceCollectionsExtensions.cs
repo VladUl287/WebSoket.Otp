@@ -60,7 +60,7 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<IMessageReceiverResolver, MessageReceiverResolver>();
         services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
         services.AddSingleton<IMessageReceiver, JsonMessageReceiver>();
-        services.AddSingleton<INewMessageProcessor, NewParallelMessageProcessor>();
+        services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
 
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
@@ -88,7 +88,7 @@ public static class WsServiceCollectionsExtensions
         services.AddSingleton<IPipelineFactory, PipelineFactory>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
-        services.AddSingleton<IMessageProcessorFactory, MessageProcessorFactory>();
+        services.AddSingleton<IMessageProcessorResolver, MessageProcessorResolver>();
 
         return services;
     }

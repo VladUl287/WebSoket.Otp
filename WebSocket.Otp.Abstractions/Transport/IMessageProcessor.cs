@@ -4,9 +4,9 @@ using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Transport;
 
-public interface INewMessageProcessor
+public interface IMessageProcessor
 {
-    string Name { get; }
+    string Mode { get; }
 
     Task Process(
         ConnectionContext context, IGlobalContext globalContext, WsMiddlewareOptions options,

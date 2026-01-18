@@ -6,13 +6,14 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Logging;
+using WebSockets.Otp.Core.Services.MessageProcessors;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
     IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
-    INewMessageProcessor messageProcessor, IMessageEnumerator messageEnumerator,
+    IMessageProcessorResolver messageProcessorResolver, IMessageEnumerator messageEnumerator,
     IMessageReceiverResolver messageReceiverResolver, ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
     private const string DefaultHandshakeProtocol = "json";
@@ -62,6 +63,7 @@ public sealed partial class DefaultRequestHandler(
                 await SafeExecuteAsync((state) => state.options.OnConnected!(state.globalContext),
                     (options, globalContext), "OnConnected", logger);
 
+            var messageProcessor = messageProcessorResolver.Resolve(options.Processing.Mode);
             await messageProcessor.Process(
                 context, globalContext, options, connectionOptions, cancelToken);
         }
