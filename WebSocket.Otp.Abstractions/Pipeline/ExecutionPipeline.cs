@@ -17,7 +17,6 @@ public sealed class ExecutionPipeline(int capacity)
         foreach (var step in _steps)
         {
             context.Cancellation.ThrowIfCancellationRequested();
-
             await step.ProcessAsync(endpoint, context);
         }
     }

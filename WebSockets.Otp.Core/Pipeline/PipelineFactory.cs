@@ -1,11 +1,11 @@
-﻿using System.Collections.Concurrent;
-using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Pipeline;
+﻿using WebSockets.Otp.Core.Services;
+using System.Collections.Concurrent;
 using WebSockets.Otp.Core.Pipeline.Steps;
+using WebSockets.Otp.Abstractions.Pipeline;
 
 namespace WebSockets.Otp.Core.Pipeline;
 
-public sealed class PipelineFactory(IEndpointInvoker delegateFactory) : IPipelineFactory
+public sealed class PipelineFactory(IEndpointInvokerFactory invokerFactory) : IPipelineFactory
 {
     private readonly ConcurrentDictionary<Type, ExecutionPipeline> _cache = new();
 
@@ -13,11 +13,12 @@ public sealed class PipelineFactory(IEndpointInvoker delegateFactory) : IPipelin
     {
         return _cache.GetOrAdd(
             endpoint,
-            (key, factory) =>
+            (key, state) =>
             {
+                var invoker = state.invokerFactory.Create(state.endpoint);
                 return new ExecutionPipeline(1)
-                    .AddStep(new EndpointStep(factory));
+                    .AddStep(new EndpointStep(invoker));
             },
-            delegateFactory);
+            (invokerFactory, endpoint));
     }
 }
