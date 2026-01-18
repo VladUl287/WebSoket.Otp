@@ -18,25 +18,26 @@ public sealed class EndpointInvoker : IEndpointInvoker
     public Func<object, object, Task> CreateHandleDelegate(Type endpointType)
     {
         var baseEndpointType = endpointType.GetBaseEndpointType()!;
-        var requestType = baseEndpointType.GetRequestType()!;
 
         var handleMethod = baseEndpointType.GetMethod(
             nameof(WsEndpoint.HandleAsync), BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic) ??
                 throw new InvalidOperationException($"Handle Method not found for endpoint type");
 
-        return CreateInvoker(baseEndpointType, handleMethod, requestType);
+        return CreateInvoker(baseEndpointType, handleMethod);
     }
 
-    private static Func<object, object, Task> CreateInvoker(Type baseEndpointType, MethodInfo handleMethod, Type? requestType)
+    private static Func<object, object, Task> CreateInvoker(Type baseEndpointType, MethodInfo handleMethod)
     {
-        if (requestType is null)
+        if (baseEndpointType == typeof(WsEndpoint))
             return CreateDelegate(baseEndpointType, typeof(EndpointContext), handleMethod);
 
         var contextType = baseEndpointType.GetGenericTypeDefinition() == typeof(WsEndpoint<>) ?
             typeof(EndpointContext) :
             typeof(EndpointContext<>);
 
+        var requestType = baseEndpointType.GetRequestType()!;
         var handler = CreateDelegate(baseEndpointType, requestType, contextType, handleMethod);
+
         return (endpointInst, context) =>
         {
             var endpointContext = (BaseEndpointContext)context;

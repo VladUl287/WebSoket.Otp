@@ -4,16 +4,14 @@ using WebSockets.Otp.Abstractions.Attributes;
 
 namespace WebSockets.Otp.Core.Extensions;
 
-public static class WsEndpointsExtensions
+internal static class WsEndpointsExtensions
 {
     public static bool IsWsEndpoint(this Type type) =>
         type is { IsAbstract: false } and { IsInterface: false } &&
         type.GetCustomAttribute<WsEndpointAttribute>() is not null &&
         type.GetBaseEndpointType() is not null;
 
-    public static bool AcceptsRequestMessages(this Type type) => GetRequestType(type) is not null;
-
-    public static Type? GetRequestType(this Type type)
+    internal static Type? GetRequestType(this Type type)
     {
         Type? current = type;
         while (current is not null)
@@ -26,7 +24,7 @@ public static class WsEndpointsExtensions
         return null;
     }
 
-    public static Type? GetBaseEndpointType(this Type type)
+    internal static Type? GetBaseEndpointType(this Type type)
     {
         Type? current = type;
         while (current is not null)
