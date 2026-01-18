@@ -82,8 +82,10 @@ public static class WsServiceCollectionsExtensions
 
     private static IServiceCollection AddMessageProcessingServices(this IServiceCollection services)
     {
-        services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IEndpointInvoker, EndpointInvoker>();
+        services.AddSingleton<IEndpointInvokerFactory, EndpointInvokerFactory>();
+
+        services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IPipelineFactory, PipelineFactory>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
