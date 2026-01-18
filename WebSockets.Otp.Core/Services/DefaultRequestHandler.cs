@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Http.Connections;
+﻿using WebSockets.Otp.Core.Logging;
 using Microsoft.Extensions.Logging;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Core.Extensions;
+using Microsoft.AspNetCore.Connections;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Core.Extensions;
-using WebSockets.Otp.Core.Logging;
+using WebSockets.Otp.Abstractions.Contracts;
+using Microsoft.AspNetCore.Http.Connections;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -27,7 +27,6 @@ public sealed partial class DefaultRequestHandler(
 
         if (!messageReceiverResolver.TryResolve(DefaultHandshakeProtocol, out var messageReceiver))
         {
-            logger.LogError("Fail to resolve handshake protocol {DefaultHandshakeProtocol}.", DefaultHandshakeProtocol);
             return;
         }
 
@@ -36,13 +35,11 @@ public sealed partial class DefaultRequestHandler(
         var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancelToken);
         if (handshakeMessage is null)
         {
-            logger.LogError("empty message");
             return;
         }
 
         if (!handshakeRequestParser.TryParse(handshakeMessage, out var connectionOptions))
         {
-            logger.LogError("empty message");
             return;
         }
 
@@ -51,7 +48,6 @@ public sealed partial class DefaultRequestHandler(
 
         if (!connectionManager.TryAdd(connection))
         {
-            logger.LogError("empty message");
             return;
         }
 
