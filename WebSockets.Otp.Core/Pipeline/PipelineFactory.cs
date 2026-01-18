@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
-using WebSockets.Otp.Core.Pipeline.Steps;
-using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Pipeline;
+using WebSockets.Otp.Core.Pipeline.Steps;
 
 namespace WebSockets.Otp.Core.Pipeline;
 

@@ -4,7 +4,6 @@ using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Hubs;
 using WebSockets.Otp.Api.Services;

@@ -1,9 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using WebSockets.Otp.Abstractions;
+﻿using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Api.Database;
-using WebSockets.Otp.Api.Database.Models;
 using WebSockets.Otp.Api.Models;
 
 namespace WebSockets.Otp.Api.Endpoints;
