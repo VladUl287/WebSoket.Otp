@@ -6,7 +6,6 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Logging;
-using WebSockets.Otp.Core.Services.MessageProcessors;
 
 namespace WebSockets.Otp.Core.Services;
 

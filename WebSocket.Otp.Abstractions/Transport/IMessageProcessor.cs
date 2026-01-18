@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageProcessor
 {
-    string Mode { get; }
+    string ProcessingMode { get; }
 
     Task Process(
         ConnectionContext context, IGlobalContext globalContext, WsMiddlewareOptions options,

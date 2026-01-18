@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Core.Services.MessageProcessors;
 
 public sealed class MessageProcessorResolver(IEnumerable<IMessageProcessor> processors) : IMessageProcessorResolver
 {
-    private readonly FrozenDictionary<string, IMessageProcessor> _store = processors.ToFrozenDictionary(c => c.Mode);
+    private readonly FrozenDictionary<string, IMessageProcessor> _store = processors.ToFrozenDictionary(c => c.ProcessingMode);
 
     public bool CanResolve(string mode) => _store.ContainsKey(mode);
 

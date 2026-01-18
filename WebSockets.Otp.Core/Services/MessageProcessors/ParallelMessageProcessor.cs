@@ -6,11 +6,11 @@ using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services.MessageProcessors;
 
-public class ParallelMessageProcessor(
+public sealed class ParallelMessageProcessor(
     IMessageEnumerator enumerator, IMessageDispatcher dispatcher, ISerializerResolver serializerFactory,
     IMessageReceiverResolver messageReceiverResolver) : IMessageProcessor
 {
-    public string Mode => ProcessingMode.Parallel;
+    public string ProcessingMode => Abstractions.Options.ProcessingMode.Parallel;
 
     public async Task Process(
         ConnectionContext context, IGlobalContext globalContext, WsMiddlewareOptions options,
