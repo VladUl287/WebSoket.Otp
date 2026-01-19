@@ -11,7 +11,7 @@ namespace WebSockets.Otp.Core.Services;
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
     IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
-    IMessageProcessorResolver messageProcessorResolver, IMessageEnumerator messageEnumerator,
+    IMessageProcessorResolver messageProcessorResolver, ISerializerResolver serializerResolver,
     IMessageReceiverResolver messageReceiverResolver, IAsyncObjectPoolFactory poolFactory,
     IMessageEnumeratorFactory enumeratorFactory, IMessageBufferFactory bufferFactory) : IWsRequestHandler
 {
@@ -19,11 +19,9 @@ public sealed partial class DefaultRequestHandler(
 
     public async Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options)
     {
-        var httpContext = context.GetHttpContext();
+        var httpContext = context.GetHttpContext() ?? throw new NullReferenceException();
 
-        ArgumentNullException.ThrowIfNull(httpContext);
-
-        var cancelToken = httpContext.RequestAborted;
+        var cancellationToken = httpContext.RequestAborted;
 
         if (!messageReceiverResolver.TryResolve(DefaultHandshakeProtocol, out var messageReceiver))
         {
@@ -35,9 +33,10 @@ public sealed partial class DefaultRequestHandler(
             return bufferFactory.Create(options.InitialMessageBufferSize);
         });
 
-        var messagesEnumerable = messageEnumerator.EnumerateAsync(context, messageReceiver, bufferPool, cancelToken);
+        var messageEnumerator = enumeratorFactory.Create(context, messageReceiver, bufferPool);
+        var messagesEnumerable = messageEnumerator.EnumerateAsync(cancellationToken);
 
-        var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancelToken);
+        var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancellationToken);
         if (handshakeMessage is null)
         {
             return;
@@ -48,10 +47,22 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
+        if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out messageReceiver))
+        {
+            return;
+        }
+
+        messageEnumerator = enumeratorFactory.Create(context, messageReceiver, bufferPool);
+
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
         var connection = connectionFactory.Create(duplectPipeTransport);
 
         if (!connectionManager.TryAdd(connection))
+        {
+            return;
+        }
+
+        if (!serializerResolver.TryResolve(connectionOptions.Protocol, out var serializer))
         {
             return;
         }
@@ -63,7 +74,7 @@ public sealed partial class DefaultRequestHandler(
 
             var messageProcessor = messageProcessorResolver.Resolve(options.ProcessingMode);
 
-            await messageProcessor.Process(null, null, null, null, null, default);
+            await messageProcessor.Process(messageEnumerator, globalContext, bufferPool, serializer, options, default);
         }
         finally
         {
