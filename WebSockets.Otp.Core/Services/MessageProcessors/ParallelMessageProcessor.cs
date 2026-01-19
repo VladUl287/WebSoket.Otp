@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Connections;
-using WebSockets.Otp.Abstractions.Options;
+﻿using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Transport;
@@ -33,7 +32,7 @@ public sealed class ParallelMessageProcessor(IMessageDispatcher dispatcher) : IM
             {
                 buffer.SetLength(0);
 
-                if (options.Memory.ReclaimBuffersImmediately)
+                if (options.ShrinkMessageBuffer)
                     buffer.Shrink();
 
                 await bufferPool.Return(buffer, token);
