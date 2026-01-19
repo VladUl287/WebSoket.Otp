@@ -11,7 +11,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
-    IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
+    IHandshakeService handshakeRequestParser, IExecutionContextFactory executionContextFactory,
     IMessageProcessorResolver messageProcessorResolver, ISerializerResolver serializerResolver,
     IMessageReceiverResolver messageReceiverResolver, IMessageEnumeratorFactory enumeratorFactory,
     IAsyncObjectPool<IMessageBuffer> bufferPool) : IWsRequestHandler
@@ -41,8 +41,8 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        byte[] responseBytes = [.. JsonSerializer.SerializeToUtf8Bytes(new { }), 0x1e];
-        await context.Transport.Output.WriteAsync(responseBytes);
+        await context.Transport.Output
+            .WriteAsync(handshakeRequestParser.SuccessResponseBytes, cancellationToken);
 
         if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out messageReceiver))
         {

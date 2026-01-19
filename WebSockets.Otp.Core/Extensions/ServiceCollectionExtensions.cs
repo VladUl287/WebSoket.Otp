@@ -77,7 +77,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
-        services.AddSingleton<IHandshakeParser>(
+        services.AddSingleton<IHandshakeService>(
             new HandshakeRequestParser(new System.Text.Json.JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true,
