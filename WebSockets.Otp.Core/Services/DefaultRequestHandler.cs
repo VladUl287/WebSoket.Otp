@@ -18,7 +18,8 @@ public sealed partial class DefaultRequestHandler(
 {
     public async Task HandleRequestAsync(ConnectionContext context, WsBaseOptions options)
     {
-        var httpContext = context.GetHttpContext() ?? throw new NullReferenceException();
+        var httpContext = context.GetHttpContext() ?? 
+            throw new NullReferenceException($"Fail to get HttpContext for connection {context.ConnectionId}");
 
         var cancellationToken = httpContext.RequestAborted;
 

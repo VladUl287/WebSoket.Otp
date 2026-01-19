@@ -4,5 +4,5 @@ namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageReceiverResolver
 {
-    bool TryResolve(string format, [NotNullWhen(true)] out IMessageReceiver? messageReceiver);
+    bool TryResolve(string format, [NotNullWhen(true)] out IMessageReader? messageReceiver);
 }

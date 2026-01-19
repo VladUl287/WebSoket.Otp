@@ -6,6 +6,6 @@ namespace WebSockets.Otp.Core.Services.Transport;
 
 public sealed class MessageEnumeratorFactory(WsOptions options) : IMessageEnumeratorFactory
 {
-    public IMessageEnumerator Create(ConnectionContext context, IMessageReceiver receiver) =>
+    public IMessageEnumerator Create(ConnectionContext context, IMessageReader receiver) =>
         new MessageEnumerator(context, receiver, options);
 }

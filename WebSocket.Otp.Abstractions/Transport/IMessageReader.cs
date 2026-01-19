@@ -3,7 +3,7 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Abstractions.Transport;
 
-public interface IMessageReceiver
+public interface IMessageReader
 {
     string ProtocolName { get; }
 

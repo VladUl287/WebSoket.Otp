@@ -1,0 +1,14 @@
+﻿using System.Collections.Frozen;
+using System.Diagnostics.CodeAnalysis;
+using WebSockets.Otp.Abstractions.Transport;
+
+namespace WebSockets.Otp.Core.Services.Transport;
+
+public sealed class MessageReaderResolver(IEnumerable<IMessageReader> messageReceivers) : IMessageReceiverResolver
+{
+    private readonly FrozenDictionary<string, IMessageReader> _store = messageReceivers
+        .ToFrozenDictionary(c => c.ProtocolName);
+
+    public bool TryResolve(string format, [NotNullWhen(true)] out IMessageReader? messageReceiver) =>
+        _store.TryGetValue(format, out messageReceiver);
+}

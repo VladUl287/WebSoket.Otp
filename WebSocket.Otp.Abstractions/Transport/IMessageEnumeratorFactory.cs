@@ -4,5 +4,5 @@ namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageEnumeratorFactory
 {
-    IMessageEnumerator Create(ConnectionContext context, IMessageReceiver receiver);
+    IMessageEnumerator Create(ConnectionContext context, IMessageReader receiver);
 }

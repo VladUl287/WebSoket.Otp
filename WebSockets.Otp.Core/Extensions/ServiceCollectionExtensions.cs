@@ -71,8 +71,8 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
-        services.AddSingleton<IMessageReceiverResolver, MessageReceiverResolver>();
-        services.AddSingleton<IMessageReceiver, JsonMessageReceiver>();
+        services.AddSingleton<IMessageReceiverResolver, MessageReaderResolver>();
+        services.AddSingleton<IMessageReader, JsonMessageReader>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
 
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();

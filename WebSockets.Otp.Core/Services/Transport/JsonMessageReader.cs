@@ -5,7 +5,7 @@ using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class JsonMessageReceiver : IMessageReceiver
+public sealed class JsonMessageReader : IMessageReader
 {
     private const byte RecordSeparator = 0x1e;
 
