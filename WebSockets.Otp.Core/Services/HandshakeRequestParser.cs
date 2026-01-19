@@ -7,6 +7,8 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : IHandshakeParser
 {
+    public string ProtocolName => "json";
+
     public bool TryParse(IMessageBuffer data, [NotNullWhen(true)] out WsHandshakeOptions? options)
     {
         options = null;
