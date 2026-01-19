@@ -30,9 +30,9 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        await using var bufferPool = poolFactory.Create(options.Memory.MaxBufferPoolSize, () =>
+        await using var bufferPool = poolFactory.Create(options.ProcessingMaxDegreeOfParallelilism, () =>
         {
-            return bufferFactory.Create(options.Memory.InitialBufferSize);
+            return bufferFactory.Create(options.InitialMessageBufferSize);
         });
 
         var messagesEnumerable = messageEnumerator.EnumerateAsync(context, messageReceiver, bufferPool, cancelToken);

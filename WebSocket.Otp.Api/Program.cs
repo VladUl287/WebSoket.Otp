@@ -83,7 +83,7 @@ var app = builder.Build();
         "/ws",
         (opt) =>
         {
-            opt.Processing.Mode = ProcessingMode.Parallel;
+            opt.ProcessingMode = ProcessingMode.Parallel;
 
             //opt.Authorization = new();
 
