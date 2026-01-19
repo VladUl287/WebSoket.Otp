@@ -4,7 +4,6 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Contracts;
 using Microsoft.AspNetCore.Http.Connections;
-using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -12,8 +11,7 @@ public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
     IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
     IMessageProcessorResolver messageProcessorResolver, ISerializerResolver serializerResolver,
-    IMessageReceiverResolver messageReceiverResolver, IAsyncObjectPoolFactory poolFactory,
-    IMessageEnumeratorFactory enumeratorFactory, IMessageBufferFactory bufferFactory) : IWsRequestHandler
+    IMessageReceiverResolver messageReceiverResolver, IMessageEnumeratorFactory enumeratorFactory) : IWsRequestHandler
 {
     private const string DefaultHandshakeProtocol = "json";
 
@@ -28,12 +26,7 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        await using var bufferPool = poolFactory.Create(options.ProcessingMaxDegreeOfParallelilism, () =>
-        {
-            return bufferFactory.Create(options.InitialMessageBufferSize);
-        });
-
-        var messageEnumerator = enumeratorFactory.Create(context, messageReceiver, bufferPool);
+        var messageEnumerator = enumeratorFactory.Create(context, messageReceiver);
         var messagesEnumerable = messageEnumerator.EnumerateAsync(cancellationToken);
 
         var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancellationToken);
@@ -52,7 +45,7 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        messageEnumerator = enumeratorFactory.Create(context, messageReceiver, bufferPool);
+        messageEnumerator = enumeratorFactory.Create(context, messageReceiver);
 
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
         var connection = connectionFactory.Create(duplectPipeTransport);
@@ -74,7 +67,7 @@ public sealed partial class DefaultRequestHandler(
 
             var messageProcessor = messageProcessorResolver.Resolve(options.ProcessingMode);
 
-            await messageProcessor.Process(messageEnumerator, globalContext, bufferPool, serializer, options, default);
+            await messageProcessor.Process(messageEnumerator, globalContext, serializer, options, default);
         }
         finally
         {
