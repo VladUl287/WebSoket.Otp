@@ -27,11 +27,7 @@ public static class ServiceCollectionExtensions
     {
         var options = new WsGlobalOptions();
 
-        services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>((_) =>
-        {
-            const int CAPACITY = 128;
-            return new AsyncObjectPool<IMessageBuffer>(CAPACITY, () => new NativeChunkedBuffer(CAPACITY));
-        });
+        services.AddSingleton<IAsyncObjectPoolFactory, AsyncObjectPoolFactory>();
 
         services.AddMainServices(options);
         return services.AddEndpointServices(options, assemblies);

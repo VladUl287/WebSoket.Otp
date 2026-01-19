@@ -9,7 +9,8 @@ namespace WebSockets.Otp.Core.Services.MessageProcessors;
 
 public sealed class ParallelMessageProcessor(
     IMessageEnumerator enumerator, IMessageDispatcher dispatcher, ISerializerResolver serializerFactory,
-    IMessageReceiverResolver messageReceiverResolver, IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageProcessor
+    IMessageReceiverResolver messageReceiverResolver, IAsyncObjectPoolFactory poolFactory, 
+    IMessageBufferFactory bufferFactory) : IMessageProcessor
 {
     public string ProcessingMode => Abstractions.Options.ProcessingMode.Parallel;
 
@@ -28,6 +29,11 @@ public sealed class ParallelMessageProcessor(
 
         if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out var messageReceiver))
             return;
+
+        await using var bufferPool = poolFactory.Create(options.Memory.MaxBufferPoolSize, () =>
+        {
+            return bufferFactory.Create(options.Memory.InitialBufferSize);
+        });
 
         var messages = enumerator.EnumerateAsync(messageReceiver, context, options, bufferPool, token);
         await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
