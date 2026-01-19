@@ -26,4 +26,14 @@ public sealed class MessageEnumerator : IMessageEnumerator
     {
         throw new NotImplementedException();
     }
+
+    public IAsyncEnumerable<IMessageBuffer> EnumerateAsync(IMessageBufferFactory bufferFactory, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IAsyncEnumerable<IMessageBuffer> EnumerateAsync(IAsyncObjectPool<IMessageBuffer> bufferPool, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
 }
