@@ -1,9 +1,10 @@
-﻿using WebSockets.Otp.Core.Extensions;
-using Microsoft.AspNetCore.Connections;
+﻿using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http.Connections;
+using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Abstractions.Contracts;
-using Microsoft.AspNetCore.Http.Connections;
+using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -11,23 +12,22 @@ public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
     IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
     IMessageProcessorResolver messageProcessorResolver, ISerializerResolver serializerResolver,
-    IMessageReceiverResolver messageReceiverResolver, IMessageEnumeratorFactory enumeratorFactory) : IWsRequestHandler
+    IMessageReceiverResolver messageReceiverResolver, IMessageEnumeratorFactory enumeratorFactory,
+    IAsyncObjectPool<IMessageBuffer> bufferPool) : IWsRequestHandler
 {
-    private const string DefaultHandshakeProtocol = "json";
-
-    public async Task HandleRequestAsync(ConnectionContext context, WsMiddlewareOptions options)
+    public async Task HandleRequestAsync(ConnectionContext context, WsBaseOptions options)
     {
         var httpContext = context.GetHttpContext() ?? throw new NullReferenceException();
 
         var cancellationToken = httpContext.RequestAborted;
 
-        if (!messageReceiverResolver.TryResolve(DefaultHandshakeProtocol, out var messageReceiver))
+        if (!messageReceiverResolver.TryResolve(handshakeRequestParser.ProtocolName, out var messageReceiver))
         {
             return;
         }
 
         var messageEnumerator = enumeratorFactory.Create(context, messageReceiver);
-        var messagesEnumerable = messageEnumerator.EnumerateAsync(cancellationToken);
+        var messagesEnumerable = messageEnumerator.EnumerateAsync(bufferPool, cancellationToken);
 
         var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancellationToken);
         if (handshakeMessage is null)

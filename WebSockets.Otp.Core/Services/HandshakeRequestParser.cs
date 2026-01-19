@@ -7,13 +7,13 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : IHandshakeParser
 {
-    public bool TryParse(IMessageBuffer data, [NotNullWhen(true)] out WsConnectionOptions? options)
+    public bool TryParse(IMessageBuffer data, [NotNullWhen(true)] out WsHandshakeOptions? options)
     {
         options = null;
 
         try
         {
-            options = JsonSerializer.Deserialize<WsConnectionOptions>(data.Span, jsonOptions);
+            options = JsonSerializer.Deserialize<WsHandshakeOptions>(data.Span, jsonOptions);
             return options is not null;
         }
         catch

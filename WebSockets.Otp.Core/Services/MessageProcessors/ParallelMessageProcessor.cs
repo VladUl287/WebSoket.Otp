@@ -7,24 +7,19 @@ using WebSockets.Otp.Abstractions.Utils;
 namespace WebSockets.Otp.Core.Services.MessageProcessors;
 
 public sealed class ParallelMessageProcessor(
-    IAsyncObjectPoolFactory poolFactory, IMessageBufferFactory bufferFactory, IMessageDispatcher dispatcher) : IMessageProcessor
+    IMessageDispatcher dispatcher, IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageProcessor
 {
     public string ProcessingMode => Abstractions.Options.ProcessingMode.Parallel;
 
     public async Task Process(
         IMessageEnumerator enumerator, IGlobalContext globalContext, ISerializer serializer, 
-        WsMiddlewareOptions options, CancellationToken token)
+        WsBaseOptions options, CancellationToken token)
     {
         var parallelOptions = new ParallelOptions
         {
             MaxDegreeOfParallelism = options.ProcessingMaxDegreeOfParallelilism,
             CancellationToken = token
         };
-
-        await using var bufferPool = poolFactory.Create(options.ProcessingMaxDegreeOfParallelilism, () =>
-        {
-            return bufferFactory.Create(options.InitialMessageBufferSize);
-        });
 
         var messages = enumerator.EnumerateAsync(bufferPool, token);
 

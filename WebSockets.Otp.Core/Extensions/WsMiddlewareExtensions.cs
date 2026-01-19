@@ -11,12 +11,12 @@ namespace WebSockets.Otp.Core.Extensions;
 public static class WsMiddlewareExtensions
 {
     public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder, string pattern,
-        Action<WsMiddlewareOptions> configure, Action<HttpConnectionDispatcherOptions>? configureOptions)
+        Action<WsBaseOptions> configure, Action<HttpConnectionDispatcherOptions>? configureOptions)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentNullException.ThrowIfNull(configure, nameof(configure));
 
-        var options = new WsMiddlewareOptions();
+        var options = new WsBaseOptions();
         configure(options);
 
         var httpOptions = new HttpConnectionDispatcherOptions();

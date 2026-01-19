@@ -11,5 +11,5 @@ public interface IMessageProcessor
 
     Task Process(
         IMessageEnumerator enumerator, IGlobalContext globalContext, ISerializer serializer, 
-        WsMiddlewareOptions options, CancellationToken token);
+        WsBaseOptions options, CancellationToken token);
 }

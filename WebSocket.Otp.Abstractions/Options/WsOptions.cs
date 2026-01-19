@@ -2,8 +2,12 @@
 
 namespace WebSockets.Otp.Abstractions.Options;
 
-public sealed class WsGlobalOptions
+public sealed class WsOptions : WsBaseOptions
 {
+    public int MessageMaxSize { get; set; } = 64 * 1024; // 64KB
+    public int MessageBufferCapacity { get; set; } = 4 * 1024; // 4KB
+    public int MessageBufferPoolSize { get; set; } = 1024;
+
     public WsEndpointKeyOptions KeyOptions { get; init; } = new();
 }
 

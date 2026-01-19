@@ -1,6 +1,6 @@
 ﻿namespace WebSockets.Otp.Abstractions.Options;
 
-public sealed class WsConnectionOptions
+public sealed class WsHandshakeOptions
 {
     public string Protocol { get; set; } = "json";
 

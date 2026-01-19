@@ -5,5 +5,7 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IHandshakeParser
 {
-    bool TryParse(IMessageBuffer data, [NotNullWhen(true)] out WsConnectionOptions? options);
+    string ProtocolName { get; }
+
+    bool TryParse(IMessageBuffer data, [NotNullWhen(true)] out WsHandshakeOptions? options);
 }

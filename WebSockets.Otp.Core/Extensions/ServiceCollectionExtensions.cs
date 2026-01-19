@@ -25,31 +25,36 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
-        var options = new WsGlobalOptions();
+        var options = new WsOptions();
 
-        services.AddSingleton<IAsyncObjectPoolFactory, AsyncObjectPoolFactory>();
+        services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>(
+            (_) => new AsyncObjectPool<IMessageBuffer>(
+                options.MessageBufferPoolSize,
+                () => new NativeChunkedBuffer(options.MessageBufferCapacity)
+            )
+        );
 
         services.AddMainServices(options);
         return services.AddEndpointServices(options, assemblies);
     }
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsOptions> configure, params Assembly[] assemblies)
     {
-        var options = new WsGlobalOptions();
+        var options = new WsOptions();
         configure(options);
 
         services.AddMainServices(options);
         return services.AddEndpointServices(options, assemblies);
     }
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions options, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsOptions options, params Assembly[] assemblies)
     {
         services.AddMainServices(options);
         services.AddEndpointServices(options, assemblies);
         return services;
     }
 
-    private static IServiceCollection AddMainServices(this IServiceCollection services, WsGlobalOptions options)
+    private static IServiceCollection AddMainServices(this IServiceCollection services, WsOptions options)
     {
         services.AddCoreServices();
         services.AddConnectionServices();
@@ -108,7 +113,7 @@ public static class ServiceCollectionExtensions
         return services.AddSingleton<IIdProvider, GuidIdProvider>();
     }
 
-    private static IServiceCollection AddEndpointServices(this IServiceCollection services, WsGlobalOptions options, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpointServices(this IServiceCollection services, WsOptions options, params Assembly[] assemblies)
     {
         var endpointsTypes = assemblies
             .SelectMany(assembly => assembly.GetTypes())
