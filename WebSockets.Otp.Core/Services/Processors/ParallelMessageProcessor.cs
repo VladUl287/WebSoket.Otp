@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 
-namespace WebSockets.Otp.Core.Services.MessageProcessors;
+namespace WebSockets.Otp.Core.Services.Processors;
 
 public sealed class ParallelMessageProcessor(
     IMessageDispatcher dispatcher, IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageProcessor

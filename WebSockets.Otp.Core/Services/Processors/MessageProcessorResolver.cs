@@ -1,8 +1,7 @@
 ﻿using System.Collections.Frozen;
-using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 
-namespace WebSockets.Otp.Core.Services.MessageProcessors;
+namespace WebSockets.Otp.Core.Services.Processors;
 
 public sealed class MessageProcessorResolver(IEnumerable<IMessageProcessor> processors) : IMessageProcessorResolver
 {

@@ -5,7 +5,7 @@
 //using WebSockets.Otp.Abstractions.Options;
 //using WebSockets.Otp.Core.Logging;
 
-//namespace WebSockets.Otp.Core.Services.MessageProcessors;
+//namespace WebSockets.Otp.Core.Services.Processors;
 
 //public sealed class SequentialMessageProcessor(
 //    IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory, ISerializerResolver serializerFactory,
