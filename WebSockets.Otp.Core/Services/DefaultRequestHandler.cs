@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Http.Connections;
+using System.Text.Json;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
@@ -39,6 +40,9 @@ public sealed partial class DefaultRequestHandler(
         {
             return;
         }
+
+        byte[] responseBytes = [.. JsonSerializer.SerializeToUtf8Bytes(new { }), 0x1e];
+        await context.Transport.Output.WriteAsync(responseBytes);
 
         if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out messageReceiver))
         {

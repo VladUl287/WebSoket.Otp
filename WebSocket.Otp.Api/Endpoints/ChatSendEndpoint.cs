@@ -1,6 +1,7 @@
 ﻿using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Api.Database.Models;
 using WebSockets.Otp.Api.Models;
 
 namespace WebSockets.Otp.Api.Endpoints;
@@ -14,6 +15,8 @@ public sealed class ChatSendEndpoint() :
         var token = ctx.Cancellation;
 
         var userId = ctx.Context.User.GetUserId<long>();
+
+        await ((SendManager)ctx.Send.Group(userId.ToString())).SendAsync(new { name = "test" }, token);
 
         //var userInChat = await dbContext.ChatsUsers
         //    .AnyAsync(c => c.UserId == userId && c.ChatId == request.ChatId, token);
