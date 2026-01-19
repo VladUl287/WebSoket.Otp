@@ -16,7 +16,9 @@ public sealed class ChatSendEndpoint() :
 
         var userId = ctx.Context.User.GetUserId<long>();
 
-        await ((SendManager)ctx.Send.Group(userId.ToString())).SendAsync(new { name = "test" }, token);
+        await ctx.Send
+            .Group(userId.ToString())
+            .SendAsync(new { name = "test" }, token);
 
         //var userInChat = await dbContext.ChatsUsers
         //    .AnyAsync(c => c.UserId == userId && c.ChatId == request.ChatId, token);
