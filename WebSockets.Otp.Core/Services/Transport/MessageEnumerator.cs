@@ -9,16 +9,21 @@ namespace WebSockets.Otp.Core.Services.Transport;
 public sealed class MessageEnumerator : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        IMessageReceiver messageReceiver, ConnectionContext context, IAsyncObjectPool<IMessageBuffer> bufferPool, 
+        ConnectionContext context, IMessageReceiver receiver, IAsyncObjectPool<IMessageBuffer> objectPool,
         [EnumeratorCancellation] CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
-            var messageBuffer = await bufferPool.Rent(token);
+            var messageBuffer = await objectPool.Rent(token);
 
-            await messageReceiver.Receive(context, messageBuffer, token);
+            await receiver.Receive(context, messageBuffer, token);
 
             yield return messageBuffer;
         }
+    }
+
+    public IAsyncEnumerable<IMessageBuffer> EnumerateAsync(CancellationToken token)
+    {
+        throw new NotImplementedException();
     }
 }

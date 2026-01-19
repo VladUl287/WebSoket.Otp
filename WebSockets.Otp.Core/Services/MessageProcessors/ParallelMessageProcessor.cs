@@ -7,36 +7,23 @@ using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.MessageProcessors;
 
-public sealed class ParallelMessageProcessor(
-    IMessageEnumerator enumerator, IMessageDispatcher dispatcher, ISerializerResolver serializerFactory,
-    IMessageReceiverResolver messageReceiverResolver, IAsyncObjectPoolFactory poolFactory, 
-    IMessageBufferFactory bufferFactory) : IMessageProcessor
+public sealed class ParallelMessageProcessor(IMessageDispatcher dispatcher) : IMessageProcessor
 {
     public string ProcessingMode => Abstractions.Options.ProcessingMode.Parallel;
 
-    public async Task Process(
-        ConnectionContext context, IGlobalContext globalContext, WsMiddlewareOptions options,
-        WsConnectionOptions connectionOptions, CancellationToken token)
+    public Task Process(
+        IMessageEnumerator enumerator, IGlobalContext globalContext, IAsyncObjectPool<IMessageBuffer> bufferPool,
+        ISerializer serializer, WsMiddlewareOptions options, CancellationToken token)
     {
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = options.Processing.MaxParallel,
+            MaxDegreeOfParallelism = options.ProcessingMaxDegreeOfParallelilism,
             CancellationToken = token
         };
 
-        if (!serializerFactory.TryResolve(connectionOptions.Protocol, out var serializer))
-            return;
+        var messages = enumerator.EnumerateAsync(token);
 
-        if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out var messageReceiver))
-            return;
-
-        await using var bufferPool = poolFactory.Create(options.Memory.MaxBufferPoolSize, () =>
-        {
-            return bufferFactory.Create(options.Memory.InitialBufferSize);
-        });
-
-        var messages = enumerator.EnumerateAsync(messageReceiver, context, bufferPool, token);
-        await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
+        return Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
         {
             try
             {

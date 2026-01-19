@@ -1,11 +1,10 @@
-﻿using WebSockets.Otp.Core.Logging;
-using Microsoft.Extensions.Logging;
-using WebSockets.Otp.Core.Extensions;
+﻿using WebSockets.Otp.Core.Extensions;
 using Microsoft.AspNetCore.Connections;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Contracts;
 using Microsoft.AspNetCore.Http.Connections;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -13,7 +12,8 @@ public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
     IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
     IMessageProcessorResolver messageProcessorResolver, IMessageEnumerator messageEnumerator,
-    IMessageReceiverResolver messageReceiverResolver,  ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
+    IMessageReceiverResolver messageReceiverResolver, IAsyncObjectPoolFactory poolFactory,
+    IMessageEnumeratorFactory enumeratorFactory, IMessageBufferFactory bufferFactory) : IWsRequestHandler
 {
     private const string DefaultHandshakeProtocol = "json";
 
@@ -30,7 +30,12 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        var messagesEnumerable = messageEnumerator.EnumerateAsync(messageReceiver, context, null, cancelToken);
+        await using var bufferPool = poolFactory.Create(options.Memory.MaxBufferPoolSize, () =>
+        {
+            return bufferFactory.Create(options.Memory.InitialBufferSize);
+        });
+
+        var messagesEnumerable = messageEnumerator.EnumerateAsync(context, messageReceiver, bufferPool, cancelToken);
 
         var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancelToken);
         if (handshakeMessage is null)
@@ -54,33 +59,17 @@ public sealed partial class DefaultRequestHandler(
         var globalContext = executionContextFactory.CreateGlobal(httpContext, connection.Id, connectionManager);
         try
         {
-            if (options.OnConnected is not null)
-                await SafeExecuteAsync((state) => state.options.OnConnected!(state.globalContext),
-                    (options, globalContext), "OnConnected", logger);
+            options.OnConnected?.Invoke(globalContext);
 
-            var messageProcessor = messageProcessorResolver.Resolve(options.Processing.Mode);
-            await messageProcessor.Process(
-                context, globalContext, options, connectionOptions, cancelToken);
+            var messageProcessor = messageProcessorResolver.Resolve(options.ProcessingMode);
+
+            await messageProcessor.Process(null, null, null, null, null, default);
         }
         finally
         {
             connectionManager.TryRemove(connection.Id);
 
-            if (options.OnDisconnected is not null)
-                await SafeExecuteAsync((state) => state.options.OnDisconnected!(state.globalContext),
-                    (options, globalContext), "OnDisconnected", logger);
-        }
-    }
-
-    private static async Task SafeExecuteAsync<TState>(Func<TState, Task> action, TState state, string operationName, ILogger<DefaultRequestHandler> logger)
-    {
-        try
-        {
-            await action(state);
-        }
-        catch (Exception ex)
-        {
-            logger.LogHandlerFail(operationName, ex);
+            options.OnDisconnected?.Invoke(globalContext);
         }
     }
 }

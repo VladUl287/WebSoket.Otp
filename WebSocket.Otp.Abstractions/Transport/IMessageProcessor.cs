@@ -1,6 +1,7 @@
-﻿using Microsoft.AspNetCore.Connections;
+﻿using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Abstractions.Transport;
 
@@ -9,6 +10,6 @@ public interface IMessageProcessor
     string ProcessingMode { get; }
 
     Task Process(
-        ConnectionContext context, IGlobalContext globalContext, WsMiddlewareOptions options,
-        WsConnectionOptions connectionOptions, CancellationToken token);
+        IMessageEnumerator enumerator, IGlobalContext globalContext, IAsyncObjectPool<IMessageBuffer> bufferPool,
+        ISerializer serializer, WsMiddlewareOptions options, CancellationToken token);
 }
