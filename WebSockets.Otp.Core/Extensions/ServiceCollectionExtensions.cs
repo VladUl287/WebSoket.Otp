@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
             )
         );
 
+        services.AddSingleton(options);
 
         services.AddMainServices(options);
         return services.AddEndpointServices(options, assemblies);
