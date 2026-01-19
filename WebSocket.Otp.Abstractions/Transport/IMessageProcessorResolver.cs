@@ -1,6 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Options;
-
-namespace WebSockets.Otp.Abstractions.Transport;
+﻿namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageProcessorResolver
 {

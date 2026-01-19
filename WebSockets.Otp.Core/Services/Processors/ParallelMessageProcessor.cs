@@ -1,6 +1,6 @@
-﻿using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 
@@ -12,7 +12,7 @@ public sealed class ParallelMessageProcessor(
     public string ProcessingMode => Abstractions.Options.ProcessingMode.Parallel;
 
     public async Task Process(
-        IMessageEnumerator enumerator, IGlobalContext globalContext, ISerializer serializer, 
+        IMessageEnumerator enumerator, IGlobalContext globalContext, ISerializer serializer,
         WsBaseOptions options, CancellationToken token)
     {
         var parallelOptions = new ParallelOptions

@@ -13,7 +13,6 @@ using WebSockets.Otp.Core.Pipeline;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
-using WebSockets.Otp.Core.Services.MessageProcessors;
 using WebSockets.Otp.Core.Services.Serializers;
 using WebSockets.Otp.Core.Services.Transport;
 using WebSockets.Otp.Core.Services.Validators;
