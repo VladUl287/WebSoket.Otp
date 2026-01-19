@@ -1,24 +1,21 @@
-﻿using Microsoft.AspNetCore.Connections;
-using System.Runtime.CompilerServices;
-using WebSockets.Otp.Abstractions.Contracts;
+﻿using System.Runtime.CompilerServices;
+using Microsoft.AspNetCore.Connections;
+using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class MessageEnumerator(IMessageBufferFactory bufferFactory) : IMessageEnumerator
+public sealed class MessageEnumerator : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        IMessageReceiver messageReceiver, ConnectionContext context,
-        WsMiddlewareOptions options, [EnumeratorCancellation] CancellationToken token)
+        IMessageReceiver messageReceiver, ConnectionContext context, WsMiddlewareOptions options, 
+        IAsyncObjectPool<IMessageBuffer> bufferPool, [EnumeratorCancellation] CancellationToken token)
     {
-        await using var bufferPool = new AsyncObjectPool<int, IMessageBuffer>(
-            options.Memory.MaxBufferPoolSize, bufferFactory.Create);
-
         while (!token.IsCancellationRequested)
         {
-            var messageBuffer = await bufferPool.Rent(options.Memory.InitialBufferSize, token);
+            var messageBuffer = await bufferPool.Rent(token);
 
             await messageReceiver.Receive(context, messageBuffer, token);
 

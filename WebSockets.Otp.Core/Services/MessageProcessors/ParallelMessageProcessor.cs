@@ -3,12 +3,13 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Transport;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.MessageProcessors;
 
 public sealed class ParallelMessageProcessor(
     IMessageEnumerator enumerator, IMessageDispatcher dispatcher, ISerializerResolver serializerFactory,
-    IMessageReceiverResolver messageReceiverResolver) : IMessageProcessor
+    IMessageReceiverResolver messageReceiverResolver, IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageProcessor
 {
     public string ProcessingMode => Abstractions.Options.ProcessingMode.Parallel;
 
@@ -28,8 +29,7 @@ public sealed class ParallelMessageProcessor(
         if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out var messageReceiver))
             return;
 
-        var messages = enumerator.EnumerateAsync(messageReceiver, context, options, token);
-
+        var messages = enumerator.EnumerateAsync(messageReceiver, context, options, bufferPool, token);
         await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
         {
             try
@@ -43,7 +43,7 @@ public sealed class ParallelMessageProcessor(
                 if (options.Memory.ReclaimBuffersImmediately)
                     buffer.Shrink();
 
-                //await bufferPool.Return(buffer);
+                await bufferPool.Return(buffer, token);
             }
         });
     }

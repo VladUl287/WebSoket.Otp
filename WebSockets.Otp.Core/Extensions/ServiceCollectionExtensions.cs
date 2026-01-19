@@ -8,6 +8,7 @@ using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Transport;
+using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Pipeline;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Endpoints;
@@ -20,11 +21,18 @@ using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;
 
-public static class WsServiceCollectionsExtensions
+public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
         var options = new WsGlobalOptions();
+
+        services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>((_) =>
+        {
+            const int CAPACITY = 128;
+            return new AsyncObjectPool<IMessageBuffer>(CAPACITY, () => new NativeChunkedBuffer(CAPACITY));
+        });
+
         services.AddMainServices(options);
         return services.AddEndpointServices(options, assemblies);
     }
