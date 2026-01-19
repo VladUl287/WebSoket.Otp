@@ -1,39 +1,33 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class MessageEnumerator : IMessageEnumerator
+public sealed class MessageEnumerator(ConnectionContext context, IMessageReceiver receiver, WsOptions options) : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        ConnectionContext context, IMessageReceiver receiver, IAsyncObjectPool<IMessageBuffer> objectPool,
-        [EnumeratorCancellation] CancellationToken token)
+        IMessageBufferFactory bufferFactory, [EnumeratorCancellation] CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
-            var messageBuffer = await objectPool.Rent(token);
-
-            await receiver.Receive(context, messageBuffer, token);
-
-            yield return messageBuffer;
+            var buffer = bufferFactory.Create(options.MessageBufferCapacity);
+            await receiver.Receive(context, buffer, token);
+            yield return buffer;
         }
     }
 
-    public IAsyncEnumerable<IMessageBuffer> EnumerateAsync(CancellationToken token)
+    public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
+        IAsyncObjectPool<IMessageBuffer> bufferPool, [EnumeratorCancellation] CancellationToken token)
     {
-        throw new NotImplementedException();
-    }
-
-    public IAsyncEnumerable<IMessageBuffer> EnumerateAsync(IMessageBufferFactory bufferFactory, CancellationToken token)
-    {
-        throw new NotImplementedException();
-    }
-
-    public IAsyncEnumerable<IMessageBuffer> EnumerateAsync(IAsyncObjectPool<IMessageBuffer> bufferPool, CancellationToken token)
-    {
-        throw new NotImplementedException();
+        while (!token.IsCancellationRequested)
+        {
+            var buffer = await bufferPool.Rent(token);
+            await receiver.Receive(context, buffer, token);
+            yield return buffer;
+        }
     }
 }

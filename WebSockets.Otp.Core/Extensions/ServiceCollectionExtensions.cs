@@ -36,6 +36,9 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
 
+        //Trasnport
+        services.AddSingleton<IMessageEnumeratorFactory, MessageEnumeratorFactory>();
+
         services.AddMainServices(options);
         return services.AddEndpointServices(options, assemblies);
     }
@@ -69,7 +72,6 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
         services.AddSingleton<IMessageReceiverResolver, MessageReceiverResolver>();
-        services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
         services.AddSingleton<IMessageReceiver, JsonMessageReceiver>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
 
