@@ -9,6 +9,7 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Core.Json;
 using WebSockets.Otp.Core.Pipeline;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Endpoints;
@@ -77,11 +78,12 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
-        services.AddSingleton<IHandshakeService>(
-            new HandshakeRequestParser(new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-            }));
+        var handshakeOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        handshakeOptions.Converters.Add(new ProcessProtocolJsonConverter());
+        services.AddSingleton<IHandshakeService>(new HandshakeService(handshakeOptions));
 
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();

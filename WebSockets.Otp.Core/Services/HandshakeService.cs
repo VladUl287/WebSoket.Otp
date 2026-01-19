@@ -2,14 +2,15 @@
 using System.Diagnostics.CodeAnalysis;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class HandshakeRequestParser(JsonSerializerOptions jsonOptions) : IHandshakeService
+public sealed class HandshakeService(JsonSerializerOptions jsonOptions) : IHandshakeService
 {
     private static readonly byte[] _responseBytes = [.. JsonSerializer.SerializeToUtf8Bytes(new { }), 0x1e];
 
-    public string ProtocolName => "json";
+    public string ProtocolName => ProcessProtocol.Json;
 
     public ReadOnlyMemory<byte> SuccessResponseBytes => _responseBytes;
 
