@@ -35,7 +35,7 @@ public sealed class ParallelMessageProcessor(
             return bufferFactory.Create(options.Memory.InitialBufferSize);
         });
 
-        var messages = enumerator.EnumerateAsync(messageReceiver, context, options, bufferPool, token);
+        var messages = enumerator.EnumerateAsync(messageReceiver, context, bufferPool, token);
         await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
         {
             try

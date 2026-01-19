@@ -13,7 +13,7 @@ public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
     IHandshakeParser handshakeRequestParser, IExecutionContextFactory executionContextFactory,
     IMessageProcessorResolver messageProcessorResolver, IMessageEnumerator messageEnumerator,
-    IMessageReceiverResolver messageReceiverResolver, ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
+    IMessageReceiverResolver messageReceiverResolver,  ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
     private const string DefaultHandshakeProtocol = "json";
 
@@ -30,7 +30,7 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        var messagesEnumerable = messageEnumerator.EnumerateAsync(messageReceiver, context, options, cancelToken);
+        var messagesEnumerable = messageEnumerator.EnumerateAsync(messageReceiver, context, null, cancelToken);
 
         var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancelToken);
         if (handshakeMessage is null)
