@@ -13,7 +13,7 @@ public sealed class WsConfiguration : WsBaseConfiguration
 
 public sealed class EndpointKeyOptions
 {
-    public bool InternKeys { get; set; } = false;
+    public bool UnsafeInternKeys { get; set; } = false;
     public bool IgnoreCase { get; set; } = false;
     public int MaxLength { get; set; } = 1024;
     public int MinLength { get; set; } = 1;
