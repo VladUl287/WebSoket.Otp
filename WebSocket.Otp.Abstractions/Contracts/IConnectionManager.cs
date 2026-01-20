@@ -8,15 +8,15 @@ public interface IConnectionManager
     ValueTask AddToGroupAsync(string group, string connectionId);
     ValueTask RemoveFromGroupAsync(string group, string connectionId);
 
-    ValueTask SendAsync<TData>(string connectionId, ReadOnlyMemory<byte> data, CancellationToken token) 
+    ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token)
         where TData : notnull;
 
-    ValueTask SendAsync<TData>(IEnumerable<string> connections, ReadOnlyMemory<byte> data, CancellationToken token) 
+    ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
         where TData : notnull;
 
-    ValueTask SendToGroupAsync<TData>(string group, ReadOnlyMemory<byte> data, CancellationToken token) 
+    ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token)
         where TData : notnull;
 
-    ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, ReadOnlyMemory<byte> data, CancellationToken token) 
+    ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, TData data, CancellationToken token)
         where TData : notnull;
 }

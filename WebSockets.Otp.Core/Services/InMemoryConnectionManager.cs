@@ -21,22 +21,22 @@ public sealed class InMemoryConnectionManager : IConnectionManager
         throw new NotImplementedException();
     }
 
-    public ValueTask SendAsync<TData>(string connectionId, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
+    public ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask SendAsync<TData>(IEnumerable<string> connections, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
+    public ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask SendToGroupAsync<TData>(string group, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
+    public ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
+    public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, TData data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
