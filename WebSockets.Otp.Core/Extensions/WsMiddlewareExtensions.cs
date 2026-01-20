@@ -36,7 +36,7 @@ public static class WsMiddlewareExtensions
         var conventionBuilder = builder
             .MapConnections(pattern, httpOptions, (context) =>
             {
-                var requestProcessor = context.ApplicationServices.GetRequiredService<IWsRequestHandler>();
+                var requestProcessor = context.ApplicationServices.GetRequiredService<IRequestHandler>();
                 context.Use((next) => (context) =>
                     requestProcessor.HandleRequestAsync(context, options));
             })

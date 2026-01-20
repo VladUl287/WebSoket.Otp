@@ -47,4 +47,3 @@ internal static partial class DefaultRequestHandlerLogging
     [LoggerMessage(Level = LogLevel.Information, Message = "Connection closed: {connectionId}")]
     public static partial void ConnectionClosed(this ILogger logger, string connectionId);
 }
-}

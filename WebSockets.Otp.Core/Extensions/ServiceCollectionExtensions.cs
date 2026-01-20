@@ -75,11 +75,11 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMessageReader, JsonMessageReader>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
 
-        services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
+        services.AddSingleton<IRequestHandler, DefaultRequestHandler>();
 
         services.AddSingleton<IHandshakeService, HandshakeService>();
 
-        services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
+        services.AddSingleton<IRequestHandler, DefaultRequestHandler>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
     }
 

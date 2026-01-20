@@ -11,8 +11,7 @@ namespace WebSockets.Otp.Core.Services;
 public sealed partial class DefaultRequestHandler(
     IConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
     IExecutionContextFactory executionContextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
-    IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, IConnectionTransportFactory transportFactory,
-    ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
+    IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, ILogger<DefaultRequestHandler> logger) : IRequestHandler
 {
     public async Task HandleRequestAsync(ConnectionContext context, WsBaseOptions options)
     {
@@ -47,7 +46,7 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        var transport = transportFactory.Create(context.Transport, serializer);
+        var transport = connectionFactory.CreateTransport(context.Transport, serializer);
         var connection = connectionFactory.Create(transport);
 
         if (!connectionManager.TryAdd(connection))
