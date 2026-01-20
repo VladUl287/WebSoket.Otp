@@ -15,7 +15,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         var added = _groups
             .GetOrAdd(group, [])
-            .Add(group);
+            .Add(connectionId);
         return ValueTask.FromResult(added);
     }
 
@@ -23,7 +23,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         var removed = _groups
             .GetOrAdd(group, [])
-            .Remove(group);
+            .Remove(connectionId);
         return ValueTask.FromResult(removed);
     }
 
