@@ -6,10 +6,10 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class DuplexPipeTransport(IDuplexPipe duplexPipe, ISerializer serializer) : IConnectionTransport
 {
-    public ValueTask SendAsync<TData>(TData data, CancellationToken token) where TData : notnull
+    public async ValueTask SendAsync<TData>(TData data, CancellationToken token)
+        where TData : notnull
     {
-        throw new NotImplementedException();
+        var message = serializer.Serialize(data);
+        await duplexPipe.Output.WriteAsync(message, token);
     }
-
-    public void Dispose() { }
 }
