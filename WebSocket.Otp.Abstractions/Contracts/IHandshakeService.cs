@@ -1,8 +1,9 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts;
+﻿using Microsoft.AspNetCore.Connections;
+using WebSockets.Otp.Abstractions.Options;
+
+namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IHandshakeService
 {
-    string Protocol { get; }
-
-    ReadOnlyMemory<byte> ResponseBytes { get; }
+    Task<WsHandshakeOptions?> GetOptions(ConnectionContext context, CancellationToken token);
 }

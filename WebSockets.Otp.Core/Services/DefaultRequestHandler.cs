@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Logging;
-using WebSockets.Otp.Core.Extensions;
 using Microsoft.AspNetCore.Connections;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Abstractions.Options;
@@ -12,7 +11,7 @@ namespace WebSockets.Otp.Core.Services;
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
     IExecutionContextFactory executionContextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
-    IMessageReaderStore messageReaderStore, IMessageEnumeratorFactory enumeratorFactory, IAsyncObjectPool<IMessageBuffer> bufferPool,
+    IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, IAsyncObjectPool<IMessageBuffer> bufferPool,
     ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
     public async Task HandleRequestAsync(ConnectionContext context, WsBaseOptions options)
@@ -24,48 +23,22 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        if (!messageReaderStore.TryGet(hanshakeService.Protocol, out var messageReader))
-        {
-            logger.LogError("");
-            return;
-        }
-
         var token = httpContext.RequestAborted;
 
-        var messageEnumerator = enumeratorFactory.Create(context, messageReader);
-        var messagesEnumerable = messageEnumerator.EnumerateAsync(bufferPool, token);
-
-        var handshakeBuffer = await messagesEnumerable.FirstOrDefaultAsync(token);
-        if (handshakeBuffer is null)
-        {
-            logger.LogError("");
-            return;
-        }
-
-        if (!serializerStore.TryGet(hanshakeService.Protocol, out var serializer))
-        {
-            logger.LogError("");
-            return;
-        }
-
-        var handshakeOptions = serializer.Deserialize<WsHandshakeOptions>(handshakeBuffer.Span);
+        var handshakeOptions = await hanshakeService.GetOptions(context, token);
         if (handshakeOptions is null)
         {
             logger.LogError("");
             return;
         }
 
-        await bufferPool.Return(handshakeBuffer, token);
-
-        await context.Transport.Output
-            .WriteAsync(hanshakeService.ResponseBytes, token);
-
-        if (!messageReaderStore.TryGet(handshakeOptions.Protocol, out messageReader))
+        if (!readerStore.TryGet(handshakeOptions.Protocol, out var messageReader))
         {
+            logger.LogError("");
             return;
         }
 
-        messageEnumerator = enumeratorFactory.Create(context, messageReader);
+        var messageEnumerator = enumeratorFactory.Create(context, messageReader);
 
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
         var connection = connectionFactory.Create(duplectPipeTransport);
@@ -75,7 +48,7 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        if (!serializerStore.TryGet(handshakeOptions.Protocol, out serializer))
+        if (!serializerStore.TryGet(handshakeOptions.Protocol, out var serializer))
         {
             return;
         }
