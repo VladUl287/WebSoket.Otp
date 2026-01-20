@@ -33,10 +33,13 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return _store[connectionId].Transport.SendAsync(data, token);
     }
 
-    public ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
+    public async ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
         where TData : notnull
     {
-        throw new NotImplementedException();
+        foreach (var connection in _store.Where(c => connections.Contains(c.Key)))
+        {
+            await connection.Value.Transport.SendAsync(data, token);
+        }
     }
 
     public ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token)
