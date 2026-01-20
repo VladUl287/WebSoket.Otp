@@ -1,4 +1,5 @@
-﻿using WebSockets.Otp.Abstractions.Connections;
+﻿using System.Runtime.InteropServices;
+using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Abstractions;
 
@@ -35,7 +36,7 @@ public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<
 {
     public ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token)
     {
-        return _manager.AddToGroupAsync(string.Empty, string.Empty);
+        return ValueTask.CompletedTask;
     }
 }
 
@@ -44,7 +45,7 @@ public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendM
 {
     public ValueTask SendAsync(TResponse data, CancellationToken token)
     {
-        return _manager.AddToGroupAsync(string.Empty, string.Empty);
+        return ValueTask.CompletedTask;
     }
 }
 
