@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
-public sealed class DefaultSerializerResolver : ISerializerResolver
+public sealed class DefaultSerializerResolver : ISerializerStore
 {
     private readonly FrozenDictionary<string, ISerializer> _store;
 
@@ -20,6 +20,6 @@ public sealed class DefaultSerializerResolver : ISerializerResolver
 
     public bool Contains(string format) => _store.ContainsKey(format);
 
-    public bool TryResolve(string format, [NotNullWhen(true)] out ISerializer? serializer) =>
+    public bool TryGet(string format, [NotNullWhen(true)] out ISerializer? serializer) =>
         _store.TryGetValue(format, out serializer);
 }

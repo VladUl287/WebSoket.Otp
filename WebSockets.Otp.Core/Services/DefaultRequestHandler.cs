@@ -1,56 +1,71 @@
-﻿using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Http.Connections;
-using System.Text.Json;
-using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Abstractions.Utils;
+﻿using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Core.Extensions;
+using Microsoft.AspNetCore.Connections;
+using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Abstractions.Options;
+using Microsoft.AspNetCore.Http.Connections;
+using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
-    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory,
-    IHandshakeService handshakeRequestParser, IExecutionContextFactory executionContextFactory,
-    IMessageProcessorResolver messageProcessorResolver, ISerializerResolver serializerResolver,
-    IMessageReceiverResolver messageReceiverResolver, IMessageEnumeratorFactory enumeratorFactory,
-    IAsyncObjectPool<IMessageBuffer> bufferPool) : IWsRequestHandler
+    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
+    IExecutionContextFactory executionContextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
+    IMessageReaderStore messageReaderStore, IMessageEnumeratorFactory enumeratorFactory, IAsyncObjectPool<IMessageBuffer> bufferPool,
+    ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
     public async Task HandleRequestAsync(ConnectionContext context, WsBaseOptions options)
     {
-        var httpContext = context.GetHttpContext() ?? 
-            throw new NullReferenceException($"Fail to get HttpContext for connection {context.ConnectionId}");
-
-        var cancellationToken = httpContext.RequestAborted;
-
-        if (!messageReceiverResolver.TryResolve(handshakeRequestParser.ProtocolName, out var messageReceiver))
+        var httpContext = context.GetHttpContext();
+        if (httpContext is null)
         {
+            logger.LogError("");
             return;
         }
 
-        var messageEnumerator = enumeratorFactory.Create(context, messageReceiver);
-        var messagesEnumerable = messageEnumerator.EnumerateAsync(bufferPool, cancellationToken);
-
-        var handshakeMessage = await messagesEnumerable.FirstOrDefaultAsync(cancellationToken);
-        if (handshakeMessage is null)
+        if (!messageReaderStore.TryGet(hanshakeService.Protocol, out var messageReader))
         {
+            logger.LogError("");
             return;
         }
 
-        if (!handshakeRequestParser.TryParse(handshakeMessage, out var connectionOptions))
+        var token = httpContext.RequestAborted;
+
+        var messageEnumerator = enumeratorFactory.Create(context, messageReader);
+        var messagesEnumerable = messageEnumerator.EnumerateAsync(bufferPool, token);
+
+        var handshakeBuffer = await messagesEnumerable.FirstOrDefaultAsync(token);
+        if (handshakeBuffer is null)
         {
+            logger.LogError("");
             return;
         }
+
+        if (!serializerStore.TryGet(hanshakeService.Protocol, out var serializer))
+        {
+            logger.LogError("");
+            return;
+        }
+
+        var handshakeOptions = serializer.Deserialize<WsHandshakeOptions>(handshakeBuffer.Span);
+        if (handshakeOptions is null)
+        {
+            logger.LogError("");
+            return;
+        }
+
+        await bufferPool.Return(handshakeBuffer, token);
 
         await context.Transport.Output
-            .WriteAsync(handshakeRequestParser.ResponseBytes, cancellationToken);
+            .WriteAsync(hanshakeService.ResponseBytes, token);
 
-        if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out messageReceiver))
+        if (!messageReaderStore.TryGet(handshakeOptions.Protocol, out messageReader))
         {
             return;
         }
 
-        messageEnumerator = enumeratorFactory.Create(context, messageReceiver);
+        messageEnumerator = enumeratorFactory.Create(context, messageReader);
 
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
         var connection = connectionFactory.Create(duplectPipeTransport);
@@ -60,7 +75,7 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        if (!serializerResolver.TryResolve(connectionOptions.Protocol, out var serializer))
+        if (!serializerStore.TryGet(handshakeOptions.Protocol, out serializer))
         {
             return;
         }
@@ -70,8 +85,7 @@ public sealed partial class DefaultRequestHandler(
         {
             options.OnConnected?.Invoke(globalContext);
 
-            var messageProcessor = messageProcessorResolver.Resolve(options.ProcessingMode);
-
+            var messageProcessor = processorResolver.Get(options.ProcessingMode);
             await messageProcessor.Process(messageEnumerator, globalContext, serializer, options, default);
         }
         finally

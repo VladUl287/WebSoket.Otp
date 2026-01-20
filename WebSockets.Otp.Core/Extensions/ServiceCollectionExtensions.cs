@@ -71,18 +71,13 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
-        services.AddSingleton<IMessageReceiverResolver, MessageReaderResolver>();
+        services.AddSingleton<IMessageReaderStore, MessageReaderResolver>();
         services.AddSingleton<IMessageReader, JsonMessageReader>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
 
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
 
-        services.AddSingleton<IHandshakeService>(
-            new HandshakeService(new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            })
-        );
+        services.AddSingleton<IHandshakeService, HandshakeService>();
 
         services.AddSingleton<IWsRequestHandler, DefaultRequestHandler>();
         return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
@@ -102,14 +97,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPipelineFactory, PipelineFactory>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
 
-        services.AddSingleton<IMessageProcessorResolver, MessageProcessorResolver>();
+        services.AddSingleton<IMessageProcessorStore, MessageProcessorResolver>();
 
         return services;
     }
 
     private static IServiceCollection AddSerializationServices(this IServiceCollection services)
     {
-        services.AddSingleton<ISerializerResolver, DefaultSerializerResolver>();
+        services.AddSingleton<ISerializerStore, DefaultSerializerResolver>();
         return services.AddSingleton<ISerializer, JsonMessageSerializer>();
     }
 

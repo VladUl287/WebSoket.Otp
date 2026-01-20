@@ -4,11 +4,11 @@ using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class MessageReaderResolver(IEnumerable<IMessageReader> messageReceivers) : IMessageReceiverResolver
+public sealed class MessageReaderResolver(IEnumerable<IMessageReader> messageReceivers) : IMessageReaderStore
 {
     private readonly FrozenDictionary<string, IMessageReader> _store = messageReceivers
         .ToFrozenDictionary(c => c.ProtocolName);
 
-    public bool TryResolve(string protocol, [NotNullWhen(true)] out IMessageReader? messageReceiver) =>
+    public bool TryGet(string protocol, [NotNullWhen(true)] out IMessageReader? messageReceiver) =>
         _store.TryGetValue(protocol, out messageReceiver);
 }
