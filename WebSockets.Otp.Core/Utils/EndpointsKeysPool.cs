@@ -1,8 +1,8 @@
-﻿using System.Buffers;
-using System.Collections.Frozen;
+﻿using System.Text;
+using System.Buffers;
 using System.IO.Hashing;
+using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
-using System.Text;
 using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Utils;
@@ -14,7 +14,7 @@ public sealed class Entry
     public Entry? Next { get; set; }
 }
 
-public sealed class PreloadedStringPool : IStringPool
+public sealed class EndpointsKeysPool : IStringPool
 {
     private readonly FrozenDictionary<ulong, Entry> _mapEntries;
     private readonly Encoding _encoding;
@@ -24,7 +24,7 @@ public sealed class PreloadedStringPool : IStringPool
     public Encoding Encoding => _encoding;
     public bool HasCollisions => _hasCollisions;
 
-    public PreloadedStringPool(IEnumerable<string> knownStrings, Encoding encoding, bool unsafeMode = false)
+    public EndpointsKeysPool(IEnumerable<string> knownStrings, Encoding encoding, bool unsafeMode = false)
     {
         _encoding = encoding;
         _unsafeMode = unsafeMode;

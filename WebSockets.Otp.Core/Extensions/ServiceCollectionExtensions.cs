@@ -106,7 +106,7 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddSerializationServices(this IServiceCollection services)
     {
-        services.AddSingleton<ISerializerStore, DefaultSerializerResolver>();
+        services.AddSingleton<ISerializerStore, DefaultSerializerStore>();
         return services.AddSingleton<ISerializer, JsonMessageSerializer>();
     }
 
@@ -121,27 +121,29 @@ public static class ServiceCollectionExtensions
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
 
-        var comparer = options.Key.IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-        var endpointsKeys = new HashSet<string>(comparer);
+        var endpointsKeys = new HashSet<string>(options.Endpoint.Comparer);
+
         foreach (var endpointType in endpointsTypes)
         {
             var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
                 throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
 
-            var key = attribute.Validate(options.Key).Key;
-            if (!endpointsKeys.Add(attribute.Key))
-                throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {key} in type {endpointType.Name}");
+            var endpointKey = attribute.Validate(options.Endpoint).Key;
 
+            if (!endpointsKeys.Add(endpointKey))
+                throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {endpointKey} in type {endpointType.Name}");
+
+            var serviceType = typeof(IWsEndpoint);
             _ = attribute.Scope switch
             {
-                ServiceLifetime.Singleton => services.AddKeyedSingleton(serviceType: typeof(IWsEndpoint), key, implementationType: endpointType),
-                ServiceLifetime.Transient => services.AddKeyedSingleton(serviceType: typeof(IWsEndpoint), key, implementationType: endpointType),
-                _ => services.AddKeyedScoped(serviceType: typeof(IWsEndpoint), key, implementationType: endpointType)
+                ServiceLifetime.Singleton => services.AddKeyedSingleton(serviceType, endpointKey, endpointType),
+                ServiceLifetime.Scoped => services.AddKeyedScoped(serviceType, endpointKey, endpointType),
+                _ => services.AddKeyedTransient(serviceType, endpointKey, endpointType),
             };
         }
 
         services.AddSingleton<IStringPool>(
-            new PreloadedStringPool(endpointsKeys, Encoding.UTF8, options.Key.UnsafeInternKeys));
+            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, options.Endpoint.UnsafeInternKeys));
 
         return services;
     }

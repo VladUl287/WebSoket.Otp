@@ -6,37 +6,37 @@ namespace WebSockets.Otp.Core.Services.Serializers;
 
 public sealed class JsonMessageSerializer : ISerializer
 {
-    private static readonly JsonSerializerOptions _default = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-    };
+    private readonly JsonSerializerOptions _options;
 
-    public string Format => "json";
+    public JsonMessageSerializer()
+    {
+        _options = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
+    }
+
+    public JsonMessageSerializer(JsonSerializerOptions options) => _options = options;
+
+    public string ProtocolName => "json";
 
     public ReadOnlyMemory<byte> Serialize<T>(T message)
     {
         ArgumentNullException.ThrowIfNull(message, nameof(message));
-
-        return JsonSerializer.SerializeToUtf8Bytes(message, _default);
+        return JsonSerializer.SerializeToUtf8Bytes(message, _options);
     }
 
-    public object? Deserialize(Type type, ReadOnlySpan<byte> jsonUtf8)
+    public object? Deserialize(Type type, ReadOnlySpan<byte> data) =>
+        JsonSerializer.Deserialize(data, type, _options);
+
+    public T? Deserialize<T>(ReadOnlySpan<byte> data) =>
+        JsonSerializer.Deserialize<T>(data, _options);
+
+    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data)
     {
-        ArgumentNullException.ThrowIfNull(type, nameof(type));
-
-        if (jsonUtf8.IsEmpty)
-            return null;
-
-        return JsonSerializer.Deserialize(jsonUtf8, type, _default);
-    }
-
-    public T? Deserialize<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, _default);
-
-    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8)
-    {
-        var reader = new Utf8JsonReader(jsonUtf8);
+        var reader = new Utf8JsonReader(data);
 
         while (reader.Read())
         {

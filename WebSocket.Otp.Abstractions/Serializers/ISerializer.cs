@@ -4,7 +4,7 @@ namespace WebSockets.Otp.Abstractions.Serializers;
 
 public interface ISerializer
 {
-    string Format { get; }
+    string ProtocolName { get; }
 
     ReadOnlyMemory<byte> Serialize<T>(T message);
 

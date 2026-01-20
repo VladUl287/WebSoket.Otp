@@ -8,13 +8,13 @@ public sealed class WsConfiguration : WsBaseConfiguration
     public int MessageBufferCapacity { get; set; } = 4 * 1024; // 4KB
     public int MessageBufferPoolSize { get; set; } = 1024;
 
-    public EndpointKeyOptions Key { get; init; } = new();
+    public EndpointKeyOptions Endpoint { get; init; } = new();
 }
 
 public sealed class EndpointKeyOptions
 {
     public bool UnsafeInternKeys { get; set; } = false;
-    public bool IgnoreCase { get; set; } = false;
+    public StringComparer Comparer { get; set; } = StringComparer.OrdinalIgnoreCase;
     public int MaxLength { get; set; } = 1024;
     public int MinLength { get; set; } = 1;
     public Regex? Pattern { get; set; }
