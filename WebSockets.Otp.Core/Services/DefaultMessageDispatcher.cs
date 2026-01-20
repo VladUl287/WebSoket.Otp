@@ -11,7 +11,7 @@ using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
-public class MessageDispatcher(
+public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IContextFactory contextFactory,
     IPipelineFactory pipelineFactory, IStringPool stringPool) : IMessageDispatcher
 {

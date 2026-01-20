@@ -24,12 +24,12 @@ public sealed class EndpointsKeysPool : IStringPool
     public Encoding Encoding => _encoding;
     public bool HasCollisions => _hasCollisions;
 
-    public EndpointsKeysPool(IEnumerable<string> knownStrings, Encoding encoding, bool unsafeMode = false)
+    public EndpointsKeysPool(IEnumerable<string> keys, Encoding encoding, bool unsafeMode = false)
     {
         _encoding = encoding;
         _unsafeMode = unsafeMode;
 
-        var uniqueStrings = new HashSet<string>(knownStrings);
+        var uniqueStrings = new HashSet<string>(keys);
         var entries = new Dictionary<ulong, Entry>(uniqueStrings.Count);
         var hasCollisions = false;
 

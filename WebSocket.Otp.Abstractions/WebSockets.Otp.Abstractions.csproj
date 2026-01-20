@@ -13,8 +13,4 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.10" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Pipeline\Steps\" />
-  </ItemGroup>
-
 </Project>

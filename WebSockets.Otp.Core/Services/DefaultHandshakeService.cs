@@ -11,10 +11,10 @@ using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class HandshakeService(
+public sealed class DefaultHandshakeService(
     IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, ISerializerStore serializerStore,
     IAsyncObjectPool<IMessageBuffer> bufferPool,
-    ILogger<HandshakeService> logger) : IHandshakeService
+    ILogger<DefaultHandshakeService> logger) : IHandshakeService
 {
     private static readonly string _protocol = "json";
     private static readonly ReadOnlyMemory<byte> _responseBytes = new byte[] { 0x7B, 0x7D, MessageConstants.JsonRecordSeparator }; //{}
