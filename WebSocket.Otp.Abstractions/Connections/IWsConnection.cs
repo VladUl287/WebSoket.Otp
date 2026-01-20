@@ -2,7 +2,7 @@
 
 namespace WebSockets.Otp.Abstractions.Connections;
 
-public interface IWsConnection : IDisposable
+public interface IWsConnection
 {
     string Id { get; }
 

@@ -8,6 +8,4 @@ public sealed class WsConnection(string connectionId, IConnectionTransport trans
     public string Id => connectionId;
 
     public IConnectionTransport Transport => transport;
-
-    public void Dispose() => transport.Dispose();
 }
