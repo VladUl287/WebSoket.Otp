@@ -15,9 +15,9 @@ public sealed class HandshakeService(
     ILogger<HandshakeService> logger) : IHandshakeService
 {
     private static readonly string _protocol = "json";
-    private static readonly byte[] _responseBytes = [0x7B, 0x7D, MessageConstants.JsonRecordSeparator]; //{}
+    private static readonly ReadOnlyMemory<byte> _responseBytes = new byte[] { 0x7B, 0x7D, MessageConstants.JsonRecordSeparator }; //{}
 
-    public async Task<WsHandshakeOptions?> GetOptions(ConnectionContext context, CancellationToken token)
+    public async ValueTask<WsHandshakeOptions?> GetOptions(ConnectionContext context, CancellationToken token)
     {
         logger.LogDebug("Starting handshake process for connection: {ConnectionId}", context.ConnectionId);
 
@@ -78,7 +78,7 @@ public sealed class HandshakeService(
             if (handshakeBuffer is not null)
             {
                 await bufferPool.Return(handshakeBuffer, token);
-                logger.LogTrace("Buffer returned to pool. Finish handshake processing.");
+                logger.LogTrace("Buffer returned to pool. Finish handshake processing");
             }
         }
     }
