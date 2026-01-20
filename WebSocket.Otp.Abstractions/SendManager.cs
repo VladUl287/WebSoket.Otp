@@ -1,5 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using WebSockets.Otp.Abstractions.Connections;
+﻿using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Abstractions;
 
@@ -34,18 +33,39 @@ public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
 
 public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
 {
-    public ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token)
+    public async ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token)
+        where TResponse : notnull
     {
-        return ValueTask.CompletedTask;
+        if (_targetAll)
+        {
+            await _manager.SendAsync(data, token);
+            return;
+        }
+
+        if (_connectionIds.Count > 0)
+            await _manager.SendAsync(_connectionIds, data, token);
+
+        if (_groups.Count > 0)
+            await _manager.SendAsync(_groups, data, token);
     }
 }
 
 public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
     where TResponse : notnull
 {
-    public ValueTask SendAsync(TResponse data, CancellationToken token)
+    public async ValueTask SendAsync(TResponse data, CancellationToken token)
     {
-        return ValueTask.CompletedTask;
+        if (_targetAll)
+        {
+            await _manager.SendAsync(data, token);
+            return;
+        }
+
+        if (_connectionIds.Count > 0)
+            await _manager.SendAsync(_connectionIds, data, token);
+
+        if (_groups.Count > 0)
+            await _manager.SendAsync(_groups, data, token);
     }
 }
 

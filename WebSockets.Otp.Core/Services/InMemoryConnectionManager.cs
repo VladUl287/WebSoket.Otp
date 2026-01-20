@@ -27,6 +27,9 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(removed);
     }
 
+    public ValueTask SendAsync<TData>(TData data, CancellationToken token) where TData : notnull => 
+        SendAsync(_store.Values.Select(c => c.Id), data, token);
+
     public ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token)
         where TData : notnull
     {
