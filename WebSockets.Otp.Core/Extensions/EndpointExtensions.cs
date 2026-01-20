@@ -8,7 +8,7 @@ using WebSockets.Otp.Core.Middlewares;
 
 namespace WebSockets.Otp.Core.Extensions;
 
-public static class WsMiddlewareExtensions
+public static class EndpointExtensions
 {
     public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder, string pattern,
         Action<WsBaseConfiguration> configure, Action<HttpConnectionDispatcherOptions>? configureOptions = null)
