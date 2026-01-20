@@ -5,7 +5,7 @@ using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
@@ -25,7 +25,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
-        var options = new WsOptions();
+        var options = new WsConfiguration();
 
         services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>(
             (_) => new AsyncObjectPool<IMessageBuffer>(
@@ -43,23 +43,23 @@ public static class ServiceCollectionExtensions
         return services.AddEndpointServices(options, assemblies);
     }
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsOptions> configure, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsConfiguration> configure, params Assembly[] assemblies)
     {
-        var options = new WsOptions();
+        var options = new WsConfiguration();
         configure(options);
 
         services.AddMainServices(options);
         return services.AddEndpointServices(options, assemblies);
     }
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsOptions options, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsConfiguration options, params Assembly[] assemblies)
     {
         services.AddMainServices(options);
         services.AddEndpointServices(options, assemblies);
         return services;
     }
 
-    private static IServiceCollection AddMainServices(this IServiceCollection services, WsOptions options)
+    private static IServiceCollection AddMainServices(this IServiceCollection services, WsConfiguration options)
     {
         services.AddCoreServices();
         services.AddConnectionServices();
@@ -113,20 +113,20 @@ public static class ServiceCollectionExtensions
         return services.AddSingleton<IIdProvider, GuidIdProvider>();
     }
 
-    private static IServiceCollection AddEndpointServices(this IServiceCollection services, WsOptions options, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpointServices(this IServiceCollection services, WsConfiguration options, params Assembly[] assemblies)
     {
         var endpointsTypes = assemblies
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
 
-        var comparer = options.KeyOptions.IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var comparer = options.Endpoint.IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var endpointsKeys = new HashSet<string>(comparer);
         foreach (var endpointType in endpointsTypes)
         {
             var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
                 throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
 
-            var key = attribute.Validate(options.KeyOptions).Key;
+            var key = attribute.Validate(options.Endpoint).Key;
             if (!endpointsKeys.Add(attribute.Key))
                 throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {key} in type {endpointType.Name}");
 

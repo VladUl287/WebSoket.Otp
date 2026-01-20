@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Connections;
-using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Configuration;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 

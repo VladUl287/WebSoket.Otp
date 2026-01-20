@@ -1,11 +1,11 @@
 ﻿using WebSockets.Otp.Abstractions.Attributes;
-using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Configuration;
 
 namespace WebSockets.Otp.Core.Services.Validators;
 
 public static class WsEndpointValidator
 {
-    public static WsEndpointAttribute Validate(this WsEndpointAttribute attribute, WsEndpointKeyOptions options)
+    public static WsEndpointAttribute Validate(this WsEndpointAttribute attribute, EndpointKeyOptions options)
     {
         ArgumentNullException.ThrowIfNull(attribute);
         ArgumentNullException.ThrowIfNull(options);

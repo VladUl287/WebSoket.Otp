@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class MessageEnumerator(ConnectionContext context, IMessageReader receiver, WsOptions options) : IMessageEnumerator
+public sealed class MessageEnumerator(ConnectionContext context, IMessageReader receiver, WsConfiguration options) : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
         IMessageBufferFactory bufferFactory, [EnumeratorCancellation] CancellationToken token)

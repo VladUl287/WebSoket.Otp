@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
-using WebSockets.Otp.Abstractions.Options;
+using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Hubs;
 using WebSockets.Otp.Api.Services;
@@ -83,19 +83,15 @@ var app = builder.Build();
         "/ws",
         (opt) =>
         {
-            opt.ProcessingMode = ProcessingMode.Parallel;
-
-            //opt.Authorization = new();
-
             opt.OnConnected = async (context) =>
             {
-                //var userId = context.Context.User.GetUserId<long>();
-                //await context.Groups.AddToGroupAsync(userId.ToString(), context.ConnectionId);
+                var userId = context.Context.User.GetUserId<long>();
+                await context.Groups.AddToGroupAsync(userId.ToString(), context.ConnectionId);
             };
             opt.OnDisconnected = async (context) =>
             {
-                //var userId = context.Context.User.GetUserId<long>();
-                //await context.Groups.RemoveFromGroupAsync(userId.ToString(), context.ConnectionId);
+                var userId = context.Context.User.GetUserId<long>();
+                await context.Groups.RemoveFromGroupAsync(userId.ToString(), context.ConnectionId);
             };
         },
         null);

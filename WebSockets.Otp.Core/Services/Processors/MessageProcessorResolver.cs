@@ -1,13 +1,12 @@
 ﻿using System.Collections.Frozen;
+using WebSockets.Otp.Abstractions.Enums;
 using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services.Processors;
 
 public sealed class MessageProcessorResolver(IEnumerable<IMessageProcessor> processors) : IMessageProcessorStore
 {
-    private readonly FrozenDictionary<string, IMessageProcessor> _store = processors.ToFrozenDictionary(c => c.ProcessingMode);
+    private readonly FrozenDictionary<ProcessingMode, IMessageProcessor> _store = processors.ToFrozenDictionary(c => c.Mode);
 
-    public bool CanResolve(string mode) => _store.ContainsKey(mode);
-
-    public IMessageProcessor Get(string mode) => _store[mode];
+    public IMessageProcessor Get(ProcessingMode mode) => _store[mode];
 }

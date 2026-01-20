@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Middlewares;
 
 namespace WebSockets.Otp.Core.Extensions;
@@ -11,12 +11,12 @@ namespace WebSockets.Otp.Core.Extensions;
 public static class WsMiddlewareExtensions
 {
     public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder, string pattern,
-        Action<WsBaseOptions> configure, Action<HttpConnectionDispatcherOptions>? configureOptions)
+        Action<WsBaseConfiguration> configure, Action<HttpConnectionDispatcherOptions>? configureOptions = null)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentNullException.ThrowIfNull(configure, nameof(configure));
 
-        var options = new WsBaseOptions();
+        var options = new WsBaseConfiguration();
         configure(options);
 
         var httpOptions = new HttpConnectionDispatcherOptions();

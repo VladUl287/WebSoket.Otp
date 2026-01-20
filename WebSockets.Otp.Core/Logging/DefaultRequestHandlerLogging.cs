@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using WebSockets.Otp.Abstractions.Enums;
 
 namespace WebSockets.Otp.Core.Logging;
 
@@ -33,7 +34,7 @@ internal static partial class DefaultRequestHandlerLogging
     public static partial void InvokingOnConnectedCallback(this ILogger logger, string connectionId);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Starting message processing for connection: {connectionId}, mode: {processingMode}")]
-    public static partial void MessageProcessingStarted(this ILogger logger, string connectionId, string processingMode);
+    public static partial void MessageProcessingStarted(this ILogger logger, string connectionId, ProcessingMode processingMode);
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "Message processing completed for connection: {connectionId}")]
     public static partial void MessageProcessingCompleted(this ILogger logger, string connectionId);
