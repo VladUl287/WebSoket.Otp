@@ -1,15 +1,15 @@
 ﻿using Microsoft.AspNetCore.Http;
 using WebSockets.Otp.Abstractions;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Endpoints;
 
 namespace WebSockets.Otp.Core.Models;
 
 public sealed class WsGlobalContext : IGlobalContext
 {
-    private readonly IConnectionManager _connectionManager;
+    private readonly IWsConnectionManager _connectionManager;
 
-    public WsGlobalContext(HttpContext httpContext, string connectionId, IConnectionManager manager)
+    public WsGlobalContext(HttpContext httpContext, string connectionId, IWsConnectionManager manager)
     {
         _connectionManager = manager;
 

@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 
-namespace WebSockets.Otp.Abstractions.Contracts;
+namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageBuffer : IDisposable
 {

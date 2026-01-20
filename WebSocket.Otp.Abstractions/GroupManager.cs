@@ -1,10 +1,10 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Abstractions;
 
-public sealed class GroupManager(IConnectionManager manager)
+public sealed class GroupManager(IWsConnectionManager manager)
 {
-    public IConnectionManager Manager { get; init; } = manager;
+    public IWsConnectionManager Manager { get; init; } = manager;
 
     public ValueTask AddToGroupAsync(string group, string connectionId)
     {

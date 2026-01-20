@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using System.Text;
 
-namespace WebSockets.Otp.Abstractions.Contracts;
+namespace WebSockets.Otp.Abstractions.Utils;
 
 public interface IStringPool
 {

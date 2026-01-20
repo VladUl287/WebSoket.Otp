@@ -1,9 +1,9 @@
 ﻿using System.Collections.Concurrent;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class InMemoryConnectionManager : IConnectionManager
+public sealed class InMemoryConnectionManager : IWsConnectionManager
 {
     private readonly ConcurrentDictionary<string, IWsConnection> _store = new();
 

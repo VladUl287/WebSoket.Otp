@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Serializers;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 

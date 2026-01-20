@@ -1,7 +1,7 @@
 ﻿using WebSockets.Otp.Abstractions.Configuration;
-using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Enums;
+using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Abstractions.Transport;
 

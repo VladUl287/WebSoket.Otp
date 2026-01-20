@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Connections;
+using WebSockets.Otp.Abstractions.Serializers;
+using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Abstractions.Endpoints;
 
@@ -7,7 +9,7 @@ public abstract class BaseEndpointContext : IEndpointContext
 {
     protected BaseEndpointContext(
         IGlobalContext globalContext,
-        IConnectionManager manager,
+        IWsConnectionManager manager,
         ISerializer serializer,
         IMessageBuffer payload,
         CancellationToken cancellation)
@@ -20,7 +22,7 @@ public abstract class BaseEndpointContext : IEndpointContext
         Cancellation = cancellation;
     }
 
-    protected IConnectionManager ConnectionManager { get; init; }
+    protected IWsConnectionManager ConnectionManager { get; init; }
 
     public HttpContext Context { get; init; }
     public string ConnectionId { get; init; }

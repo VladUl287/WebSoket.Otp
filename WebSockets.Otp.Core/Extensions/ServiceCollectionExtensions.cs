@@ -3,10 +3,12 @@ using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
+using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Pipeline;
+using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Pipeline;
@@ -80,12 +82,12 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHandshakeService, HandshakeService>();
 
         services.AddSingleton<IRequestHandler, DefaultRequestHandler>();
-        return services.AddSingleton<IExecutionContextFactory, ExecutionContextFactory>();
+        return services.AddSingleton<IContextFactory, ExecutionContextFactory>();
     }
 
     private static IServiceCollection AddConnectionServices(this IServiceCollection services)
     {
-        services.AddSingleton<IConnectionManager, InMemoryConnectionManager>();
+        services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
         return services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
     }
 

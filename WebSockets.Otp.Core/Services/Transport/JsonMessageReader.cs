@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Connections;
 using System.Buffers;
-using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Utils;
 

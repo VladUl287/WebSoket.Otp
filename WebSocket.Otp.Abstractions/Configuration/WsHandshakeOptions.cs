@@ -1,6 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Utils;
-
-namespace WebSockets.Otp.Abstractions.Configuration;
+﻿namespace WebSockets.Otp.Abstractions.Configuration;
 
 public sealed class WsHandshakeOptions
 {

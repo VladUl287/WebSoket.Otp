@@ -1,4 +1,5 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Serializers;
+using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Abstractions.Endpoints;
 

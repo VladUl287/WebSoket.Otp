@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace WebSockets.Otp.Abstractions.Contracts;
+namespace WebSockets.Otp.Abstractions.Serializers;
 
 public interface ISerializerStore
 {

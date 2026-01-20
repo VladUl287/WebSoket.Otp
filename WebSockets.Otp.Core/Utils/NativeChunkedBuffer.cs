@@ -1,6 +1,6 @@
 ﻿using System.Buffers;
 using System.Runtime.InteropServices;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Utils;
 

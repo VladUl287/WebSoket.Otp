@@ -1,4 +1,6 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Connections;
+using WebSockets.Otp.Abstractions.Serializers;
+using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Abstractions.Endpoints;
 
@@ -6,7 +8,7 @@ public abstract class EndpointContext : BaseEndpointContext
 {
     protected EndpointContext(
        IGlobalContext globalContext,
-       IConnectionManager manager,
+       IWsConnectionManager manager,
        ISerializer serializer,
        IMessageBuffer payload,
        CancellationToken cancellation) : base(globalContext, manager, serializer, payload, cancellation)
@@ -21,7 +23,7 @@ public abstract class EndpointContext<TResponse> : BaseEndpointContext
 {
     protected EndpointContext(
         IGlobalContext globalContext,
-        IConnectionManager manager,
+        IWsConnectionManager manager,
         ISerializer serializer,
         IMessageBuffer payload,
         CancellationToken cancellation) : base(globalContext, manager, serializer, payload, cancellation)

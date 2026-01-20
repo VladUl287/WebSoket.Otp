@@ -1,4 +1,6 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Utils;
+
+namespace WebSockets.Otp.Abstractions.Serializers;
 
 public interface ISerializer
 {

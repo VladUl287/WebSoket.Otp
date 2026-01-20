@@ -1,4 +1,4 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts;
+﻿namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageBufferFactory
 {

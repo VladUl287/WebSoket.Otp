@@ -1,5 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
-using WebSockets.Otp.Abstractions.Utils;
+﻿using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Abstractions.Transport;
 

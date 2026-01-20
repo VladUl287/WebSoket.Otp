@@ -1,6 +1,6 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 

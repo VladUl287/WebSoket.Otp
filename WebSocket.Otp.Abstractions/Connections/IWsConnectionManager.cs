@@ -1,6 +1,6 @@
-﻿namespace WebSockets.Otp.Abstractions.Contracts;
+﻿namespace WebSockets.Otp.Abstractions.Connections;
 
-public interface IConnectionManager
+public interface IWsConnectionManager
 {
     bool TryAdd(IWsConnection connection);
     bool TryRemove(string connectionId);

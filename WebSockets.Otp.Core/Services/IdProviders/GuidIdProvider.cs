@@ -1,4 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Contracts;
+﻿using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.IdProviders;
 

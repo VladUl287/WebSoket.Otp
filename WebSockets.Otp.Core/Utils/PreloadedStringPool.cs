@@ -3,7 +3,7 @@ using System.Collections.Frozen;
 using System.IO.Hashing;
 using System.Runtime.CompilerServices;
 using System.Text;
-using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Utils;
 

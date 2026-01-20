@@ -1,6 +1,6 @@
 ﻿using WebSockets.Otp.Abstractions.Transport;
 
-namespace WebSockets.Otp.Abstractions.Contracts;
+namespace WebSockets.Otp.Abstractions.Connections;
 
 public interface IWsConnection : IDisposable
 {

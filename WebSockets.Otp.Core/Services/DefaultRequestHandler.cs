@@ -2,15 +2,18 @@
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
-    IConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
-    IExecutionContextFactory executionContextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
+    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
+    IContextFactory executionContextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
     IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, ILogger<DefaultRequestHandler> logger) : IRequestHandler
 {
     public async Task HandleRequestAsync(ConnectionContext context, WsBaseConfiguration options)
