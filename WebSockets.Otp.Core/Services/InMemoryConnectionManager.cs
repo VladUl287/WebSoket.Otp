@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Core.Services;
 public sealed class InMemoryConnectionManager : IWsConnectionManager
 {
     private readonly ConcurrentDictionary<string, IWsConnection> _store = new();
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _groups = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, IWsConnection>> _groups = new();
 
     public bool TryAdd(IWsConnection connection) => _store.TryAdd(connection.Id, connection);
     public bool TryRemove(string connectionId) => _store.TryRemove(connectionId, out _);
@@ -15,7 +15,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         var added = _groups
             .GetOrAdd(group, [])
-            .TryAdd(connectionId, string.Empty);
+            .TryAdd(connectionId, _store[connectionId]);
         return ValueTask.FromResult(added);
     }
 
@@ -23,7 +23,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         var removed = _groups
             .GetOrAdd(group, [])
-            .TryAdd(connectionId, string.Empty);
+            .TryRemove(connectionId, out _);
         return ValueTask.FromResult(removed);
     }
 
@@ -42,15 +42,28 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         }
     }
 
-    public ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token)
+    public async ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token)
         where TData : notnull
     {
-        throw new NotImplementedException();
+        foreach (var connection in _groups[group].Values)
+        {
+            await connection.Transport.SendAsync(data, token);
+        }
     }
 
-    public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, TData data, CancellationToken token)
+    public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, TData data, CancellationToken token)
         where TData : notnull
     {
-        throw new NotImplementedException();
+        var groupsStores = _groups
+            .Where(group => groups.Contains(group.Key))
+            .Select(store => store.Value);
+
+        foreach (var groupStore in groupsStores)
+        {
+            foreach (var connection in groupStore.Values)
+            {
+                await connection.Transport.SendAsync(data, token);
+            }
+        }
     }
 }
