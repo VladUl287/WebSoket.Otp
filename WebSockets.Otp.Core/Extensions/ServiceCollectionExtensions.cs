@@ -119,14 +119,14 @@ public static class ServiceCollectionExtensions
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
 
-        var comparer = options.Endpoint.IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var comparer = options.Key.IgnoreCase ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
         var endpointsKeys = new HashSet<string>(comparer);
         foreach (var endpointType in endpointsTypes)
         {
             var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
                 throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
 
-            var key = attribute.Validate(options.Endpoint).Key;
+            var key = attribute.Validate(options.Key).Key;
             if (!endpointsKeys.Add(attribute.Key))
                 throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {key} in type {endpointType.Name}");
 
@@ -138,7 +138,8 @@ public static class ServiceCollectionExtensions
             };
         }
 
-        services.AddSingleton<IStringPool>(new PreloadedStringPool(endpointsKeys, Encoding.UTF8));
+        services.AddSingleton<IStringPool>(
+            new PreloadedStringPool(endpointsKeys, Encoding.UTF8, options.Key.UnsafeInternKeys));
 
         return services;
     }

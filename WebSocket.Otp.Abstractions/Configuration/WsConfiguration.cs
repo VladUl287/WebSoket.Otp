@@ -8,7 +8,7 @@ public sealed class WsConfiguration : WsBaseConfiguration
     public int MessageBufferCapacity { get; set; } = 4 * 1024; // 4KB
     public int MessageBufferPoolSize { get; set; } = 1024;
 
-    public EndpointKeyOptions Endpoint { get; init; } = new();
+    public EndpointKeyOptions Key { get; init; } = new();
 }
 
 public sealed class EndpointKeyOptions
