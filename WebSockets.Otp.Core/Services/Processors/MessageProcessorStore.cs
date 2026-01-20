@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services.Processors;
 
-public sealed class MessageProcessorResolver(IEnumerable<IMessageProcessor> processors) : IMessageProcessorStore
+public sealed class MessageProcessorStore(IEnumerable<IMessageProcessor> processors) : IMessageProcessorStore
 {
     private readonly FrozenDictionary<ProcessingMode, IMessageProcessor> _store = processors.ToFrozenDictionary(c => c.Mode);
 

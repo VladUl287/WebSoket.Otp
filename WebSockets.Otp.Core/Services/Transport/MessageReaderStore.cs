@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class MessageReaderResolver(IEnumerable<IMessageReader> messageReceivers) : IMessageReaderStore
+public sealed class MessageReaderStore(IEnumerable<IMessageReader> messageReceivers) : IMessageReaderStore
 {
     private readonly FrozenDictionary<string, IMessageReader> _store = messageReceivers
         .ToFrozenDictionary(c => c.ProtocolName);

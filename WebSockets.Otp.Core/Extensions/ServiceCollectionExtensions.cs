@@ -38,11 +38,22 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton(options);
 
-        //Trasnport
-        services.AddSingleton<IMessageEnumeratorFactory, MessageEnumeratorFactory>();
+        services.AddTransport();
 
         services.AddMainServices(options);
+
         return services.AddEndpointServices(options, assemblies);
+    }
+
+    private static IServiceCollection AddTransport(this IServiceCollection services)
+    {
+        services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
+        services.AddSingleton<IMessageEnumeratorFactory, MessageEnumeratorFactory>();
+        services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
+        services.AddSingleton<IMessageProcessorStore, MessageProcessorStore>();
+        services.AddSingleton<IMessageReader, JsonMessageReader>();
+        services.AddSingleton<IMessageReaderStore, MessageReaderStore>();
+        return services;
     }
 
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsConfiguration> configure, params Assembly[] assemblies)
@@ -73,7 +84,7 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
-        services.AddSingleton<IMessageReaderStore, MessageReaderResolver>();
+        services.AddSingleton<IMessageReaderStore, MessageReaderStore>();
         services.AddSingleton<IMessageReader, JsonMessageReader>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
 
@@ -98,8 +109,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IPipelineFactory, PipelineFactory>();
         services.AddSingleton<IMessageDispatcher, MessageDispatcher>();
-
-        services.AddSingleton<IMessageProcessorStore, MessageProcessorResolver>();
 
         return services;
     }
