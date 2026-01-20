@@ -18,10 +18,6 @@ public sealed class HandshakeService(JsonSerializerOptions jsonOptions) : IHands
     {
         options = null;
 
-        byte[] bytes = Encoding.UTF8.GetBytes("{}");
-        Console.WriteLine(BitConverter.ToString(bytes));
-        Console.WriteLine(string.Join(",", bytes));
-
         try
         {
             options = JsonSerializer.Deserialize<WsHandshakeOptions>(data.Span, jsonOptions);
