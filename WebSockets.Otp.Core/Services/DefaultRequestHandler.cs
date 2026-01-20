@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Connections;
-using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Abstractions.Options;
 using Microsoft.AspNetCore.Http.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -9,9 +8,9 @@ using WebSockets.Otp.Abstractions.Transport;
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
-    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
+    IConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
     IExecutionContextFactory executionContextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
-    IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, IAsyncObjectPool<IMessageBuffer> bufferPool,
+    IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, IConnectionTransportFactory transportFactory,
     ILogger<DefaultRequestHandler> logger) : IWsRequestHandler
 {
     public async Task HandleRequestAsync(ConnectionContext context, WsBaseOptions options)
@@ -44,10 +43,8 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        var messageEnumerator = enumeratorFactory.Create(context, messageReader);
-        var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
-        var connection = connectionFactory.Create(duplectPipeTransport);
-
+        var transport = transportFactory.Create(context.Transport, serializer);
+        var connection = connectionFactory.Create(transport);
         if (!connectionManager.TryAdd(connection))
         {
             logger.LogError("");
@@ -60,6 +57,7 @@ public sealed partial class DefaultRequestHandler(
             options.OnConnected?.Invoke(globalContext);
 
             var messageProcessor = processorResolver.Get(options.ProcessingMode);
+            var messageEnumerator = enumeratorFactory.Create(context, messageReader);
             await messageProcessor.Process(messageEnumerator, globalContext, serializer, options, default);
         }
         finally

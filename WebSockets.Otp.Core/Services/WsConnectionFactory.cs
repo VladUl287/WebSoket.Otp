@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class WsConnectionFactory(IIdProvider idProvider) : IWsConnectionFactory
 {
-    public IWsConnection Create(IWsTransport transport)
+    public IWsConnection Create(IConnectionTransport transport)
     {
         var connectionId = idProvider.Create();
         return new WsConnection(connectionId, transport);

@@ -8,7 +8,7 @@ using WebSockets.Otp.Core.Utils;
 namespace WebSockets.Otp.Core.Services;
 
 public class MessageDispatcher(
-    IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IExecutionContextFactory contextFactory,
+    IServiceScopeFactory scopeFactory, IConnectionManager connectionManager, IExecutionContextFactory contextFactory,
     IPipelineFactory pipelineFactory, IStringPool stringPool) : IMessageDispatcher
 {
     private readonly ReadOnlyMemory<byte> _endpointKeyBytes = stringPool.Encoding.GetBytes(WsMessageFields.Key).AsMemory();

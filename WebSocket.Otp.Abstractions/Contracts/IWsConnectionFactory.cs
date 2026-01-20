@@ -4,5 +4,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IWsConnectionFactory
 {
-    IWsConnection Create(IWsTransport transport);
+    IWsConnection Create(IConnectionTransport transport);
 }

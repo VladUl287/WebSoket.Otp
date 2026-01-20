@@ -7,9 +7,9 @@ namespace WebSockets.Otp.Core.Models;
 
 public sealed class WsGlobalContext : IGlobalContext
 {
-    private readonly IWsConnectionManager _connectionManager;
+    private readonly IConnectionManager _connectionManager;
 
-    public WsGlobalContext(HttpContext httpContext, string connectionId, IWsConnectionManager manager)
+    public WsGlobalContext(HttpContext httpContext, string connectionId, IConnectionManager manager)
     {
         _connectionManager = manager;
 

@@ -7,7 +7,7 @@ public sealed class WsEndpointContext : EndpointContext
 {
     public WsEndpointContext(
        IGlobalContext globalContext,
-       IWsConnectionManager manager,
+       IConnectionManager manager,
        ISerializer serializer,
        IMessageBuffer payload,
        CancellationToken cancellation)
@@ -21,7 +21,7 @@ public sealed class WsEndpointContext<TResponse> : EndpointContext<TResponse>
 {
     public WsEndpointContext(
        IGlobalContext globalContext,
-       IWsConnectionManager manager,
+       IConnectionManager manager,
        ISerializer serializer,
        IMessageBuffer payload,
        CancellationToken cancellation)

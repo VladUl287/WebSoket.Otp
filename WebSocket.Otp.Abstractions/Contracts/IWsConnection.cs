@@ -6,5 +6,5 @@ public interface IWsConnection : IDisposable
 {
     string Id { get; }
 
-    IWsTransport Transport { get; }
+    IConnectionTransport Transport { get; }
 }

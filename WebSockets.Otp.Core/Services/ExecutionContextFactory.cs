@@ -8,11 +8,11 @@ namespace WebSockets.Otp.Core.Services;
 public sealed class ExecutionContextFactory : IExecutionContextFactory
 {
     public IGlobalContext CreateGlobal(
-        HttpContext context, string connectionId, IWsConnectionManager manager) =>
+        HttpContext context, string connectionId, IConnectionManager manager) =>
         new WsGlobalContext(context, connectionId, manager);
 
     public IEndpointContext Create(
-        IGlobalContext global, IWsConnectionManager manager, IMessageBuffer payload,
+        IGlobalContext global, IConnectionManager manager, IMessageBuffer payload,
         ISerializer serializer, CancellationToken token) =>
         new WsEndpointContext(global, manager, serializer, payload, token);
 }

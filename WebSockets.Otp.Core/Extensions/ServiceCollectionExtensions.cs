@@ -85,7 +85,7 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddConnectionServices(this IServiceCollection services)
     {
-        services.AddSingleton<IWsConnectionManager, InMemoryConnectionManager>();
+        services.AddSingleton<IConnectionManager, InMemoryConnectionManager>();
         return services.AddSingleton<IWsConnectionFactory, WsConnectionFactory>();
     }
 

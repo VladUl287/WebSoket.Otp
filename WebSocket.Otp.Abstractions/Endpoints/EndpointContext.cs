@@ -6,7 +6,7 @@ public abstract class EndpointContext : BaseEndpointContext
 {
     protected EndpointContext(
        IGlobalContext globalContext,
-       IWsConnectionManager manager,
+       IConnectionManager manager,
        ISerializer serializer,
        IMessageBuffer payload,
        CancellationToken cancellation) : base(globalContext, manager, serializer, payload, cancellation)
@@ -21,7 +21,7 @@ public abstract class EndpointContext<TResponse> : BaseEndpointContext
 {
     protected EndpointContext(
         IGlobalContext globalContext,
-        IWsConnectionManager manager,
+        IConnectionManager manager,
         ISerializer serializer,
         IMessageBuffer payload,
         CancellationToken cancellation) : base(globalContext, manager, serializer, payload, cancellation)

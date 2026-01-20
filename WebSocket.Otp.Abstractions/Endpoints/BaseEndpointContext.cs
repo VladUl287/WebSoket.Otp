@@ -7,7 +7,7 @@ public abstract class BaseEndpointContext : IEndpointContext
 {
     protected BaseEndpointContext(
         IGlobalContext globalContext,
-        IWsConnectionManager manager,
+        IConnectionManager manager,
         ISerializer serializer,
         IMessageBuffer payload,
         CancellationToken cancellation)
@@ -20,7 +20,7 @@ public abstract class BaseEndpointContext : IEndpointContext
         Cancellation = cancellation;
     }
 
-    protected IWsConnectionManager ConnectionManager { get; init; }
+    protected IConnectionManager ConnectionManager { get; init; }
 
     public HttpContext Context { get; init; }
     public string ConnectionId { get; init; }

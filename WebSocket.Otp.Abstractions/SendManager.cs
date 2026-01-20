@@ -2,10 +2,10 @@
 
 namespace WebSockets.Otp.Abstractions;
 
-public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
+public abstract class SendManagerBase<TDerived>(IConnectionManager manager)
     where TDerived : SendManagerBase<TDerived>
 {
-    protected readonly IWsConnectionManager _manager = manager;
+    protected readonly IConnectionManager _manager = manager;
     protected readonly HashSet<string> _connectionIds = [];
     protected readonly HashSet<string> _groups = [];
     protected bool _targetAll = false;
@@ -31,7 +31,7 @@ public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
     }
 }
 
-public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
+public sealed class SendManager(IConnectionManager manager) : SendManagerBase<SendManager>(manager)
 {
     public ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token)
     {
@@ -39,7 +39,7 @@ public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<
     }
 }
 
-public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
+public sealed class SendManager<TResponse>(IConnectionManager manager) : SendManagerBase<SendManager>(manager)
     where TResponse : notnull
 {
     public ValueTask SendAsync(TResponse data, CancellationToken token)

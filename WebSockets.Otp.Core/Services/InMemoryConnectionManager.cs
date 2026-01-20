@@ -3,7 +3,7 @@ using WebSockets.Otp.Abstractions.Contracts;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class InMemoryConnectionManager : IWsConnectionManager
+public sealed class InMemoryConnectionManager : IConnectionManager
 {
     private readonly ConcurrentDictionary<string, IWsConnection> _store = new();
 
