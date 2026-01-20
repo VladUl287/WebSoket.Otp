@@ -9,13 +9,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.11" />
-		<PackageReference Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
-		<PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="6.0.0" />
-		<PackageReference Include="Microsoft.AspNetCore.Authorization" Version="9.0.10" />
-		<PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.10" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.10" />
 		<PackageReference Include="System.IO.Hashing" Version="9.0.10" />
-		<PackageReference Include="Ulid" Version="1.4.1" />
 	</ItemGroup>
 
 	<ItemGroup>

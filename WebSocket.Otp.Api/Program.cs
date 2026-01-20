@@ -51,8 +51,7 @@ var builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddSingleton<IStorage<long>, InMemoryUserConnectionMapStorage>();
 
-    builder.Services.AddWsEndpoints(Assembly.GetExecutingAssembly())
-        .AddUlidIdProvider();
+    builder.Services.AddWsEndpoints(Assembly.GetExecutingAssembly());
 
     builder.Services.AddOpenApi();
 }
