@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Core.Services;
 public sealed class InMemoryConnectionManager : IWsConnectionManager
 {
     private readonly ConcurrentDictionary<string, IWsConnection> _store = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>> _groups = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _groups = new();
 
     public bool TryAdd(IWsConnection connection) => _store.TryAdd(connection.Id, connection);
     public bool TryRemove(string connectionId) => _store.TryRemove(connectionId, out _);
@@ -15,7 +15,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         var added = _groups
             .GetOrAdd(group, [])
-            .Add(connectionId);
+            .TryAdd(connectionId, string.Empty);
         return ValueTask.FromResult(added);
     }
 
@@ -23,7 +23,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         var removed = _groups
             .GetOrAdd(group, [])
-            .Remove(connectionId);
+            .TryAdd(connectionId, string.Empty);
         return ValueTask.FromResult(removed);
     }
 
