@@ -43,7 +43,7 @@ public sealed partial class DefaultRequestHandler(
         }
 
         await context.Transport.Output
-            .WriteAsync(handshakeRequestParser.SuccessResponseBytes, cancellationToken);
+            .WriteAsync(handshakeRequestParser.ResponseBytes, cancellationToken);
 
         if (!messageReceiverResolver.TryResolve(connectionOptions.Protocol, out messageReceiver))
         {

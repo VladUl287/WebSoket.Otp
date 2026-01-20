@@ -7,7 +7,7 @@ public interface IHandshakeService
 {
     string ProtocolName { get; }
 
-    ReadOnlyMemory<byte> SuccessResponseBytes { get; }
+    ReadOnlyMemory<byte> ResponseBytes { get; }
 
     bool TryParse(IMessageBuffer data, [NotNullWhen(true)] out WsHandshakeOptions? options);
 }
