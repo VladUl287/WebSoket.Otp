@@ -38,18 +38,19 @@ public sealed partial class DefaultRequestHandler(
             return;
         }
 
-        var messageEnumerator = enumeratorFactory.Create(context, messageReader);
+        if (!serializerStore.TryGet(handshakeOptions.Protocol, out var serializer))
+        {
+            logger.LogError("");
+            return;
+        }
 
+        var messageEnumerator = enumeratorFactory.Create(context, messageReader);
         var duplectPipeTransport = new DuplexPipeTransport(context.Transport);
         var connection = connectionFactory.Create(duplectPipeTransport);
 
         if (!connectionManager.TryAdd(connection))
         {
-            return;
-        }
-
-        if (!serializerStore.TryGet(handshakeOptions.Protocol, out var serializer))
-        {
+            logger.LogError("");
             return;
         }
 
