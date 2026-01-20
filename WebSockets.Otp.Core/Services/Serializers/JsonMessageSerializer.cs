@@ -31,6 +31,8 @@ public sealed class JsonMessageSerializer : ISerializer
         return JsonSerializer.Deserialize(jsonUtf8, type, _default);
     }
 
+    public T? Deserialize<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, _default);
+
     public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8)
     {
         var reader = new Utf8JsonReader(jsonUtf8);

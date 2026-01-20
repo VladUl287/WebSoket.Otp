@@ -11,38 +11,32 @@ public sealed class InMemoryConnectionManager : IConnectionManager
 
     public bool TryRemove(string connectionId) => _store.TryRemove(connectionId, out _);
 
-    public IEnumerable<string> All() => _store.Keys.AsEnumerable();
-
-    public IEnumerable<string> All(string groupName) => _store.Keys.AsEnumerable();
-
-    public IWsConnection Get(string connectionId) => _store[connectionId];
-
-    public ValueTask AddToGroupAsync(string connectionId, string groupName)
+    public ValueTask AddToGroupAsync(string group, string connectionId)
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask RemoveFromGroupAsync(string connectionId, string groupName)
+    public ValueTask RemoveFromGroupAsync(string group, string connectionId)
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask SendAsync(string connectionId, ReadOnlyMemory<byte> payload, CancellationToken token)
+    public ValueTask SendAsync<TData>(string connectionId, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask SendAsync(IEnumerable<string> connectionIds, ReadOnlyMemory<byte> payload, CancellationToken token)
+    public ValueTask SendAsync<TData>(IEnumerable<string> connections, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask SendToGroupAsync(string group, ReadOnlyMemory<byte> data, CancellationToken token)
+    public ValueTask SendToGroupAsync<TData>(string group, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
 
-    public ValueTask SendToGroupAsync(IEnumerable<string> groups, ReadOnlyMemory<byte> data, CancellationToken token)
+    public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, ReadOnlyMemory<byte> data, CancellationToken token) where TData : notnull
     {
         throw new NotImplementedException();
     }
