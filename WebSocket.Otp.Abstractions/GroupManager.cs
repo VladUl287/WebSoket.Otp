@@ -2,17 +2,11 @@
 
 namespace WebSockets.Otp.Abstractions;
 
-public sealed class GroupManager(IWsConnectionManager manager)
+public readonly struct GroupManager(IWsConnectionManager manager)
 {
-    public IWsConnectionManager Manager { get; init; } = manager;
+    public readonly ValueTask AddAsync(string group, string connectionId) => 
+        manager.AddToGroupAsync(group, connectionId);
 
-    public ValueTask AddToGroupAsync(string group, string connectionId)
-    {
-        return ValueTask.CompletedTask;
-    }
-
-    public ValueTask RemoveFromGroupAsync(string group, string connectionId)
-    {
-        return ValueTask.CompletedTask;
-    }
+    public readonly ValueTask RemoveAsync(string group, string connectionId) => 
+        manager.RemoveFromGroupAsync(group, connectionId);
 }
