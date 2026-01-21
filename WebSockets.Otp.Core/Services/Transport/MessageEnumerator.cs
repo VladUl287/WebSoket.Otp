@@ -7,12 +7,14 @@ using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 
-public sealed class MessageEnumerator(WebSocket socket, WsConfiguration options) : IMessageEnumerator
+public sealed class MessageEnumerator : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        IMessageBufferFactory bufferFactory, [EnumeratorCancellation] CancellationToken token)
+         WebSocket socket, WsBaseConfiguration options, IMessageBufferFactory bufferFactory,
+         [EnumeratorCancellation] CancellationToken token)
     {
         var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
+        var tempMemory = tempBuffer.AsMemory();
 
         try
         {
@@ -20,14 +22,14 @@ public sealed class MessageEnumerator(WebSocket socket, WsConfiguration options)
 
             while (!token.IsCancellationRequested)
             {
-                var receiveResult = await socket.ReceiveAsync(tempBuffer.AsMemory(), token);
+                var receiveResult = await socket.ReceiveAsync(tempMemory, token);
 
                 if (receiveResult is { MessageType: WebSocketMessageType.Close })
                 {
                     break;
                 }
 
-                buffer.Write(tempBuffer.AsSpan()[..receiveResult.Count]);
+                buffer.Write(tempMemory.Span[..receiveResult.Count]);
 
                 if (receiveResult.EndOfMessage)
                 {
@@ -44,9 +46,11 @@ public sealed class MessageEnumerator(WebSocket socket, WsConfiguration options)
     }
 
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        IAsyncObjectPool<IMessageBuffer> bufferPool, [EnumeratorCancellation] CancellationToken token)
+         WebSocket socket, WsBaseConfiguration options, IAsyncObjectPool<IMessageBuffer> bufferPool,
+         [EnumeratorCancellation] CancellationToken token)
     {
         var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
+        var tempMemory = tempBuffer.AsMemory();
 
         try
         {
@@ -55,9 +59,14 @@ public sealed class MessageEnumerator(WebSocket socket, WsConfiguration options)
             {
                 buffer ??= await bufferPool.Rent(token);
 
-                var receiveResult = await socket.ReceiveAsync(tempBuffer.AsMemory(), token);
+                var receiveResult = await socket.ReceiveAsync(tempMemory, token);
 
-                buffer.Write(tempBuffer.AsSpan()[..receiveResult.Count]);
+                if (receiveResult is { MessageType: WebSocketMessageType.Close })
+                {
+                    break;
+                }
+
+                buffer.Write(tempMemory.Span[..receiveResult.Count]);
 
                 if (receiveResult.EndOfMessage)
                 {

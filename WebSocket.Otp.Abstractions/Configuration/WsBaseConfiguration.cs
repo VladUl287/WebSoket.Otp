@@ -12,6 +12,10 @@ public class WsBaseConfiguration
     public int MaxParallelism { get; set; } = Environment.ProcessorCount;
     public bool ShrinkBuffer { get; set; } = true;
 
+    public int MaxMessageSize { get; set; } = 64 * 1024; // 64KB
+    public int MessageBufferCapacity { get; set; } = 4 * 1024; // 4KB
+    public int MessageBufferPoolSize { get; set; } = 1024;
+
     public Func<IGlobalContext, Task>? OnConnected { get; set; }
     public Func<IGlobalContext, Task>? OnDisconnected { get; set; }
 }

@@ -10,6 +10,6 @@ public interface IMessageProcessor
     ProcessingMode Mode { get; }
 
     Task Process(
-        IMessageEnumerator enumerator, IGlobalContext globalContext, ISerializer serializer,
+        IGlobalContext globalContext, ISerializer serializer,
         WsBaseConfiguration options, CancellationToken token);
 }

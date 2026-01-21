@@ -1,19 +1,19 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
     IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
-    IMessageEnumeratorFactory enumeratorFactory, ILogger<DefaultRequestHandler> logger) : IRequestHandler
+    ILogger<DefaultRequestHandler> logger) : IRequestHandler
 {
     public async Task HandleRequestAsync(HttpContext context, WsBaseConfiguration options)
     {
@@ -23,7 +23,7 @@ public sealed partial class DefaultRequestHandler(
 
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
-        var handshakeOptions = await hanshakeService.ReceiveHandshakeOptions(socket, token);
+        var handshakeOptions = await hanshakeService.ReceiveHandshakeOptions(context, socket, token);
         if (handshakeOptions is null)
         {
             logger.HandshakeOptionsNotFound();
@@ -55,11 +55,10 @@ public sealed partial class DefaultRequestHandler(
             options.OnConnected?.Invoke(globalContext);
 
             var messageProcessor = processorResolver.Get(options.ProcessingMode);
-            var messageEnumerator = enumeratorFactory.Create(socket);
 
             logger.MessageProcessingStarted(connection.Id, options.ProcessingMode);
 
-            await messageProcessor.Process(messageEnumerator, globalContext, serializer, options, token);
+            await messageProcessor.Process(globalContext, serializer, options, token);
 
             logger.MessageProcessingCompleted(connection.Id);
         }

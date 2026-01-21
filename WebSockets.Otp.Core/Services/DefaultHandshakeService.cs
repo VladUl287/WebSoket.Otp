@@ -11,18 +11,18 @@ using WebSockets.Otp.Core.Logging;
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultHandshakeService(
-    IMessageEnumeratorFactory enumeratorFactory, ISerializerStore serializerStore,
-    IMessageBufferFactory bufferFactory, ILogger<DefaultHandshakeService> logger) : IHandshakeService
+    ISerializerStore serializerStore, IMessageBufferFactory bufferFactory,
+    IMessageEnumerator enumerator, ILogger<DefaultHandshakeService> logger) : IHandshakeService
 {
     private static readonly string _protocol = "json";
     private static readonly ReadOnlyMemory<byte> _responseBytes = "{}"u8.ToArray();
 
-    public async ValueTask<WsHandshakeOptions?> ReceiveHandshakeOptions(HttpContext context, WebSocket socket, CancellationToken token)
+    public async ValueTask<WsHandshakeOptions?> ReceiveHandshakeOptions(
+        HttpContext context, WebSocket socket, WsBaseConfiguration options, CancellationToken token)
     {
         logger.HandshakeProcessStarted(context);
-        
-        var messageEnumerator = enumeratorFactory.Create(socket);
-        var messagesEnumerable = messageEnumerator.EnumerateAsync(bufferFactory, token);
+
+        var messagesEnumerable = enumerator.EnumerateAsync(socket, options, bufferFactory, token);
 
         logger.HandshakeAwaitHandshakeMessage(context);
 

@@ -9,13 +9,13 @@ using WebSockets.Otp.Abstractions.Utils;
 namespace WebSockets.Otp.Core.Services.Processors;
 
 public sealed class ParallelMessageProcessor(
-    IMessageDispatcher dispatcher, IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageProcessor
+    IMessageDispatcher dispatcher, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageProcessor
 {
     public ProcessingMode Mode => ProcessingMode.Parallel;
 
     public async Task Process(
-        IMessageEnumerator enumerator, IGlobalContext globalContext, ISerializer serializer,
-        WsBaseConfiguration options, CancellationToken token)
+        IGlobalContext globalContext, ISerializer serializer, WsBaseConfiguration options,
+        CancellationToken token)
     {
         var parallelOptions = new ParallelOptions
         {
@@ -23,7 +23,7 @@ public sealed class ParallelMessageProcessor(
             CancellationToken = token
         };
 
-        var messages = enumerator.EnumerateAsync(bufferPool, token);
+        var messages = enumerator.EnumerateAsync(globalContext.Socket, options, bufferPool, token);
 
         await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
         {
