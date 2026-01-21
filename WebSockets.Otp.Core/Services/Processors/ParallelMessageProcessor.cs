@@ -14,7 +14,7 @@ public sealed class ParallelMessageProcessor(
     public ProcessingMode Mode => ProcessingMode.Parallel;
 
     public async Task Process(
-        IGlobalContext globalContext, ISerializer serializer, WsBaseConfiguration options,
+        IGlobalContext globalContext, ISerializer serializer, WsBaseOptions options,
         CancellationToken token)
     {
         var parallelOptions = new ParallelOptions

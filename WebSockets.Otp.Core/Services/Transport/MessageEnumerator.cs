@@ -10,7 +10,7 @@ namespace WebSockets.Otp.Core.Services.Transport;
 public sealed class MessageEnumerator : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-         WebSocket socket, WsBaseConfiguration options, IMessageBufferFactory bufferFactory,
+         WebSocket socket, WsBaseOptions options, IMessageBufferFactory bufferFactory,
          [EnumeratorCancellation] CancellationToken token)
     {
         var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
@@ -46,7 +46,7 @@ public sealed class MessageEnumerator : IMessageEnumerator
     }
 
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-         WebSocket socket, WsBaseConfiguration options, IAsyncObjectPool<IMessageBuffer> bufferPool,
+         WebSocket socket, WsBaseOptions options, IAsyncObjectPool<IMessageBuffer> bufferPool,
          [EnumeratorCancellation] CancellationToken token)
     {
         var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);

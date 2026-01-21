@@ -15,7 +15,7 @@ public sealed partial class DefaultRequestHandler(
     IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
     ILogger<DefaultRequestHandler> logger) : IRequestHandler
 {
-    public async Task HandleRequestAsync(HttpContext context, WsBaseConfiguration options)
+    public async Task HandleRequestAsync(HttpContext context, WsBaseOptions options)
     {
         logger.RequestProcessingStarted();
 
@@ -23,7 +23,7 @@ public sealed partial class DefaultRequestHandler(
 
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
-        var handshakeOptions = await hanshakeService.ReceiveHandshakeOptions(context, socket, token);
+        var handshakeOptions = await hanshakeService.ReceiveHandshakeOptions(context, socket, options, token);
         if (handshakeOptions is null)
         {
             logger.HandshakeOptionsNotFound();

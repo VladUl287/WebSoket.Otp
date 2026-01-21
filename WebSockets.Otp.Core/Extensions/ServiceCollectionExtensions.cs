@@ -25,7 +25,7 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsConfiguration configuration, params Assembly[] assemblies)
+    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsOptions configuration, params Assembly[] assemblies)
     {
         services.AddSingleton(configuration);
 
@@ -39,16 +39,16 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsConfiguration> configure, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsOptions> configure, params Assembly[] assemblies)
     {
-        var configuration = new WsConfiguration();
+        var configuration = new WsOptions();
         configure(configuration);
 
         services.AddWsEndpointsCore(configuration, assemblies);
         return services;
     }
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsConfiguration configuration, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsOptions configuration, params Assembly[] assemblies)
     {
         services.AddWsEndpointsCore(configuration, assemblies);
         return services;
@@ -56,7 +56,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
-        var options = new WsConfiguration();
+        var options = new WsOptions();
 
         services.AddWsEndpointsCore(options, assemblies);
         return services;
@@ -99,7 +99,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddUtility(this IServiceCollection services, WsConfiguration configuration)
+    private static IServiceCollection AddUtility(this IServiceCollection services, WsOptions configuration)
     {
         services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>(
             (_) => new AsyncObjectPool<IMessageBuffer>(
@@ -112,7 +112,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsConfiguration options, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsOptions options, params Assembly[] assemblies)
     {
         services.AddSingleton<IEndpointInvokerFactory, EndpointInvokerFactory>();
         services.AddSingleton<IContextFactory, ExecutionContextFactory>();

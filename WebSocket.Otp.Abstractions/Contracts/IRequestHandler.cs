@@ -5,5 +5,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IRequestHandler
 {
-    Task HandleRequestAsync(HttpContext context, WsBaseConfiguration options);
+    Task HandleRequestAsync(HttpContext context, WsBaseOptions options);
 }

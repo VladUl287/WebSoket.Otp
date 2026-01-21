@@ -12,11 +12,11 @@ public static class EndpointExtensions
 {
     //Action<HttpConnectionDispatcherOptions>? configureOptions = null
     public static WsEndpointConventionBuilder MapWsEndpoints(
-        this IEndpointRouteBuilder builder, string pattern, Action<WsBaseConfiguration> configure)
+        this IEndpointRouteBuilder builder, string pattern, Action<WsBaseOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
 
-        var options = new WsBaseConfiguration();
+        var options = new WsBaseOptions();
         configure?.Invoke(options);
 
         var conventionBuilders = new List<IEndpointConventionBuilder>();

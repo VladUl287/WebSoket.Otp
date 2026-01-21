@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Enums;
 
 namespace WebSockets.Otp.Abstractions.Configuration;
 
-public class WsBaseConfiguration
+public class WsBaseOptions
 {
     public IAuthorizeData[] AuthorizationData { get; set; } = [];
 

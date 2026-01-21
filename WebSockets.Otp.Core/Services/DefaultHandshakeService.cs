@@ -18,7 +18,7 @@ public sealed class DefaultHandshakeService(
     private static readonly ReadOnlyMemory<byte> _responseBytes = "{}"u8.ToArray();
 
     public async ValueTask<WsHandshakeOptions?> ReceiveHandshakeOptions(
-        HttpContext context, WebSocket socket, WsBaseConfiguration options, CancellationToken token)
+        HttpContext context, WebSocket socket, WsBaseOptions options, CancellationToken token)
     {
         logger.HandshakeProcessStarted(context);
 
