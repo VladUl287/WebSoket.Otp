@@ -68,8 +68,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMessageEnumeratorFactory, MessageEnumeratorFactory>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
         services.AddSingleton<IMessageProcessorStore, MessageProcessorStore>();
-        services.AddSingleton<IMessageReader, JsonMessageReader>();
-        services.AddSingleton<IMessageReaderStore, MessageReaderStore>();
         return services;
     }
 

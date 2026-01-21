@@ -22,6 +22,11 @@ public sealed class MessageEnumerator(WebSocket socket, WsConfiguration options)
             {
                 var receiveResult = await socket.ReceiveAsync(tempBuffer.AsMemory(), token);
 
+                if (receiveResult is { MessageType: WebSocketMessageType.Close })
+                {
+                    break;
+                }
+
                 buffer.Write(tempBuffer.AsSpan()[..receiveResult.Count]);
 
                 if (receiveResult.EndOfMessage)
@@ -53,7 +58,7 @@ public sealed class MessageEnumerator(WebSocket socket, WsConfiguration options)
                 var receiveResult = await socket.ReceiveAsync(tempBuffer.AsMemory(), token);
 
                 buffer.Write(tempBuffer.AsSpan()[..receiveResult.Count]);
-                
+
                 if (receiveResult.EndOfMessage)
                 {
                     var resultBuffer = buffer;
