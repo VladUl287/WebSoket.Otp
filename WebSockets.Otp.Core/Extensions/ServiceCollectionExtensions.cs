@@ -113,7 +113,8 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddEndpoints(this IServiceCollection services, WsOptions options, params Assembly[] assemblies)
     {
-        services.AddSingleton<IEndpointInvokerFactory, EndpointInvokerFactory>();
+        //services.AddSingleton<IEndpointInvokerFactory, EndpointInvokerFactory>();
+        services.AddSingleton<IEndpointInvokerFactory, GenericInvokerFactory>();
         services.AddSingleton<IContextFactory, ExecutionContextFactory>();
 
         var endpointsTypes = assemblies
