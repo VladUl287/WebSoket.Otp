@@ -1,9 +1,9 @@
 ﻿using System.Buffers;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
-using WebSockets.Otp.Abstractions.Utils;
-using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Transport;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Transport;
 

@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
-using WebSockets.Otp.Api.Hubs;
 using WebSockets.Otp.Core.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
