@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
@@ -10,8 +11,8 @@ namespace WebSockets.Otp.Core.Services;
 public sealed class ExecutionContextFactory : IContextFactory
 {
     public IGlobalContext CreateGlobal(
-        HttpContext context, string connectionId, IWsConnectionManager manager) =>
-        new WsGlobalContext(context, connectionId, manager);
+        HttpContext context, WebSocket socket, string connectionId, IWsConnectionManager manager) =>
+        new WsGlobalContext(context, socket, connectionId, manager);
 
     public IEndpointContext Create(
         IGlobalContext global, IWsConnectionManager manager, IMessageBuffer payload,

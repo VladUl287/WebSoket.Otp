@@ -1,10 +1,12 @@
-﻿using WebSockets.Otp.Abstractions.Transport;
+﻿using System.Net.WebSockets;
+using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Abstractions.Connections;
 
 public interface IWsConnection
 {
     string Id { get; }
-
-    IConnectionTransport Transport { get; }
+    WebSocket Socket { get; }
+    ISerializer Serializer { get; }
+    public ValueTask SendAsync<TData>(TData data, CancellationToken token);
 }

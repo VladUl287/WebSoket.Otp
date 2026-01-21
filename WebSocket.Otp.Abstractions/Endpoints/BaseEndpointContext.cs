@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
@@ -16,6 +17,7 @@ public abstract class BaseEndpointContext : IEndpointContext
     {
         Context = globalContext.Context;
         ConnectionId = globalContext.ConnectionId;
+        Socket = globalContext.Socket;
         ConnectionManager = manager;
         Serializer = serializer;
         Payload = payload;
@@ -25,6 +27,7 @@ public abstract class BaseEndpointContext : IEndpointContext
     protected IWsConnectionManager ConnectionManager { get; init; }
 
     public HttpContext Context { get; init; }
+    public WebSocket Socket { get; init; }
     public string ConnectionId { get; init; }
     public ISerializer Serializer { get; init; }
     public IMessageBuffer Payload { get; init; }

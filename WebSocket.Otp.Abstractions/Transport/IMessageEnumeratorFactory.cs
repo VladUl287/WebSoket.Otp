@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Connections;
+﻿using System.Net.WebSockets;
 
 namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageEnumeratorFactory
 {
-    IMessageEnumerator Create(ConnectionContext context, IMessageReader receiver);
+    IMessageEnumerator Create(WebSocket socket);
 }

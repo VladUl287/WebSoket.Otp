@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Abstractions.Configuration;
@@ -10,43 +10,38 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class EndpointExtensions
 {
-    public static WsEndpointConventionBuilder MapWsEndpoints(this IEndpointRouteBuilder builder, string pattern,
-        Action<WsBaseConfiguration> configure, Action<HttpConnectionDispatcherOptions>? configureOptions = null)
+    //Action<HttpConnectionDispatcherOptions>? configureOptions = null
+    public static WsEndpointConventionBuilder MapWsEndpoints(
+        this IEndpointRouteBuilder builder, string pattern, Action<WsBaseConfiguration> configure)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
-        ArgumentNullException.ThrowIfNull(configure, nameof(configure));
 
         var options = new WsBaseConfiguration();
-        configure(options);
+        configure?.Invoke(options);
 
-        var httpOptions = new HttpConnectionDispatcherOptions();
-        configureOptions?.Invoke(httpOptions);
+        var conventionBuilders = new List<IEndpointConventionBuilder>();
 
-        //var conventionBuilder = builder
-        //    .Map(options.RequestPath, (context) =>
-        //    {
-        //        return context.RequestServices
-        //            .GetRequiredService<IWsRequestProcessor>()
-        //            .HandleRequestAsync(context, options);
-        //    })
-        //    .DisableAntiforgery()
-        //    .RequireCors()
-        //    ;
+        var app = builder.CreateApplicationBuilder();
+        app.UseWebSockets();
+        app.Run((httpContext) =>
+        {
+            var requestProcessor = httpContext.RequestServices.GetRequiredService<IRequestHandler>();
+            return requestProcessor.HandleRequestAsync(httpContext, options);
+        });
+        var executeHandler = app.Build();
 
-        var conventionBuilder = builder
-            .MapConnections(pattern, httpOptions, (context) =>
-            {
-                var requestProcessor = context.ApplicationServices.GetRequiredService<IRequestHandler>();
-                context.Use((next) => (context) =>
-                    requestProcessor.HandleRequestAsync(context, options));
-            })
+        var executeBuilder = builder
+            .Map(pattern, executeHandler)
+            .DisableRequestTimeout()
             .DisableAntiforgery()
-            .RequireCors()
-            ;
+            .RequireCors();
 
-        if (options.Authorization is not null)
-            conventionBuilder.WithMetadata(options.Authorization);
+        executeBuilder.Add(builder =>
+        {
+            foreach (var data in options.AuthorizationData)
+                builder.Metadata.Add(data);
+        });
 
-        return new WsEndpointConventionBuilder(conventionBuilder);
+        return new WsEndpointConventionBuilder(executeBuilder);
     }
 }

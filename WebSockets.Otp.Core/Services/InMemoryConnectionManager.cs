@@ -27,13 +27,13 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(removed);
     }
 
-    public ValueTask SendAsync<TData>(TData data, CancellationToken token) where TData : notnull => 
+    public ValueTask SendAsync<TData>(TData data, CancellationToken token) where TData : notnull =>
         SendAsync(_store.Values.Select(c => c.Id), data, token);
 
     public ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token)
         where TData : notnull
     {
-        return _store[connectionId].Transport.SendAsync(data, token);
+        return _store[connectionId].SendAsync(data, token);
     }
 
     public async ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
@@ -41,7 +41,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         foreach (var connection in _store.Where(c => connections.Contains(c.Key)))
         {
-            await connection.Value.Transport.SendAsync(data, token);
+            await connection.Value.SendAsync(data, token);
         }
     }
 
@@ -50,7 +50,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         foreach (var connection in _groups[group].Values)
         {
-            await connection.Transport.SendAsync(data, token);
+            await connection.SendAsync(data, token);
         }
     }
 
@@ -65,7 +65,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         {
             foreach (var connection in groupStore.Values)
             {
-                await connection.Transport.SendAsync(data, token);
+                await connection.SendAsync(data, token);
             }
         }
     }

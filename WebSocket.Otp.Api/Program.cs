@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Reflection;
@@ -6,8 +7,6 @@ using System.Text;
 using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Hubs;
-using WebSockets.Otp.Api.Services;
-using WebSockets.Otp.Api.Services.Contracts;
 using WebSockets.Otp.Core.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,8 +19,6 @@ var builder = WebApplication.CreateBuilder(args);
     {
         op.UseNpgsql("Host=localhost;Port=5432;Database=chatdb;Username=postgres;Password=qwerty");
     });
-
-    builder.Services.AddSignalR();
 
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -47,9 +44,8 @@ var builder = WebApplication.CreateBuilder(args);
                 }
             };
         });
-    builder.Services.AddAuthorization();
 
-    builder.Services.AddSingleton<IStorage<long>, InMemoryUserConnectionMapStorage>();
+    builder.Services.AddAuthorization();
 
     builder.Services.AddWsEndpoints(Assembly.GetExecutingAssembly());
 
@@ -73,11 +69,6 @@ var app = builder.Build();
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.UseWebSockets(new()
-    {
-        KeepAliveInterval = TimeSpan.FromSeconds(10)
-    });
-
     app.MapWsEndpoints(
         "/ws",
         (opt) =>
@@ -92,12 +83,9 @@ var app = builder.Build();
                 var userId = context.Context.User.GetUserId<long>();
                 await context.Groups.RemoveAsync(userId.ToString(), context.ConnectionId);
             };
-        },
-        null);
+        });
 
     app.MapControllers();
-
-    app.MapHub<ChatHub>("/chatHub");
 
     app.Run();
 }

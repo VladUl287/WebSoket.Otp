@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Connections;
-using Microsoft.AspNetCore.Http.Connections;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Connections;
@@ -13,22 +12,18 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
-    IContextFactory executionContextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
-    IMessageReaderStore readerStore, IMessageEnumeratorFactory enumeratorFactory, ILogger<DefaultRequestHandler> logger) : IRequestHandler
+    IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
+    IMessageEnumeratorFactory enumeratorFactory, ILogger<DefaultRequestHandler> logger) : IRequestHandler
 {
-    public async Task HandleRequestAsync(ConnectionContext context, WsBaseConfiguration options)
+    public async Task HandleRequestAsync(HttpContext context, WsBaseConfiguration options)
     {
         logger.RequestProcessingStarted();
 
-        var httpContext = context.GetHttpContext();
-        if (httpContext is null)
-        {
-            logger.HttpContextNotFound();
-            return;
-        }
+        var token = context.RequestAborted;
 
-        var token = httpContext.RequestAborted;
-        var handshakeOptions = await hanshakeService.GetOptions(context, token);
+        using var socket = await context.WebSockets.AcceptWebSocketAsync();
+
+        var handshakeOptions = await hanshakeService.ReceiveHandshakeOptions(socket, token);
         if (handshakeOptions is null)
         {
             logger.HandshakeOptionsNotFound();
@@ -37,20 +32,13 @@ public sealed partial class DefaultRequestHandler(
 
         logger.HandshakeCompleted(handshakeOptions.Protocol);
 
-        if (!readerStore.TryGet(handshakeOptions.Protocol, out var messageReader))
-        {
-            logger.MessageReaderNotFound(handshakeOptions.Protocol);
-            return;
-        }
-
         if (!serializerStore.TryGet(handshakeOptions.Protocol, out var serializer))
         {
             logger.SerializerNotFound(handshakeOptions.Protocol);
             return;
         }
 
-        var transport = connectionFactory.CreateTransport(context.Transport, serializer);
-        var connection = connectionFactory.Create(transport);
+        var connection = connectionFactory.Create(socket, serializer);
 
         if (!connectionManager.TryAdd(connection))
         {
@@ -60,18 +48,18 @@ public sealed partial class DefaultRequestHandler(
 
         logger.ConnectionEstablished(connection.Id);
 
-        var globalContext = executionContextFactory.CreateGlobal(httpContext, connection.Id, connectionManager);
+        var globalContext = contextFactory.CreateGlobal(context, socket, connection.Id, connectionManager);
         try
         {
             logger.InvokingOnConnectedCallback(connection.Id);
             options.OnConnected?.Invoke(globalContext);
 
             var messageProcessor = processorResolver.Get(options.ProcessingMode);
-            var messageEnumerator = enumeratorFactory.Create(context, messageReader);
+            var messageEnumerator = enumeratorFactory.Create(socket);
 
             logger.MessageProcessingStarted(connection.Id, options.ProcessingMode);
 
-            await messageProcessor.Process(messageEnumerator, globalContext, serializer, options, default);
+            await messageProcessor.Process(messageEnumerator, globalContext, serializer, options, token);
 
             logger.MessageProcessingCompleted(connection.Id);
         }

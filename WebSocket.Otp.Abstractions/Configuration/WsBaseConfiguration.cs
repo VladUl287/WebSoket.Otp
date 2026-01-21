@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Abstractions.Configuration;
 
 public class WsBaseConfiguration
 {
-    public AuthorizeAttribute? Authorization { get; set; }
+    public IAuthorizeData[] AuthorizationData { get; set; } = [];
 
     public ProcessingMode ProcessingMode { get; set; } = ProcessingMode.Parallel;
     public int MaxParallelism { get; set; } = Environment.ProcessorCount;

@@ -1,11 +1,9 @@
-﻿using System.IO.Pipelines;
+﻿using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Serializers;
-using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Abstractions.Connections;
 
 public interface IWsConnectionFactory
 {
-    IWsConnection Create(IConnectionTransport transport);
-    IConnectionTransport CreateTransport(IDuplexPipe duplexPipe, ISerializer serializer);
+    IWsConnection Create(WebSocket socket, ISerializer serializer);
 }
