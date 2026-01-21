@@ -17,7 +17,6 @@ using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.Processors;
 using WebSockets.Otp.Core.Services.Serializers;
-using WebSockets.Otp.Core.Services.Transport;
 using WebSockets.Otp.Core.Services.Validators;
 using WebSockets.Otp.Core.Utils;
 
@@ -64,8 +63,8 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddTransport(this IServiceCollection services)
     {
+        services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
-        services.AddSingleton<IMessageEnumeratorFactory, MessageEnumeratorFactory>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
         services.AddSingleton<IMessageProcessorStore, MessageProcessorStore>();
         return services;
@@ -121,14 +120,14 @@ public static class ServiceCollectionExtensions
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
 
-        var endpointsKeys = new HashSet<string>(options.Endpoint.Comparer);
+        var endpointsKeys = new HashSet<string>(options.KeyComparer);
 
         foreach (var endpointType in endpointsTypes)
         {
             var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
                 throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
 
-            var endpointKey = attribute.Validate(options.Endpoint).Key;
+            var endpointKey = attribute.Validate(options).Key;
 
             if (!endpointsKeys.Add(endpointKey))
                 throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {endpointKey} in type {endpointType.Name}");
@@ -143,7 +142,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddSingleton<IStringPool>(
-            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, options.Endpoint.UnsafeInternKeys));
+            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, options.KeyUnsafeIntern));
 
         return services;
     }

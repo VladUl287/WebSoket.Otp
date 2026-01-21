@@ -5,7 +5,7 @@ namespace WebSockets.Otp.Core.Services.Validators;
 
 public static class WsEndpointValidator
 {
-    public static WsEndpointAttribute Validate(this WsEndpointAttribute attribute, EndpointKeyOptions options)
+    public static WsEndpointAttribute Validate(this WsEndpointAttribute attribute, WsOptions options)
     {
         ArgumentNullException.ThrowIfNull(attribute);
         ArgumentNullException.ThrowIfNull(options);
@@ -14,13 +14,13 @@ public static class WsEndpointValidator
 
         ArgumentException.ThrowIfNullOrEmpty(key, "WsEndpoint key cannot be null or empty");
 
-        if (attribute.Key.Length < options.MinLength)
-            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too short. Minimum length is {options.MinLength}");
+        if (attribute.Key.Length < options.KeyMinLength)
+            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too short. Minimum length is {options.KeyMinLength}");
 
-        if (attribute.Key.Length > options.MaxLength)
-            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too long. Maximum length is {options.MaxLength}");
+        if (attribute.Key.Length > options.KeyMaxLength)
+            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too long. Maximum length is {options.KeyMaxLength}");
 
-        if (options.Pattern is not null && !options.Pattern.IsMatch(attribute.Key))
+        if (options.KeyPattern is not null && !options.KeyPattern.IsMatch(attribute.Key))
             throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' does not match the required pattern");
 
         return attribute;

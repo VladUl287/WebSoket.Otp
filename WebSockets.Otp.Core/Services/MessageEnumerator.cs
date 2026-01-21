@@ -5,7 +5,7 @@ using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 
-namespace WebSockets.Otp.Core.Services.Transport;
+namespace WebSockets.Otp.Core.Services;
 
 public sealed class MessageEnumerator : IMessageEnumerator
 {
