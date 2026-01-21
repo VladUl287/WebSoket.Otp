@@ -6,16 +6,13 @@ using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core.Services.Endpoints;
 
-public sealed class EndpointInvoker : IEndpointInvoker
+public sealed class ReflectionEndpointInvoker(Type endpointType) : IEndpointInvoker
 {
-    private readonly Func<object, object, Task> _handler;
+    private readonly Func<object, object, Task> _handler = CreateHandleDelegate(endpointType);
 
-    public EndpointInvoker(Type endpointType) => _handler = CreateHandleDelegate(endpointType);
+    public Task Invoke(object endpoint, IEndpointContext context) => _handler(endpoint, context);
 
-    public Task Invoke(object endpoint, IEndpointContext context) =>
-        _handler(endpoint, context);
-
-    public Func<object, object, Task> CreateHandleDelegate(Type endpointType)
+    public static Func<object, object, Task> CreateHandleDelegate(Type endpointType)
     {
         var baseEndpointType = endpointType.GetBaseEndpointType()!;
 

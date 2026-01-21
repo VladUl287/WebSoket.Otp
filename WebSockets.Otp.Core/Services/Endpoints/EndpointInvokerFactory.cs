@@ -4,5 +4,5 @@ namespace WebSockets.Otp.Core.Services.Endpoints;
 
 public sealed class EndpointInvokerFactory : IEndpointInvokerFactory
 {
-    public IEndpointInvoker Create(Type endpointType) => new EndpointInvoker(endpointType);
+    public IEndpointInvoker Create(Type endpointType) => new ReflectionEndpointInvoker(endpointType);
 }
