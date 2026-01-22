@@ -8,7 +8,7 @@ using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class ExecutionContextFactory : IContextFactory
+public sealed class DefaultContextFactory : IContextFactory
 {
     public IGlobalContext CreateGlobal(
         HttpContext context, WebSocket socket, string connectionId, IWsConnectionManager manager) =>

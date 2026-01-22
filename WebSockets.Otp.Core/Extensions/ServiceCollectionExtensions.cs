@@ -115,7 +115,7 @@ public static class ServiceCollectionExtensions
     {
         //services.AddSingleton<IEndpointInvokerFactory, EndpointInvokerFactory>();
         services.AddSingleton<IEndpointInvokerFactory, GenericInvokerFactory>();
-        services.AddSingleton<IContextFactory, ExecutionContextFactory>();
+        services.AddSingleton<IContextFactory, DefaultContextFactory>();
 
         var endpointsTypes = assemblies
             .SelectMany(assembly => assembly.GetTypes())
