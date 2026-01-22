@@ -1,14 +1,11 @@
 ﻿using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Core.Services.Endpoints.Generic;
 
 namespace WebSockets.Otp.Core.Services.Endpoints;
 
-public sealed class GenericInvokerFactory : IEndpointInvokerFactory
+public sealed class DefaultInvokerFactory : IEndpointInvokerFactory
 {
-    public IEndpointInvoker Create(Type endpointType) => CreateInvokerViaReflection(endpointType);
-
-    private static IEndpointInvoker CreateInvokerViaReflection(Type endpointType)
+    public IEndpointInvoker Create(Type endpointType)
     {
         var baseType = endpointType.GetBaseEndpointType() ??
             throw new NotSupportedException($"Type {endpointType} does not inherit from WsEndpoint");

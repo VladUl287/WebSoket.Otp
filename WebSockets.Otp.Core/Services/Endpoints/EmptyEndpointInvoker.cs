@@ -2,7 +2,7 @@
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Endpoints;
 
-namespace WebSockets.Otp.Core.Services.Endpoints.Generic;
+namespace WebSockets.Otp.Core.Services.Endpoints;
 
 public sealed class EmptyEndpointInvoker : IEndpointInvoker
 {
