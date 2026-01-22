@@ -43,7 +43,7 @@ public sealed class DefaultConnectionHandler(
 
         var connection = connectionFactory.Create(socket, serializer);
 
-        if (!await connectionManager.TryAdd(connection))
+        if (!await connectionManager.TryAdd(connection, token))
         {
             logger.ConnectionAddFailed(connection.Id, traceId);
             return;
@@ -68,7 +68,7 @@ public sealed class DefaultConnectionHandler(
         finally
         {
             logger.RemovingConnection(connection.Id, traceId);
-            await connectionManager.TryRemove(connection.Id);
+            await connectionManager.TryRemove(connection.Id, token);
 
             logger.InvokingOnDisconnectedCallback(connection.Id, traceId);
             options.OnDisconnected?.Invoke(globalContext);
