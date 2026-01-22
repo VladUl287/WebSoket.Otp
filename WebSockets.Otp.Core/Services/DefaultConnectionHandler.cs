@@ -1,18 +1,18 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
+using WebSockets.Otp.Core.Utils;
 using WebSockets.Otp.Core.Logging;
+using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultConnectionHandler(
-    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
+    IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeHandler hanshakeService,
     IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
     ILogger<DefaultConnectionHandler> logger) : IConnectionHandler
 {
@@ -26,7 +26,7 @@ public sealed class DefaultConnectionHandler(
 
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
-        var handshakeOptions = await hanshakeService.ReceiveHandshakeOptions(context, socket, options, token);
+        var handshakeOptions = await hanshakeService.HandleAsync(context, socket, options, token);
         if (handshakeOptions is null)
         {
             logger.HandshakeOptionsNotFound(traceId);
@@ -43,7 +43,7 @@ public sealed class DefaultConnectionHandler(
 
         var connection = connectionFactory.Create(socket, serializer);
 
-        if (!connectionManager.TryAdd(connection))
+        if (!await connectionManager.TryAdd(connection))
         {
             logger.ConnectionAddFailed(connection.Id, traceId);
             return;
@@ -68,7 +68,7 @@ public sealed class DefaultConnectionHandler(
         finally
         {
             logger.RemovingConnection(connection.Id, traceId);
-            connectionManager.TryRemove(connection.Id);
+            await connectionManager.TryRemove(connection.Id);
 
             logger.InvokingOnDisconnectedCallback(connection.Id, traceId);
             options.OnDisconnected?.Invoke(globalContext);

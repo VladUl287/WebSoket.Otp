@@ -4,8 +4,8 @@ using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
-public interface IHandshakeService
+public interface IHandshakeHandler
 {
-    ValueTask<WsHandshakeOptions?> ReceiveHandshakeOptions(
+    ValueTask<WsHandshakeOptions?> HandleAsync(
         HttpContext context, WebSocket socket, WsOptions options, CancellationToken token);
 }

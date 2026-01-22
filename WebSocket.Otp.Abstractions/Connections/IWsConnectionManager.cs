@@ -2,11 +2,11 @@
 
 public interface IWsConnectionManager
 {
-    bool TryAdd(IWsConnection connection);
-    bool TryRemove(string connectionId);
+    ValueTask<bool> TryAdd(IWsConnection connection, CancellationToken token);
+    ValueTask<bool> TryRemove(string connectionId, CancellationToken token);
 
-    ValueTask<bool> AddToGroupAsync(string group, string connectionId);
-    ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId);
+    ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token);
+    ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token);
 
     ValueTask SendAsync<TData>(TData data, CancellationToken token)
         where TData : notnull;

@@ -8,10 +8,10 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     private readonly ConcurrentDictionary<string, IWsConnection> _store = new();
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, IWsConnection>> _groups = new();
 
-    public bool TryAdd(IWsConnection connection) => _store.TryAdd(connection.Id, connection);
-    public bool TryRemove(string connectionId) => _store.TryRemove(connectionId, out _);
+    public ValueTask<bool> TryAdd(IWsConnection connection, CancellationToken token) => new(_store.TryAdd(connection.Id, connection));
+    public ValueTask<bool> TryRemove(string connectionId, CancellationToken token) => new(_store.TryRemove(connectionId, out _));
 
-    public ValueTask<bool> AddToGroupAsync(string group, string connectionId)
+    public ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token)
     {
         var added = _groups
             .GetOrAdd(group, [])
@@ -19,7 +19,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(added);
     }
 
-    public ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId)
+    public ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token)
     {
         var removed = _groups
             .GetOrAdd(group, [])
