@@ -1,4 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Configuration;
+﻿using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Enums;
 using WebSockets.Otp.Abstractions.Serializers;
@@ -11,5 +11,5 @@ public interface IMessageProcessor
 
     Task Process(
         IGlobalContext globalContext, ISerializer serializer,
-        WsBaseOptions options, CancellationToken token);
+        WsOptions options, CancellationToken token);
 }

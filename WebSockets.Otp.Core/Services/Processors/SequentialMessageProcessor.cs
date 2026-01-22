@@ -2,7 +2,7 @@
 //using System.Buffers;
 //using System.Net.WebSockets;
 //using WebSockets.Otp.Abstractions.Contracts;
-//using WebSockets.Otp.Abstractions.Configuration;
+//using WebSockets.Otp.Abstractions.Options;
 //using WebSockets.Otp.Core.Logging;
 
 //namespace WebSockets.Otp.Core.Services.Processors;

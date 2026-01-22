@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
-using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
@@ -24,7 +24,7 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsOptions configuration, params Assembly[] assemblies)
+    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsGlobalOptions configuration, params Assembly[] assemblies)
     {
         services.AddSingleton(configuration);
 
@@ -38,16 +38,16 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsOptions> configure, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure, params Assembly[] assemblies)
     {
-        var configuration = new WsOptions();
+        var configuration = new WsGlobalOptions();
         configure(configuration);
 
         services.AddWsEndpointsCore(configuration, assemblies);
         return services;
     }
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsOptions configuration, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions configuration, params Assembly[] assemblies)
     {
         services.AddWsEndpointsCore(configuration, assemblies);
         return services;
@@ -55,7 +55,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
-        var options = new WsOptions();
+        var options = new WsGlobalOptions();
 
         services.AddWsEndpointsCore(options, assemblies);
         return services;
@@ -98,12 +98,12 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddUtility(this IServiceCollection services, WsOptions configuration)
+    private static IServiceCollection AddUtility(this IServiceCollection services, WsGlobalOptions configuration)
     {
         services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>(
             (_) => new AsyncObjectPool<IMessageBuffer>(
-                configuration.MessageBufferPoolSize,
-                () => new NativeChunkedBuffer(configuration.MessageBufferCapacity)
+                configuration.BufferPoolSize,
+                () => new NativeChunkedBuffer(configuration.ReceiveBufferSize)
             )
         );
 
@@ -111,7 +111,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsOptions options, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsGlobalOptions options, params Assembly[] assemblies)
     {
         //services.AddSingleton<IEndpointInvokerFactory, EndpointInvokerFactory>();
         services.AddSingleton<IEndpointInvokerFactory, GenericInvokerFactory>();
@@ -121,7 +121,7 @@ public static class ServiceCollectionExtensions
             .SelectMany(assembly => assembly.GetTypes())
             .Where(type => type.IsWsEndpoint());
 
-        var endpointsKeys = new HashSet<string>(options.KeyComparer);
+        var endpointsKeys = new HashSet<string>(options.Keys.Comparer);
 
         foreach (var endpointType in endpointsTypes)
         {
@@ -143,7 +143,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddSingleton<IStringPool>(
-            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, options.KeyUnsafeIntern));
+            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, options.Keys.UnsafeIntern));
 
         return services;
     }

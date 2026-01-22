@@ -2,27 +2,27 @@
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using WebSockets.Otp.Abstractions.Configuration;
 using WebSockets.Otp.Abstractions.Contracts;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Middlewares;
 
 namespace WebSockets.Otp.Core.Extensions;
 
 public static class EndpointExtensions
 {
-    //Action<HttpConnectionDispatcherOptions>? configureOptions = null
     public static WsEndpointConventionBuilder MapWsEndpoints(
-        this IEndpointRouteBuilder builder, string pattern, Action<WsBaseOptions> configure)
+        this IEndpointRouteBuilder builder, string pattern, Action<WsOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
 
-        var options = new WsBaseOptions();
+        var options = new WsOptions();
         configure?.Invoke(options);
 
-        var conventionBuilders = new List<IEndpointConventionBuilder>();
+        if (configure is null)
+            options = builder.ServiceProvider.GetRequiredService<WsGlobalOptions>();
 
         var app = builder.CreateApplicationBuilder();
-        app.UseWebSockets();
+        app.UseWebSockets(options.WebSocketOptions);
         app.Run((httpContext) =>
         {
             var requestProcessor = httpContext.RequestServices.GetRequiredService<IRequestHandler>();

@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
-using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IRequestHandler
 {
-    Task HandleRequestAsync(HttpContext context, WsBaseOptions options);
+    Task HandleRequestAsync(HttpContext context, WsOptions options);
 }

@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Core.Logging;
-using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
@@ -15,7 +15,7 @@ public sealed partial class DefaultRequestHandler(
     IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
     ILogger<DefaultRequestHandler> logger) : IRequestHandler
 {
-    public async Task HandleRequestAsync(HttpContext context, WsBaseOptions options)
+    public async Task HandleRequestAsync(HttpContext context, WsOptions options)
     {
         logger.RequestProcessingStarted();
 

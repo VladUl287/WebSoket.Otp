@@ -1,4 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Configuration;
+﻿using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Enums;
@@ -14,12 +14,12 @@ public sealed class ParallelMessageProcessor(
     public ProcessingMode Mode => ProcessingMode.Parallel;
 
     public async Task Process(
-        IGlobalContext globalContext, ISerializer serializer, WsBaseOptions options,
+        IGlobalContext globalContext, ISerializer serializer, WsOptions options,
         CancellationToken token)
     {
         var parallelOptions = new ParallelOptions
         {
-            MaxDegreeOfParallelism = options.MaxParallelism,
+            MaxDegreeOfParallelism = options.MaxDegreeOfParallelism,
             CancellationToken = token
         };
 
@@ -35,7 +35,7 @@ public sealed class ParallelMessageProcessor(
             {
                 buffer.SetLength(0);
 
-                if (options.ShrinkBuffer)
+                if (options.ShrinkBuffers)
                     buffer.Shrink();
 
                 await bufferPool.Return(buffer, token);

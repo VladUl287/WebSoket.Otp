@@ -1,4 +1,4 @@
-﻿namespace WebSockets.Otp.Abstractions.Configuration;
+﻿namespace WebSockets.Otp.Abstractions.Options;
 
 public sealed class WsHandshakeOptions
 {

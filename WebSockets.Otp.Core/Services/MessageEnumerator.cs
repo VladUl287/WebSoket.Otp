@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
-using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 
@@ -10,7 +10,7 @@ namespace WebSockets.Otp.Core.Services;
 public sealed class MessageEnumerator : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-         WebSocket socket, WsBaseOptions options, IMessageBufferFactory bufferFactory,
+         WebSocket socket, WsOptions options, IMessageBufferFactory bufferFactory,
          [EnumeratorCancellation] CancellationToken token)
     {
         var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
@@ -18,7 +18,7 @@ public sealed class MessageEnumerator : IMessageEnumerator
 
         try
         {
-            var buffer = bufferFactory.Create(options.MessageBufferCapacity);
+            var buffer = bufferFactory.Create(options.ReceiveBufferSize);
 
             while (!token.IsCancellationRequested)
             {
@@ -34,7 +34,7 @@ public sealed class MessageEnumerator : IMessageEnumerator
                 if (receiveResult.EndOfMessage)
                 {
                     var resultBuffer = buffer;
-                    buffer = bufferFactory.Create(options.MessageBufferCapacity);
+                    buffer = bufferFactory.Create(options.ReceiveBufferSize);
                     yield return resultBuffer;
                 }
             }
@@ -46,7 +46,7 @@ public sealed class MessageEnumerator : IMessageEnumerator
     }
 
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-         WebSocket socket, WsBaseOptions options, IAsyncObjectPool<IMessageBuffer> bufferPool,
+         WebSocket socket, WsOptions options, IAsyncObjectPool<IMessageBuffer> bufferPool,
          [EnumeratorCancellation] CancellationToken token)
     {
         var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);

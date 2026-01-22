@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Configuration;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
@@ -18,7 +18,7 @@ public sealed class DefaultHandshakeService(
     private static readonly ReadOnlyMemory<byte> _responseBytes = "{}"u8.ToArray();
 
     public async ValueTask<WsHandshakeOptions?> ReceiveHandshakeOptions(
-        HttpContext context, WebSocket socket, WsBaseOptions options, CancellationToken token)
+        HttpContext context, WebSocket socket, WsOptions options, CancellationToken token)
     {
         logger.HandshakeProcessStarted(context);
 
