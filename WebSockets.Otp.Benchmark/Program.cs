@@ -1,12 +1,4 @@
 ﻿using BenchmarkDotNet.Running;
-using WebSockets.Otp.Benchmark;
+using WebSockets.Otp.Benchmark.EndpointInvokers;
 
-//var bench = new EndpointInvokerBench();
-
-//bench.Setup();
-
-//await bench.Invoke_Reflection_Factory();
-
-//bench.Cleanup();
-
-BenchmarkRunner.Run<EndpointInvokerBench>();
+BenchmarkRunner.Run<EmptyEndpointInvokerBench>();

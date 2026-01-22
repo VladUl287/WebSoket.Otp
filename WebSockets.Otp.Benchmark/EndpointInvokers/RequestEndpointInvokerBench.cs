@@ -9,16 +9,16 @@ using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.Endpoints.Generic;
 using WebSockets.Otp.Core.Utils;
 
-namespace WebSockets.Otp.Benchmark;
+namespace WebSockets.Otp.Benchmark.EndpointInvokers;
 
 [MemoryDiagnoser]
 [DisassemblyDiagnoser(maxDepth: 10)]
-public class EndpointInvokerBench
+public class RequestEndpointInvokerBench
 {
     public IEndpointInvoker ReflectionBasedInvoker = new ReflectionEndpointInvoker(typeof(RequestEndpointTest));
     public IEndpointInvoker GenericEndpointInvoker = new RequestEndpointInvoker<Message>();
 
-    private readonly RequestEndpointTest RequestEndpointTest = new RequestEndpointTest();
+    private readonly RequestEndpointTest RequestEndpoint = new RequestEndpointTest();
     private readonly object Endpoint = new RequestEndpointTest();
     private WsEndpointContext WsEndpointContext = default!;
     private IEndpointContext EndpointContext = default!;
@@ -43,7 +43,7 @@ public class EndpointInvokerBench
     public Task Invoke_Direct()
     {
         var message = Serializer.Deserialize(typeof(Message), Payload.Span);
-        return RequestEndpointTest.HandleAsync((Message)message, WsEndpointContext);
+        return RequestEndpoint.HandleAsync((Message)message, WsEndpointContext);
     }
 
     [Benchmark]
@@ -51,50 +51,50 @@ public class EndpointInvokerBench
 
     [Benchmark]
     public Task Invoke_Generic() => GenericEndpointInvoker.Invoke(Endpoint, EndpointContext);
-}
 
-public sealed class MockSerializer : ISerializer
-{
-    public string ProtocolName => throw new NotImplementedException();
-
-    public static readonly Message Message = new()
+    public sealed class MockSerializer : ISerializer
     {
-        Id = Guid.NewGuid(),
-        Content = "empty",
-        Timestamp = DateTime.UtcNow
-    };
+        public string ProtocolName => throw new NotImplementedException();
 
-    public static readonly object MessageObj = Message;
+        public static readonly Message Message = new()
+        {
+            Id = Guid.NewGuid(),
+            Content = "empty",
+            Timestamp = DateTime.UtcNow
+        };
 
-    public object? Deserialize(Type type, ReadOnlySpan<byte> data) => Message;
+        public static readonly object MessageObj = Message;
 
-    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data)
-    {
-        throw new NotImplementedException();
+        public object? Deserialize(Type type, ReadOnlySpan<byte> data) => Message;
+
+        public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data, IStringPool stringPool)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ReadOnlyMemory<byte> Serialize<T>(T message)
+        {
+            throw new NotImplementedException();
+        }
     }
 
-    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data, IStringPool stringPool)
+    public sealed class RequestEndpointTest : WsEndpoint<Message>
     {
-        throw new NotImplementedException();
+        public override Task HandleAsync(Message request, EndpointContext context)
+        {
+            return Task.CompletedTask;
+        }
     }
 
-    public ReadOnlyMemory<byte> Serialize<T>(T message)
+    public sealed class Message
     {
-        throw new NotImplementedException();
+        public Guid Id { get; init; }
+        public string Content { get; init; } = string.Empty;
+        public DateTime Timestamp { get; init; }
     }
-}
-
-public sealed class RequestEndpointTest : WsEndpoint<Message>
-{
-    public override Task HandleAsync(Message request, EndpointContext context)
-    {
-        return Task.CompletedTask;
-    }
-}
-
-public sealed class Message
-{
-    public Guid Id { get; init; }
-    public string Content { get; init; } = string.Empty;
-    public DateTime Timestamp { get; init; }
 }
