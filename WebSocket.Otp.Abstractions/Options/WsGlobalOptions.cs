@@ -6,7 +6,7 @@ public sealed class WsGlobalOptions : WsOptions
 {
     public KeyOptions Keys { get; set; } = new();
 
-    public class KeyOptions
+    public sealed class KeyOptions
     {
         public StringComparer Comparer { get; set; } = StringComparer.OrdinalIgnoreCase;
         public int MinLength { get; set; } = 1;
