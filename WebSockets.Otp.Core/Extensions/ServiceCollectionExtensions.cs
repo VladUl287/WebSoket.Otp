@@ -85,7 +85,7 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
-        services.AddSingleton<IConnectionHandler, DefaultRequestHandler>();
+        services.AddSingleton<IConnectionHandler, DefaultConnectionHandler>();
         services.AddSingleton<IMessageDispatcher, DefaultMessageDispatcher>();
         services.AddSingleton<IHandshakeService, DefaultHandshakeService>();
         return services;
