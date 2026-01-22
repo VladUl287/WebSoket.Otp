@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Core", "WebS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Tests", "WebSockets.Otp.Tests\WebSockets.Otp.Tests.csproj", "{BA6F449E-81F9-498E-83A1-144FFCC80424}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Benchmark", "WebSockets.Otp.Benchmark\WebSockets.Otp.Benchmark.csproj", "{9BC14B84-C8E0-4642-A226-708D440FC075}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{BA6F449E-81F9-498E-83A1-144FFCC80424}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA6F449E-81F9-498E-83A1-144FFCC80424}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA6F449E-81F9-498E-83A1-144FFCC80424}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BC14B84-C8E0-4642-A226-708D440FC075}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BC14B84-C8E0-4642-A226-708D440FC075}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BC14B84-C8E0-4642-A226-708D440FC075}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BC14B84-C8E0-4642-A226-708D440FC075}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

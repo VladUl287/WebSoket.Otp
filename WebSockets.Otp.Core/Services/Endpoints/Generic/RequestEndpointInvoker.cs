@@ -10,9 +10,9 @@ public sealed class RequestEndpointInvoker<TRequest> : IEndpointInvoker
         var typedEndpoint = (WsEndpoint<TRequest>)endpoint;
         var typedContext = (EndpointContext)context;
 
-        var request = typedContext.Serializer.Deserialize<TRequest>(typedContext.Payload.Span) ??
+        var request = typedContext.Serializer.Deserialize(typeof(TRequest), typedContext.Payload.Span) ??
             throw new NullReferenceException($"Fail to deserialize message for endpoint '{endpoint.GetType()}'");
 
-        return typedEndpoint.HandleAsync(request, typedContext);
+        return typedEndpoint.HandleAsync((TRequest)request, typedContext);
     }
 }

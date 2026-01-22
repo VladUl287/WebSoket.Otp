@@ -43,7 +43,7 @@ public sealed class DefaultHandshakeService(
 
         logger.HandshakeSerializerObtained(_protocol, context);
 
-        var handshakeOptions = serializer.Deserialize<WsHandshakeOptions>(handshakeBuffer.Span);
+        var handshakeOptions = (WsHandshakeOptions?)serializer.Deserialize(typeof(WsHandshakeOptions), handshakeBuffer.Span);
         if (handshakeOptions is null)
         {
             logger.HandshakeDeserializeFailed(context);
