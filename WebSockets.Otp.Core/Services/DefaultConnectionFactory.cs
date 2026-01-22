@@ -6,7 +6,7 @@ using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class WsConnectionFactory(IIdProvider idProvider) : IWsConnectionFactory
+public sealed class DefaultConnectionFactory(IIdProvider idProvider) : IWsConnectionFactory
 {
     public IWsConnection Create(WebSocket socket, ISerializer serializer) =>
         new WsConnection(idProvider.Create(), socket, serializer);
