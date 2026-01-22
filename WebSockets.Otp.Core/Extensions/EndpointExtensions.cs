@@ -10,31 +10,27 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class EndpointExtensions
 {
-    public static WsEndpointConventionBuilder MapWsEndpoints(
+    public static WsEndpointConventionBuilder MapEndpoints(
         this IEndpointRouteBuilder builder, string pattern, Action<WsOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
 
-        var options = new WsOptions();
-        configure?.Invoke(options);
-
-        if (configure is null)
-            options = builder.ServiceProvider.GetRequiredService<WsGlobalOptions>();
+        var options = GetOptions(builder, configure);
 
         var app = builder.CreateApplicationBuilder();
         app.UseWebSockets(options.WebSocketOptions);
-        app.Run((httpContext) =>
+        app.Run((context) =>
         {
-            var requestProcessor = httpContext.RequestServices.GetRequiredService<IRequestHandler>();
-            return requestProcessor.HandleRequestAsync(httpContext, options);
+            return context.RequestServices
+                .GetRequiredService<IConnectionHandler>()
+                .HandleAsync(context, options);
         });
         var executeHandler = app.Build();
 
         var executeBuilder = builder
             .Map(pattern, executeHandler)
             .DisableRequestTimeout()
-            .DisableAntiforgery()
-            .RequireCors();
+            .WithMetadata(options);
 
         executeBuilder.Add(builder =>
         {
@@ -43,5 +39,15 @@ public static class EndpointExtensions
         });
 
         return new WsEndpointConventionBuilder(executeBuilder);
+    }
+
+    private static WsOptions GetOptions(IEndpointRouteBuilder builder, Action<WsOptions>? configure)
+    {
+        if (configure is null)
+            return builder.ServiceProvider.GetRequiredService<WsGlobalOptions>();
+
+        var options = new WsOptions();
+        configure(options);
+        return options;
     }
 }

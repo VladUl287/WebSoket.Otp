@@ -3,7 +3,7 @@ using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Contracts;
 
-public interface IRequestHandler
+public interface IConnectionHandler
 {
-    Task HandleRequestAsync(HttpContext context, WsOptions options);
+    Task HandleAsync(HttpContext context, WsOptions options);
 }

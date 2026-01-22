@@ -13,9 +13,9 @@ namespace WebSockets.Otp.Core.Services;
 public sealed partial class DefaultRequestHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeService hanshakeService,
     IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
-    ILogger<DefaultRequestHandler> logger) : IRequestHandler
+    ILogger<DefaultRequestHandler> logger) : IConnectionHandler
 {
-    public async Task HandleRequestAsync(HttpContext context, WsOptions options)
+    public async Task HandleAsync(HttpContext context, WsOptions options)
     {
         logger.RequestProcessingStarted();
 
