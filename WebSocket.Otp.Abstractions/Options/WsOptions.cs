@@ -13,6 +13,7 @@ public class WsOptions
 
     public ProcessingMode ProcessingMode { get; set; } = ProcessingMode.Parallel;
     public int MaxDegreeOfParallelism { get; set; } = Environment.ProcessorCount;
+    public TaskScheduler? TaskScheduler { get; set; }
 
     public int MaxMessageSize { get; set; } = 64 * 1024; // 64KB
     public int ReceiveBufferSize { get; set; } = 4 * 1024; // 4KB

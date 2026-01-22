@@ -20,6 +20,7 @@ public sealed class ParallelMessageProcessor(
         var parallelOptions = new ParallelOptions
         {
             MaxDegreeOfParallelism = options.MaxDegreeOfParallelism,
+            TaskScheduler = options.TaskScheduler,
             CancellationToken = token
         };
 
