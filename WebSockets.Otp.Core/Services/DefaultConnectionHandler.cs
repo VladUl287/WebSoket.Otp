@@ -16,7 +16,7 @@ public sealed class DefaultConnectionHandler(
     IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
     ILogger<DefaultConnectionHandler> logger) : IConnectionHandler
 {
-    public async Task HandleAsync(HttpContext context, WsOptions options)
+    public async Task HandleAsync(HttpContext context, WsConfiguration config)
     {
         var traceId = new TraceId(context);
 
@@ -26,7 +26,7 @@ public sealed class DefaultConnectionHandler(
 
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
-        var handshakeOptions = await hanshakeService.HandleAsync(context, socket, options, token);
+        var handshakeOptions = await hanshakeService.HandleAsync(context, socket, config, token);
         if (handshakeOptions is null)
         {
             logger.HandshakeOptionsNotFound(traceId);
@@ -55,13 +55,13 @@ public sealed class DefaultConnectionHandler(
         try
         {
             logger.InvokingOnConnectedCallback(connection.Id, traceId);
-            options.OnConnected?.Invoke(globalContext);
+            config.OnConnected?.Invoke(globalContext);
 
-            var messageProcessor = processorResolver.Get(options.ProcessingMode);
+            var messageProcessor = processorResolver.Get(config.ProcessingMode);
 
             logger.MessageProcessingStarted(connection.Id, traceId);
 
-            await messageProcessor.Process(globalContext, serializer, options, token);
+            await messageProcessor.Process(globalContext, serializer, config, token);
 
             logger.MessageProcessingCompleted(connection.Id, traceId);
         }
@@ -71,7 +71,7 @@ public sealed class DefaultConnectionHandler(
             await connectionManager.TryRemove(connection.Id, token);
 
             logger.InvokingOnDisconnectedCallback(connection.Id, traceId);
-            options.OnDisconnected?.Invoke(globalContext);
+            config.OnDisconnected?.Invoke(globalContext);
 
             logger.ConnectionClosed(connection.Id, traceId);
         }

@@ -41,13 +41,13 @@ public static class EndpointRouteBuilderExtensions
         return new WsEndpointConventionBuilder(executeBuilder);
     }
 
-    private static WsOptions GetOptions(IEndpointRouteBuilder builder, Action<WsOptions>? configure)
+    private static WsConfiguration GetOptions(IEndpointRouteBuilder builder, Action<WsOptions>? configure)
     {
         if (configure is null)
-            return builder.ServiceProvider.GetRequiredService<WsGlobalOptions>();
+            return builder.ServiceProvider.GetRequiredService<WsConfiguration>();
 
         var options = new WsOptions();
         configure(options);
-        return options;
+        return new WsConfiguration(options);
     }
 }

@@ -7,7 +7,7 @@ namespace WebSockets.Otp.Abstractions.Transport;
 public interface IMessageEnumerator
 {
     IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        WebSocket socket, WsOptions config, IMessageBufferFactory factory, CancellationToken token);
+        WebSocket socket, WsConfiguration config, IMessageBufferFactory factory, CancellationToken token);
     IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-        WebSocket socket, WsOptions config, IAsyncObjectPool<IMessageBuffer> pool, CancellationToken token);
+        WebSocket socket, WsConfiguration config, IAsyncObjectPool<IMessageBuffer> pool, CancellationToken token);
 }

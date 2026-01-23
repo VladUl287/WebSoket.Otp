@@ -7,5 +7,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 public interface IHandshakeHandler
 {
     ValueTask<WsHandshakeOptions?> HandleAsync(
-        HttpContext context, WebSocket socket, WsOptions options, CancellationToken token);
+        HttpContext context, WebSocket socket, WsConfiguration config, CancellationToken token);
 }

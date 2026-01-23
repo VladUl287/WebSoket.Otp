@@ -3,7 +3,6 @@ using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Core.Models;
 using WebSockets.Otp.Core.Services.Endpoints;
-using WebSockets.Otp.Core.Services.Endpoints.Generic;
 
 namespace WebSockets.Otp.Benchmark.EndpointInvokers;
 
@@ -11,7 +10,6 @@ namespace WebSockets.Otp.Benchmark.EndpointInvokers;
 [DisassemblyDiagnoser(maxDepth: 10)]
 public class EmptyEndpointInvokerBench
 {
-    public IEndpointInvoker ReflectionBasedInvoker = new ReflectionEndpointInvoker(typeof(EndpointTest));
     public IEndpointInvoker GenericEndpointInvoker = new EmptyEndpointInvoker();
 
     private readonly EndpointTest EndpointTestInstance = new();
@@ -24,9 +22,6 @@ public class EmptyEndpointInvokerBench
 
     [Benchmark]
     public Task Invoke_Direct() => EndpointTestInstance.HandleAsync(EndpointContext);
-
-    [Benchmark]
-    public Task Invoke_Reflection() => ReflectionBasedInvoker.Invoke(EndpointTestInstance, EndpointContext);
 
     [Benchmark]
     public Task Invoke_Generic() => GenericEndpointInvoker.Invoke(EndpointTestInstance, EndpointContext);

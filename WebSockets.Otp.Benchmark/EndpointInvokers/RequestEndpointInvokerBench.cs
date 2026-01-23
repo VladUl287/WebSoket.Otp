@@ -6,7 +6,6 @@ using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Models;
 using WebSockets.Otp.Core.Services.Endpoints;
-using WebSockets.Otp.Core.Services.Endpoints.Generic;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Benchmark.EndpointInvokers;
@@ -15,7 +14,6 @@ namespace WebSockets.Otp.Benchmark.EndpointInvokers;
 [DisassemblyDiagnoser(maxDepth: 10)]
 public class RequestEndpointInvokerBench
 {
-    public IEndpointInvoker ReflectionBasedInvoker = new ReflectionEndpointInvoker(typeof(RequestEndpointTest));
     public IEndpointInvoker GenericEndpointInvoker = new RequestEndpointInvoker<Message>();
 
     private readonly RequestEndpointTest RequestEndpoint = new RequestEndpointTest();
@@ -45,9 +43,6 @@ public class RequestEndpointInvokerBench
         var message = Serializer.Deserialize(typeof(Message), Payload.Span);
         return RequestEndpoint.HandleAsync((Message)message, WsEndpointContext);
     }
-
-    [Benchmark]
-    public Task Invoke_Reflection() => ReflectionBasedInvoker.Invoke(Endpoint, EndpointContext);
 
     [Benchmark]
     public Task Invoke_Generic() => GenericEndpointInvoker.Invoke(Endpoint, EndpointContext);

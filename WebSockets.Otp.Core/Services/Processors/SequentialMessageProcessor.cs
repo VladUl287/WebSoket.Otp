@@ -13,9 +13,9 @@ public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IM
 {
     public ProcessingMode Mode => ProcessingMode.Sequential;
 
-    public async Task Process(IGlobalContext globalContext, ISerializer serializer, WsOptions options, CancellationToken token)
+    public async Task Process(IGlobalContext globalContext, ISerializer serializer, WsConfiguration config, CancellationToken token)
     {
-        using var buffer = bufferFactory.Create(options.ReceiveBufferSize);
+        using var buffer = bufferFactory.Create(config.ReceiveBufferSize);
 
         var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
         var tempMemory = tempBuffer.AsMemory();
@@ -41,7 +41,7 @@ public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IM
                 {
                     buffer.SetLength(0);
 
-                    if (options.ShrinkBuffers)
+                    if (config.ShrinkBuffers)
                         buffer.Shrink();
                 }
             }

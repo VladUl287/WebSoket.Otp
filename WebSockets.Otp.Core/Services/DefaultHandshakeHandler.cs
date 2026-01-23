@@ -19,7 +19,7 @@ public sealed class DefaultHandshakeHandler(
     private static readonly ReadOnlyMemory<byte> _responseBytes = "{}"u8.ToArray();
 
     public async ValueTask<WsHandshakeOptions?> HandleAsync(
-        HttpContext context, WebSocket socket, WsOptions options, CancellationToken token)
+        HttpContext context, WebSocket socket, WsConfiguration options, CancellationToken token)
     {
         var traceId = new TraceId(context);
 
