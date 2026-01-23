@@ -1,5 +1,5 @@
-﻿using WebSockets.Otp.Core.Extensions;
-using WebSockets.Otp.Abstractions.Endpoints;
+﻿using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Core.Extensions;
 
 namespace WebSockets.Otp.Core.Services.Endpoints;
 

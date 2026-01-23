@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions;
@@ -20,7 +19,6 @@ using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.Processors;
 using WebSockets.Otp.Core.Services.Serializers;
 using WebSockets.Otp.Core.Services.Utils;
-using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;
 
