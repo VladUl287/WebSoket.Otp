@@ -10,42 +10,6 @@ namespace WebSockets.Otp.Core.Services;
 public sealed class MessageEnumerator : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-         WebSocket socket, WsConfiguration config, IMessageBufferFactory bufferFactory,
-         [EnumeratorCancellation] CancellationToken token)
-    {
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
-        var tempMemory = tempBuffer.AsMemory();
-
-        try
-        {
-            var buffer = bufferFactory.Create(config.ReceiveBufferSize);
-
-            while (!token.IsCancellationRequested)
-            {
-                var receiveResult = await socket.ReceiveAsync(tempMemory, token);
-
-                if (receiveResult is { MessageType: WebSocketMessageType.Close })
-                {
-                    break;
-                }
-
-                buffer.Write(tempMemory.Span[..receiveResult.Count]);
-
-                if (receiveResult.EndOfMessage)
-                {
-                    var resultBuffer = buffer;
-                    buffer = bufferFactory.Create(config.ReceiveBufferSize);
-                    yield return resultBuffer;
-                }
-            }
-        }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(tempBuffer);
-        }
-    }
-
-    public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
          WebSocket socket, WsConfiguration config, IAsyncObjectPool<IMessageBuffer> bufferPool,
          [EnumeratorCancellation] CancellationToken token)
     {

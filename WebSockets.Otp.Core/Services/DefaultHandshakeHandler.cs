@@ -5,6 +5,7 @@ using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
+using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Extensions;
 using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Core.Utils;
@@ -12,7 +13,7 @@ using WebSockets.Otp.Core.Utils;
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultHandshakeHandler(
-    ISerializerStore store, IMessageBufferFactory factory, IMessageEnumerator enumerator, 
+    ISerializerStore store, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> objectPool,
     ILogger<DefaultHandshakeHandler> logger) : IHandshakeHandler
 {
     private static readonly string _protocol = "json";
@@ -25,7 +26,7 @@ public sealed class DefaultHandshakeHandler(
 
         logger.HandshakeProcessStarted(traceId);
 
-        var messagesEnumerable = enumerator.EnumerateAsync(socket, options, factory, token);
+        var messagesEnumerable = enumerator.EnumerateAsync(socket, options, objectPool, token);
 
         logger.HandshakeAwaitHandshakeMessage(traceId);
 
