@@ -1,6 +1,4 @@
-﻿using System.Reflection;
-using WebSockets.Otp.Abstractions;
-using WebSockets.Otp.Abstractions.Attributes;
+﻿using WebSockets.Otp.Abstractions;
 
 namespace WebSockets.Otp.Core.Extensions;
 
@@ -8,8 +6,7 @@ public static class EndpointsExtensions
 {
     public static bool IsWsEndpoint(this Type type) =>
         type is { IsAbstract: false, IsInterface: false, IsClass: true, IsPublic: true } &&
-        typeof(IWsEndpoint).IsAssignableFrom(type) &&
-        type.GetCustomAttribute<WsEndpointAttribute>() is not null;
+        typeof(IWsEndpoint).IsAssignableFrom(type);
 
     internal static Type? GetRequestType(this Type type)
     {
