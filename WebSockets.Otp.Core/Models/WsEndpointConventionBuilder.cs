@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Builder;
 
-namespace WebSockets.Otp.Core.Middlewares;
+namespace WebSockets.Otp.Core.Models;
 
 public sealed class WsEndpointConventionBuilder(IEndpointConventionBuilder innerBuilder) : IEndpointConventionBuilder
 {
