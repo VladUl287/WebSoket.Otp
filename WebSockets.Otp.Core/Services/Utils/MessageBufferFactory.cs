@@ -1,6 +1,6 @@
 ﻿using WebSockets.Otp.Abstractions.Transport;
 
-namespace WebSockets.Otp.Core.Utils;
+namespace WebSockets.Otp.Core.Services.Utils;
 
 public sealed class MessageBufferFactory : IMessageBufferFactory
 {

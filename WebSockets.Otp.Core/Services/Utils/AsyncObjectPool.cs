@@ -2,7 +2,7 @@
 using System.Threading.Channels;
 using WebSockets.Otp.Abstractions.Utils;
 
-namespace WebSockets.Otp.Core.Utils;
+namespace WebSockets.Otp.Core.Services.Utils;
 
 public sealed class AsyncObjectPool<TObject>(int capacity, Func<TObject> factory) : IAsyncObjectPool<TObject>
     where TObject : notnull

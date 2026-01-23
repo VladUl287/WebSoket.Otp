@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using WebSockets.Otp.Abstractions.Utils;
 
-namespace WebSockets.Otp.Core.Utils;
+namespace WebSockets.Otp.Core.Services.Utils;
 
 public sealed class Entry
 {

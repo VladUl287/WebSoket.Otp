@@ -2,7 +2,7 @@
 using System.Runtime.InteropServices;
 using WebSockets.Otp.Abstractions.Transport;
 
-namespace WebSockets.Otp.Core.Utils;
+namespace WebSockets.Otp.Core.Services.Utils;
 
 public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
 {

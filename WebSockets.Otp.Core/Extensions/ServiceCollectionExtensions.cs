@@ -19,7 +19,7 @@ using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.Processors;
 using WebSockets.Otp.Core.Services.Serializers;
-using WebSockets.Otp.Core.Services.Validators;
+using WebSockets.Otp.Core.Services.Utils;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;

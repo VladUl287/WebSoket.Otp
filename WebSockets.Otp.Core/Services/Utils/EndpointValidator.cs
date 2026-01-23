@@ -6,7 +6,7 @@ using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Options;
 
-namespace WebSockets.Otp.Core.Services.Validators;
+namespace WebSockets.Otp.Core.Services.Utils;
 
 public sealed class EndpointValidator(IServiceScopeFactory factory) : IStartupFilter
 {
