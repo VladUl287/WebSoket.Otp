@@ -17,7 +17,6 @@ using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.Processors;
 using WebSockets.Otp.Core.Services.Serializers;
-using WebSockets.Otp.Core.Services.Validators;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;
@@ -49,15 +48,17 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsGlobalOptions options, Assembly[] assemblies)
     {
-        services.AddSingleton(options);
+        var configuration = new WsConfiguration(options);
+
+        services.AddSingleton(configuration);
 
         services.AddPipeline();
         services.AddTransport();
         services.AddSerializers();
         services.AddCoreServices();
         services.AddConnectionServices();
-        services.AddUtility(options);
-        services.AddEndpoints(options, assemblies);
+        services.AddUtility(configuration);
+        services.AddEndpoints(configuration, assemblies);
 
         return services;
     }
@@ -99,7 +100,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddUtility(this IServiceCollection services, WsGlobalOptions configuration)
+    private static IServiceCollection AddUtility(this IServiceCollection services, WsConfiguration configuration)
     {
         services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>(
             (_) => new AsyncObjectPool<IMessageBuffer>(
@@ -112,7 +113,7 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsGlobalOptions options, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsConfiguration options, params Assembly[] assemblies)
     {
         services.AddSingleton<IEndpointInvokerFactory, DefaultInvokerFactory>();
         services.AddSingleton<IContextFactory, DefaultContextFactory>();
@@ -128,7 +129,7 @@ public static class ServiceCollectionExtensions
             var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
                 throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
 
-            var endpointKey = attribute.Validate(options).Key;
+            var endpointKey = attribute.Key;
 
             if (!endpointsKeys.Add(endpointKey))
                 throw new InvalidOperationException($"Duplicate WsEndpoint key detected: {endpointKey} in type {endpointType.Name}");
