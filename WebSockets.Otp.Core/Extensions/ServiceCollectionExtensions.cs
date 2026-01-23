@@ -113,17 +113,18 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsConfiguration options, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsConfiguration config, params Assembly[] assemblies)
     {
         services.AddSingleton<IEndpointInvokerFactory, DefaultInvokerFactory>();
         services.AddSingleton<IContextFactory, DefaultContextFactory>();
 
         var endpointsTypes = assemblies
-            .SelectMany(assembly => assembly.GetTypes())
-            .Where(type => type.IsWsEndpoint());
+            .SelectMany(assembly => assembly
+                .GetTypes()
+                .Where(type => type.IsWsEndpoint())
+            );
 
-        var endpointsKeys = new HashSet<string>(options.Keys.Comparer);
-
+        var endpointsKeys = new HashSet<string>(config.Keys.Comparer);
         foreach (var endpointType in endpointsTypes)
         {
             var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
@@ -144,7 +145,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.AddSingleton<IStringPool>(
-            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, options.Keys.UnsafeIntern));
+            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, config.Keys.UnsafeIntern));
 
         return services;
     }
