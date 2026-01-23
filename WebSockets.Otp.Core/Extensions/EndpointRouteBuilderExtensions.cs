@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Core.Middlewares;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Extensions;
 
