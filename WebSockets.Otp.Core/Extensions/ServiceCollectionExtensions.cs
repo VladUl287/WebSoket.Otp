@@ -1,12 +1,14 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
-using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
@@ -17,6 +19,7 @@ using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.Processors;
 using WebSockets.Otp.Core.Services.Serializers;
+using WebSockets.Otp.Core.Services.Validators;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;
@@ -110,6 +113,9 @@ public static class ServiceCollectionExtensions
         );
 
         services.AddSingleton<IIdProvider, GuidIdProvider>();
+
+        services.AddSingleton<IStartupFilter, EndpointValidator>();
+
         return services;
     }
 
