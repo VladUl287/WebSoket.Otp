@@ -24,40 +24,41 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsGlobalOptions configuration, params Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure, Assembly[] assemblies)
     {
-        services.AddSingleton(configuration);
+        var options = new WsGlobalOptions();
+        configure(options);
+
+        return services.AddWsEndpointsCore(options, assemblies);
+    }
+
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions options, Assembly[] assemblies) =>
+        services.AddWsEndpointsCore(options, assemblies);
+
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Assembly[] assemblies) =>
+        services.AddWsEndpointsCore(new(), assemblies);
+
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure) =>
+        services.AddWsEndpoints(configure, [Assembly.GetCallingAssembly()]);
+
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions options) =>
+        services.AddWsEndpoints(options, [Assembly.GetCallingAssembly()]);
+
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services) =>
+        services.AddWsEndpoints([Assembly.GetCallingAssembly()]);
+
+    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsGlobalOptions options, Assembly[] assemblies)
+    {
+        services.AddSingleton(options);
 
         services.AddPipeline();
         services.AddTransport();
         services.AddSerializers();
         services.AddCoreServices();
         services.AddConnectionServices();
-        services.AddUtility(configuration);
-        services.AddEndpoints(configuration, assemblies);
+        services.AddUtility(options);
+        services.AddEndpoints(options, assemblies);
 
-        return services;
-    }
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure, params Assembly[] assemblies)
-    {
-        var configuration = new WsGlobalOptions();
-        configure(configuration);
-
-        services.AddWsEndpointsCore(configuration, assemblies);
-        return services;
-    }
-
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions configuration, params Assembly[] assemblies)
-    {
-        services.AddWsEndpointsCore(configuration, assemblies);
-        return services;
-    }
-
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, params Assembly[] assemblies)
-    {
-        var options = new WsGlobalOptions();
-
-        services.AddWsEndpointsCore(options, assemblies);
         return services;
     }
 

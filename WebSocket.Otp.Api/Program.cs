@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
@@ -45,7 +44,7 @@ var builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddAuthorization();
 
-    builder.Services.AddWsEndpoints(Assembly.GetExecutingAssembly());
+    builder.Services.AddWsEndpoints();
 
     builder.Services.AddOpenApi();
 }
