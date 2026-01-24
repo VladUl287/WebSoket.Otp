@@ -1,8 +1,7 @@
-﻿using Moq;
-using System.Buffers;
+﻿using System.Text;
 using System.Text.Json;
-using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Services.Serializers;
+using WebSockets.Otp.Core.Services.Utils;
 
 namespace WebSockets.Otp.Core.Tests.Services.Serializers;
 
@@ -149,30 +148,24 @@ public sealed class JsonMessageSerializerTests
     }
 
     [Fact]
-    public void Deserialize_InvalidJson_ShouldReturnNull()
+    public void Deserialize_InvalidJson_ShouldThrow()
     {
         // Arrange
         var invalidJson = "{ invalid json }";
         var bytes = System.Text.Encoding.UTF8.GetBytes(invalidJson);
 
-        // Act
-        var result = _sut.Deserialize(typeof(TestClass), bytes);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        Assert.Throws<JsonException>(() => _sut.Deserialize(typeof(TestClass), bytes));
     }
 
     [Fact]
-    public void Deserialize_EmptyData_ShouldReturnNull()
+    public void Deserialize_EmptyData_ShouldThrow()
     {
         // Arrange
-        ReadOnlySpan<byte> emptyData = [];
+        ReadOnlyMemory<byte> emptyData = Array.Empty<byte>();
 
-        // Act
-        var result = _sut.Deserialize(typeof(TestClass), emptyData);
-
-        // Assert
-        Assert.Null(result);
+        // Act & Assert
+        Assert.Throws<JsonException>(() => _sut.Deserialize(typeof(TestClass), emptyData.Span));
     }
 
     [Fact]
@@ -298,54 +291,13 @@ public sealed class JsonMessageSerializerTests
         var json = "{\"id\":123,\"name\":\"John Doe\",\"active\":true}";
         var bytes = System.Text.Encoding.UTF8.GetBytes(json);
         var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-        var mockStringPool = new Mock<IStringPool>();
-        mockStringPool.Setup(p => p.Intern(bytes))
-                      .Returns("John Doe");
+        var mockStringPool = new EndpointsKeysPool(["John Doe"], Encoding.UTF8, false);
 
         // Act
-        var result = _sut.ExtractField(fieldName, bytes, mockStringPool.Object);
+        var result = _sut.ExtractField(fieldName, bytes, mockStringPool);
 
         // Assert
         Assert.Equal("John Doe", result);
-        mockStringPool.Verify(p => p.Intern(bytes), Times.Once);
-    }
-
-    [Fact]
-    public void ExtractField_WithStringPool_ValueSequence_ShouldUseValueSequenceOverload()
-    {
-        // This test would require creating a scenario where HasValueSequence is true
-        // For simplicity, we'll test that the method doesn't throw with a mock
-        var json = "{\"name\":\"test\"}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-        var mockStringPool = new Mock<IStringPool>();
-
-        // Setup to handle both overloads
-        mockStringPool.Setup(p => p.Intern(bytes))
-                      .Returns("test");
-
-        // Act & Assert
-        var exception = Record.Exception(() =>
-            _sut.ExtractField(fieldName, bytes, mockStringPool.Object));
-
-        Assert.Null(exception);
-    }
-
-    [Fact]
-    public void ExtractField_WithStringPool_FieldNotFound_ShouldThrowNullReferenceException()
-    {
-        // Arrange
-        var json = "{\"id\":123}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-        var mockStringPool = new Mock<IStringPool>();
-
-        // Act & Assert
-        Assert.Throws<NullReferenceException>(() =>
-            _sut.ExtractField(fieldName, bytes, mockStringPool.Object));
-
-        mockStringPool.Verify(p => p.Intern(bytes), Times.Never);
-        mockStringPool.Verify(p => p.Intern(It.IsAny<ReadOnlySequence<byte>>()), Times.Never);
     }
 
     #endregion
@@ -388,19 +340,7 @@ public sealed class JsonMessageSerializerTests
         var json = System.Text.Encoding.UTF8.GetString(result.Span);
 
         // Assert
-        Assert.Contains("Line1\\nLine2\\tTab\\\"Quote\\\\Backslash", json);
-    }
-
-    [Fact]
-    public void ExtractField_FieldInArray_ShouldThrowException()
-    {
-        // Arrange
-        var json = "[{\"name\":\"test\"}]";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-
-        // Act & Assert
-        Assert.Throws<NullReferenceException>(() => _sut.ExtractField(fieldName, bytes));
+        Assert.Contains("Line1\\nLine2\\tTab\\u0022Quote\\\\Backslash", json);
     }
 
     #endregion

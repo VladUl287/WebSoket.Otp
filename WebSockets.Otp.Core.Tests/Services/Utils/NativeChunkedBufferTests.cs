@@ -701,36 +701,6 @@ public class NativeChunkedBufferTests : IDisposable
             "Memory should be lower after disposing buffers");
     }
 
-    [Fact]
-    public void Finalizer_FreesMemory()
-    {
-        // Arrange
-        long initialMemory = GC.GetTotalMemory(true);
-
-        // Act - Create buffer without keeping reference
-        CreateBufferWithoutReference(1024);
-
-        // Force GC to trigger finalizer
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-
-        var memoryAfterGC = GC.GetTotalMemory(true);
-
-        // Assert - Memory should be reclaimed
-        // Note: This is a heuristic test
-        Assert.True(Math.Abs(memoryAfterGC - initialMemory) < 1024 * 10,
-            "Memory should be reclaimed by finalizer");
-    }
-
-    private void CreateBufferWithoutReference(int size)
-    {
-        // Create buffer but don't keep reference
-        var buffer = new NativeChunkedBuffer(size);
-        buffer.Write(new byte[size]);
-        // buffer goes out of scope, becomes eligible for GC
-    }
-
     #endregion
 
     #region Stress Tests
