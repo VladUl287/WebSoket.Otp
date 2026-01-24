@@ -13,7 +13,7 @@ public sealed class MessageEnumerator : IMessageEnumerator
          WebSocket socket, WsConfiguration config, IAsyncObjectPool<IMessageBuffer> bufferPool,
          [EnumeratorCancellation] CancellationToken token)
     {
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(config.ReceiveBufferSize);
         var tempMemory = tempBuffer.AsMemory();
 
         try
@@ -26,9 +26,10 @@ public sealed class MessageEnumerator : IMessageEnumerator
                 var receiveResult = await socket.ReceiveAsync(tempMemory, token);
 
                 if (receiveResult is { MessageType: WebSocketMessageType.Close })
-                {
                     break;
-                }
+
+                if (receiveResult.Count > config.MaxMessageSize - buffer.Length)
+                    throw new OutOfMemoryException($"Message exceed maximum message size '{config.MaxMessageSize}'.");
 
                 buffer.Write(tempMemory.Span[..receiveResult.Count]);
 

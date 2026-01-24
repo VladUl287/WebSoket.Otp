@@ -17,7 +17,7 @@ public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IM
     {
         using var buffer = bufferFactory.Create(config.ReceiveBufferSize);
 
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(4096);
+        var tempBuffer = ArrayPool<byte>.Shared.Rent(config.ReceiveBufferSize);
         var tempMemory = tempBuffer.AsMemory();
 
         var socket = globalContext.Socket;
@@ -28,6 +28,9 @@ public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IM
 
             if (receiveResult is { MessageType: WebSocketMessageType.Close })
                 break;
+
+            if (receiveResult.Count > config.MaxMessageSize - buffer.Length)
+                throw new OutOfMemoryException($"Message exceed maximum message size '{config.MaxMessageSize}'.");
 
             buffer.Write(tempMemory.Span[..receiveResult.Count]);
 
