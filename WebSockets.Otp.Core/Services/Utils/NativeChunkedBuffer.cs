@@ -101,15 +101,19 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true;
 
         NativeMemory.Free(_buffer);
+        _buffer = null;
+        _capacity = 0;
+        _length = 0;
+        _disposed = true;
         GC.SuppressFinalize(this);
     }
 
     ~NativeChunkedBuffer()
     {
-        Dispose();
+        if (_buffer is not null)
+            NativeMemory.Free(_buffer);
     }
 }
 
