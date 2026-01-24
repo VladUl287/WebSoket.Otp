@@ -2,6 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Connections;
@@ -47,6 +49,14 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services) =>
         services.AddWsEndpoints([Assembly.GetCallingAssembly()]);
 
+    public static IServiceCollection AddJsonSerializer(this IServiceCollection services, Action<JsonSerializerOptions> configure)
+    {
+        var jsonOptions = new JsonSerializerOptions();
+        configure(jsonOptions);
+        return services.AddSingleton<ISerializer>(new JsonMessageSerializer(jsonOptions));
+    }
+
+
     private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsGlobalOptions options, Assembly[] assemblies)
     {
         var configuration = new WsConfiguration(options);
@@ -55,7 +65,7 @@ public static class ServiceCollectionExtensions
 
         services.AddPipeline();
         services.AddTransport();
-        services.AddSerializers();
+        services.AddDefaultSerializers();
         services.AddCoreServices();
         services.AddConnectionServices();
         services.AddUtility(configuration);
@@ -73,10 +83,24 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddSerializers(this IServiceCollection services)
+    private static IServiceCollection AddDefaultSerializers(this IServiceCollection services)
     {
-        services.AddSingleton<ISerializer, JsonMessageSerializer>();
         services.AddSingleton<ISerializerStore, DefaultSerializerStore>();
+
+        services.AddJsonSerializer(options =>
+        {
+            options.PropertyNameCaseInsensitive = true;
+            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            options.IgnoreReadOnlyProperties = false;
+            options.IgnoreReadOnlyFields = true;
+            options.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+            options.WriteIndented = false;
+            options.AllowTrailingCommas = false;
+            options.ReadCommentHandling = JsonCommentHandling.Skip;
+            options.UnknownTypeHandling = JsonUnknownTypeHandling.JsonElement;
+        });
+
         return services;
     }
 

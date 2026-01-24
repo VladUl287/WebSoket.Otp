@@ -11,7 +11,7 @@ public sealed class JsonMessageSerializerTests
 
     public JsonMessageSerializerTests()
     {
-        _sut = new JsonMessageSerializer();
+        _sut = new JsonMessageSerializer(new());
     }
 
     #region Constructor Tests
@@ -20,7 +20,7 @@ public sealed class JsonMessageSerializerTests
     public void Constructor_Default_ShouldInitializeWithDefaultOptions()
     {
         // Act
-        var serializer = new JsonMessageSerializer();
+        var serializer = new JsonMessageSerializer(new());
 
         // Assert
         Assert.Equal("json", serializer.ProtocolName);

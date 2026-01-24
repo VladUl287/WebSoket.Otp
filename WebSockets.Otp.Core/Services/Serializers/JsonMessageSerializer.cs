@@ -4,21 +4,9 @@ using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
-public sealed class JsonMessageSerializer : ISerializer
+public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISerializer
 {
-    private readonly JsonSerializerOptions _options;
-
-    public JsonMessageSerializer()
-    {
-        _options = new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
-        };
-    }
-
-    public JsonMessageSerializer(JsonSerializerOptions options) => _options = options;
+    private readonly JsonSerializerOptions _options = options;
 
     public string ProtocolName => "json";
 
