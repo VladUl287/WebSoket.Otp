@@ -11,20 +11,19 @@ namespace WebSockets.Otp.Core.Services.Processors;
 
 public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory) : IMessageProcessor
 {
+    private static readonly ArrayPool<byte> _arrayPool = ArrayPool<byte>.Create();
+
     public ProcessingMode Mode => ProcessingMode.Sequential;
 
     public async Task Process(IGlobalContext globalContext, ISerializer serializer, WsConfiguration config, CancellationToken token)
     {
         using var buffer = bufferFactory.Create(config.ReceiveBufferSize);
-
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(config.ReceiveBufferSize);
-        var tempMemory = tempBuffer.AsMemory();
-
+        var receiveBuffer = _arrayPool.Rent(config.ReceiveBufferSize);
         var socket = globalContext.Socket;
 
         while (!token.IsCancellationRequested)
         {
-            var receiveResult = await socket.ReceiveAsync(tempMemory, token);
+            var receiveResult = await socket.ReceiveAsync(receiveBuffer, token);
 
             if (receiveResult is { MessageType: WebSocketMessageType.Close })
                 break;
@@ -32,7 +31,7 @@ public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IM
             if (receiveResult.Count > config.MaxMessageSize - buffer.Length)
                 throw new OutOfMemoryException($"Message exceed maximum message size '{config.MaxMessageSize}'.");
 
-            buffer.Write(tempMemory.Span[..receiveResult.Count]);
+            buffer.Write(receiveBuffer.AsSpan(0, receiveResult.Count));
 
             if (receiveResult.EndOfMessage)
             {
@@ -50,6 +49,6 @@ public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IM
             }
         }
 
-        ArrayPool<byte>.Shared.Return(tempBuffer);
+        _arrayPool.Return(receiveBuffer);
     }
 }
