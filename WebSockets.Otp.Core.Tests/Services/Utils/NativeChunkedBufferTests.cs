@@ -12,7 +12,7 @@ public class NativeChunkedBufferTests : IDisposable
     {
         foreach (var buffer in _buffers)
         {
-            buffer.Dispose();
+            ((IDisposable)buffer).Dispose();
         }
         _buffers.Clear();
     }
@@ -122,7 +122,7 @@ public class NativeChunkedBufferTests : IDisposable
     {
         // Arrange
         var buffer = CreateBuffer(10);
-        buffer.Dispose();
+        ((IDisposable)buffer).Dispose();
         var data = new byte[] { 1, 2, 3 };
 
         // Act & Assert
@@ -314,7 +314,7 @@ public class NativeChunkedBufferTests : IDisposable
     {
         // Arrange
         var buffer = CreateBuffer(10);
-        buffer.Dispose();
+        ((IDisposable)buffer).Dispose();
 
         // Act & Assert
         Assert.Throws<ObjectDisposedException>(() => buffer.Clear());
@@ -393,7 +393,7 @@ public class NativeChunkedBufferTests : IDisposable
     {
         // Arrange
         var buffer = CreateBuffer(10);
-        buffer.Dispose();
+        ((IDisposable)buffer).Dispose();
 
         // Act & Assert
         Assert.Throws<ObjectDisposedException>(() => buffer.Shrink());
@@ -535,8 +535,8 @@ public class NativeChunkedBufferTests : IDisposable
         var buffer = CreateBuffer(10);
 
         // Act
-        buffer.Dispose();
-        buffer.Dispose(); // Should not throw
+        ((IDisposable)buffer).Dispose();
+        ((IDisposable)buffer).Dispose(); // Should not throw
 
         // Assert
         Assert.True(buffer.IsDisposed());
@@ -567,7 +567,7 @@ public class NativeChunkedBufferTests : IDisposable
         // Act - Dispose all buffers
         foreach (var buffer in buffers)
         {
-            buffer.Dispose();
+            ((IDisposable)buffer).Dispose();
         }
         buffers.Clear();
 
