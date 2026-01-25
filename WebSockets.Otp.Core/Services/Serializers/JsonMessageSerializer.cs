@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Net.WebSockets;
+using System.Text.Json;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Utils;
 
@@ -9,6 +10,8 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
     private readonly JsonSerializerOptions _options = options;
 
     public string ProtocolName => "json";
+
+    public WebSocketMessageType MessageType => WebSocketMessageType.Text;
 
     public ReadOnlyMemory<byte> Serialize<T>(T message)
     {

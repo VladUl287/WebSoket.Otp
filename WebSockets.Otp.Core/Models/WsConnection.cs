@@ -11,10 +11,4 @@ public sealed class WsConnection(string connectionId, WebSocket socket, ISeriali
     public WebSocket Socket => socket;
 
     public ISerializer Serializer => serializer;
-
-    public ValueTask SendAsync<TData>(TData data, CancellationToken token)
-    {
-        var messageBytes = Serializer.Serialize(data);
-        return socket.SendAsync(messageBytes, WebSocketMessageType.Text, true, token);
-    }
 }

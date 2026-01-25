@@ -33,7 +33,11 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     public ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token)
         where TData : notnull
     {
-        return _store[connectionId].SendAsync(data, token);
+        var connection = _store[connectionId];
+        var socket = connection.Socket;
+        var serializer = connection.Serializer;
+        var message = serializer.Serialize(data);
+        return socket.SendAsync(message, serializer.MessageType, true, token);
     }
 
     public async ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
@@ -41,7 +45,10 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         foreach (var connection in _store.Where(c => connections.Contains(c.Key)))
         {
-            await connection.Value.SendAsync(data, token);
+            var socket = connection.Value.Socket;
+            var serializer = connection.Value.Serializer;
+            var message = serializer.Serialize(data);
+            await socket.SendAsync(message, serializer.MessageType, true, token);
         }
     }
 
@@ -50,7 +57,10 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     {
         foreach (var connection in _groups[group].Values)
         {
-            await connection.SendAsync(data, token);
+            var socket = connection.Socket;
+            var serializer = connection.Serializer;
+            var message = serializer.Serialize(data);
+            await socket.SendAsync(message, serializer.MessageType, true, token);
         }
     }
 
@@ -65,7 +75,10 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         {
             foreach (var connection in groupStore.Values)
             {
-                await connection.SendAsync(data, token);
+                var socket = connection.Socket;
+                var serializer = connection.Serializer;
+                var message = serializer.Serialize(data);
+                await socket.SendAsync(message, serializer.MessageType, true, token);
             }
         }
     }
