@@ -501,15 +501,11 @@ public class NativeChunkedBufferTests : IDisposable
     public void Manager_ReturnsValidMemoryManager()
     {
         // Arrange
-        var buffer = CreateBuffer(10);
+        using var buffer = CreateBuffer(10);
         buffer.Write(new byte[] { 1, 2, 3 });
 
-        // Act
-        using var manager = buffer.Manager;
-
-        // Assert
-        Assert.NotNull(manager);
-        var span = manager.Memory.Span;
+        // Act & Assert
+        var span = buffer.Memory.Span;
         Assert.Equal(3, span.Length);
         Assert.Equal(1, span[0]);
         Assert.Equal(2, span[1]);
@@ -520,125 +516,12 @@ public class NativeChunkedBufferTests : IDisposable
     public void Manager_Span_MatchesBufferSpan()
     {
         // Arrange
-        var buffer = CreateBuffer(10);
+        using var buffer = CreateBuffer(10);
         var data = new byte[] { 1, 2, 3, 4, 5 };
         buffer.Write(data);
 
         // Act & Assert
-        Assert.Equal(buffer.Span.ToArray(), buffer.Manager.Memory.Span.ToArray());
-    }
-
-    [Fact]
-    public void MemoryManager_GetSpan_ReturnsCorrectSpan()
-    {
-        // Arrange
-        var data = new byte[] { 1, 2, 3, 4, 5 };
-        var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-        try
-        {
-            unsafe
-            {
-                var ptr = (byte*)handle.AddrOfPinnedObject();
-                var manager = new MemoryManager(ptr, 5);
-
-                // Act
-                var span = manager.GetSpan();
-
-                // Assert
-                Assert.Equal(5, span.Length);
-                Assert.Equal(data, span.ToArray());
-            }
-        }
-        finally
-        {
-            handle.Free();
-        }
-    }
-
-    [Fact]
-    public void MemoryManager_Pin_WithValidIndex_ReturnsHandle()
-    {
-        // Arrange
-        var data = new byte[] { 1, 2, 3, 4, 5 };
-        var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-        try
-        {
-            unsafe
-            {
-                var ptr = (byte*)handle.AddrOfPinnedObject();
-                var manager = new MemoryManager(ptr, 5);
-
-                // Act
-                using var memoryHandle = manager.Pin(2);
-
-                // Assert
-                //Assert.Equal(ptr + 2, memoryHandle.Pointer);
-            }
-        }
-        finally
-        {
-            handle.Free();
-        }
-    }
-
-    [Fact]
-    public void MemoryManager_Pin_WithInvalidIndex_ThrowsArgumentOutOfRangeException()
-    {
-        // Arrange
-        unsafe
-        {
-            var ptr = (byte*)IntPtr.Zero;
-            var manager = new MemoryManager(ptr, 5);
-
-            // Act & Assert
-            Assert.Throws<ArgumentOutOfRangeException>(() => manager.Pin(-1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => manager.Pin(5));
-            Assert.Throws<ArgumentOutOfRangeException>(() => manager.Pin(10));
-        }
-    }
-
-    [Fact]
-    public void MemoryManager_Unpin_DoesNotThrow()
-    {
-        // Arrange
-        unsafe
-        {
-            var ptr = (byte*)IntPtr.Zero;
-            var manager = new MemoryManager(ptr, 5);
-
-            // Act & Assert (should not throw)
-            manager.Unpin();
-        }
-    }
-
-    [Fact]
-    public void MemoryManager_Dispose_DoesNotFreeMemory()
-    {
-        // Arrange
-        var data = new byte[] { 1, 2, 3 };
-        var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
-        try
-        {
-            unsafe
-            {
-                var ptr = (byte*)handle.AddrOfPinnedObject();
-                var manager = new MemoryManager(ptr, 3);
-                using (manager)
-                { }
-
-                // Act
-                //manager.Dispose();
-
-                // Assert - Memory should still be accessible
-                // (we're testing that Dispose doesn't free the original buffer)
-                var span = manager.GetSpan();
-                Assert.Equal(3, span.Length);
-            }
-        }
-        finally
-        {
-            handle.Free();
-        }
+        Assert.Equal(buffer.Span.ToArray(), buffer.Memory.Span.ToArray());
     }
 
     #endregion

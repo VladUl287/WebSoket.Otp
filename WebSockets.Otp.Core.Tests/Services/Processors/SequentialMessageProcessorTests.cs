@@ -1,6 +1,7 @@
 ﻿using Moq;
 using System.Buffers;
 using System.Net.WebSockets;
+using System.Runtime.InteropServices;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Enums;
@@ -416,16 +417,14 @@ public class SequentialMessageProcessorTests
         _messageBufferMock.Verify(x => x.SetLength(0), Times.Once);
     }
 
-    public class TestMessageBuffer : IMessageBuffer
+    public class TestMessageBuffer : MemoryManager<byte>, IMessageBuffer
     {
         private readonly List<byte> _buffer = new();
         public int Length => _buffer.Count;
 
         public int Capacity => throw new NotImplementedException();
 
-        public ReadOnlySpan<byte> Span => throw new NotImplementedException();
-
-        public IMemoryOwner<byte> Manager => throw new NotImplementedException();
+        public Span<byte> Span => throw new NotImplementedException();
 
         public void Write(ReadOnlySpan<byte> data)
         {
@@ -453,6 +452,26 @@ public class SequentialMessageProcessorTests
         }
 
         public void Write(ReadOnlySequence<byte> data)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override Span<byte> GetSpan()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override MemoryHandle Pin(int elementIndex = 0)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Unpin()
         {
             throw new NotImplementedException();
         }
