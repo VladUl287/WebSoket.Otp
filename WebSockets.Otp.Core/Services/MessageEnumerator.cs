@@ -9,41 +9,38 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class MessageEnumerator : IMessageEnumerator
 {
+    private static readonly ArrayPool<byte> _arrayPool = ArrayPool<byte>.Create();
+
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
          WebSocket socket, WsConfiguration config, IAsyncObjectPool<IMessageBuffer> bufferPool,
          [EnumeratorCancellation] CancellationToken token)
     {
-        var tempBuffer = ArrayPool<byte>.Shared.Rent(config.ReceiveBufferSize);
-        var tempMemory = tempBuffer.AsMemory();
+        var receiveBuffer = _arrayPool.Rent(config.ReceiveBufferSize);
 
-        try
+        IMessageBuffer? messageBuffer = null;
+        while (!token.IsCancellationRequested)
         {
-            IMessageBuffer? buffer = null;
-            while (!token.IsCancellationRequested)
+            messageBuffer ??= await bufferPool.Rent(token);
+
+            var receiveResult = await socket.ReceiveAsync(receiveBuffer, token);
+
+            if (receiveResult is { MessageType: WebSocketMessageType.Close })
+                break;
+
+            if (receiveResult.Count > config.MaxMessageSize - messageBuffer.Length)
+                throw new OutOfMemoryException($"Message exceed maximum message size '{config.MaxMessageSize}'.");
+
+            messageBuffer.Write(receiveBuffer.AsSpan(0, receiveResult.Count));
+
+            if (receiveResult.EndOfMessage)
             {
-                buffer ??= await bufferPool.Rent(token);
+                var completedBuffer = messageBuffer;
+                messageBuffer = null;
 
-                var receiveResult = await socket.ReceiveAsync(tempMemory, token);
-
-                if (receiveResult is { MessageType: WebSocketMessageType.Close })
-                    break;
-
-                if (receiveResult.Count > config.MaxMessageSize - buffer.Length)
-                    throw new OutOfMemoryException($"Message exceed maximum message size '{config.MaxMessageSize}'.");
-
-                buffer.Write(tempMemory.Span[..receiveResult.Count]);
-
-                if (receiveResult.EndOfMessage)
-                {
-                    var resultBuffer = buffer;
-                    buffer = null;
-                    yield return resultBuffer;
-                }
+                yield return completedBuffer;
             }
         }
-        finally
-        {
-            ArrayPool<byte>.Shared.Return(tempBuffer);
-        }
+
+        _arrayPool.Return(receiveBuffer);
     }
 }
