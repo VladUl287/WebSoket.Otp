@@ -128,12 +128,6 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : MemoryManager<byt
     public override void Unpin()
     { }
 
-    public void Dispose()
-    {
-        Dispose(disposing: true);
-        GC.SuppressFinalize(this);
-    }
-
     protected override void Dispose(bool disposing)
     {
         if (_disposed) return;
