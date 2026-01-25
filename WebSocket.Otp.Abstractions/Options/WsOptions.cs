@@ -16,7 +16,7 @@ public class WsOptions
     public int MaxDegreeOfParallelism { get; set; } = Environment.ProcessorCount;
     public TaskScheduler? TaskScheduler { get; set; }
 
-    public int MaxMessageSize { get; set; } = 64 * 1024; // 64KB
+    public int MaxMessageSize { get; set; } = 4 * 1024 * 1024; // 4MB
     public int ReceiveBufferSize { get; set; } = 4 * 1024; // 4KB
     public int BufferPoolSize { get; set; } = 1024;
     public bool ShrinkBuffers { get; set; } = true;
