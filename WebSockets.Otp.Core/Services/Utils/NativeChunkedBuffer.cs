@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Core.Services.Utils;
 
-public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
+public sealed unsafe class NativeChunkedBuffer(int capacity) : MemoryManager<byte>, IMessageBuffer
 {
     private byte* _buffer = (byte*)NativeMemory.AllocZeroed((uint)capacity);
 
@@ -16,13 +16,24 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
     public int Length => _length;
     public int Capacity => _capacity;
 
-    public ReadOnlySpan<byte> Span => new Span<byte>(_buffer, _length);
-    public IMemoryOwner<byte> Manager => new MemoryManager(_buffer, _length);
+    public Span<byte> Span => new(_buffer, _length);
 
     public void Write(ReadOnlySequence<byte> data)
     {
-        foreach (var part in data)
-            Write(part.Span);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_length > Array.MaxLength - data.Length)
+            throw new OutOfMemoryException("The combined length would exceed maximum array size.");
+
+        var dataLength = (int)data.Length;
+
+        if (_length > _capacity - dataLength)
+            EnsureCapacity(_length + dataLength);
+
+        var target = new Span<byte>(_buffer + _length, dataLength);
+        data.CopyTo(target);
+
+        _length += dataLength;
     }
 
     public void Write(ReadOnlySpan<byte> data)
@@ -44,6 +55,8 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
 
     private void EnsureCapacity(int requiredCapacity)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (requiredCapacity <= _capacity)
             return;
 
@@ -75,6 +88,8 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
 
     public void SetLength(int length)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         if (length < 0 || length > Array.MaxLength)
             throw new ArgumentOutOfRangeException(nameof(length));
 
@@ -89,6 +104,8 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
 
     private void Reallocate(int capacity)
     {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
         void* newPtr = NativeMemory.Realloc(_buffer, (uint)capacity);
         if (newPtr is null)
             throw new OutOfMemoryException("Realloc failed.");
@@ -98,38 +115,41 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : IMessageBuffer
         _length = Math.Min(_length, capacity);
     }
 
-    public void Dispose()
-    {
-        if (_disposed) return;
-
-        NativeMemory.Free(_buffer);
-        _buffer = null;
-        _capacity = 0;
-        _length = 0;
-        _disposed = true;
-        GC.SuppressFinalize(this);
-    }
-
-    ~NativeChunkedBuffer()
-    {
-        if (_buffer is not null)
-            NativeMemory.Free(_buffer);
-    }
-}
-
-public sealed unsafe class MemoryManager(byte* pointer, int length) : MemoryManager<byte>
-{
-    public override Span<byte> GetSpan() => new(pointer, length);
+    public override Span<byte> GetSpan() => new(_buffer, _length);
 
     public override MemoryHandle Pin(int elementIndex = 0)
     {
-        if ((uint)elementIndex >= (uint)length)
+        if ((uint)elementIndex >= (uint)_length)
             throw new ArgumentOutOfRangeException(nameof(elementIndex));
 
-        return new MemoryHandle(pointer + elementIndex);
+        return new MemoryHandle(_buffer + elementIndex);
     }
 
-    public override void Unpin() { }
+    public override void Unpin()
+    { }
 
-    protected override void Dispose(bool disposing) { }
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        if (_buffer is not null)
+        {
+            NativeMemory.Free(_buffer);
+            _buffer = null;
+        }
+
+        if (disposing)
+        {
+            _capacity = 0;
+            _length = 0;
+        }
+
+        _disposed = true;
+    }
 }

@@ -6,8 +6,10 @@ public interface IMessageBuffer : IDisposable
 {
     public int Length { get; }
     public int Capacity { get; }
-    ReadOnlySpan<byte> Span { get; }
-    IMemoryOwner<byte> Manager { get; }
+
+    Span<byte> Span { get; }
+    Memory<byte> Memory { get; }
+
     void Write(ReadOnlySpan<byte> data);
     void Write(ReadOnlySequence<byte> data);
     void SetLength(int length);
