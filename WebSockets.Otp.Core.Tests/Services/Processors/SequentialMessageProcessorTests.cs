@@ -1,7 +1,6 @@
 ﻿using Moq;
 using System.Buffers;
 using System.Net.WebSockets;
-using System.Runtime.InteropServices;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Enums;
@@ -9,7 +8,6 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Core.Services.Processors;
-using WebSockets.Otp.Core.Services.Utils;
 
 namespace WebSockets.Otp.Core.Tests.Services.Processors;
 
@@ -159,14 +157,14 @@ public class SequentialMessageProcessorTests
     {
         // Arrange
         var token = CancellationToken.None;
-        var closeResult = new ValueWebSocketReceiveResult(
+        var closeResult = new WebSocketReceiveResult(
             0,
             WebSocketMessageType.Close,
             endOfMessage: true);
 
         _socketMock
             .Setup(x => x.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(closeResult);
 
@@ -191,19 +189,19 @@ public class SequentialMessageProcessorTests
         // Arrange
         var token = CancellationToken.None;
         var largeData = new byte[2048];
-        var receiveResult = new ValueWebSocketReceiveResult(
+        var receiveResult = new WebSocketReceiveResult(
             largeData.Length,
             WebSocketMessageType.Binary,
             endOfMessage: false);
 
         _socketMock
             .Setup(x => x.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(receiveResult)
-            .Callback((Memory<byte> memory, CancellationToken ct) =>
+            .Callback((ArraySegment<byte> memory, CancellationToken ct) =>
             {
-                largeData.CopyTo(memory);
+                largeData.CopyTo(memory.AsSpan());
             });
 
         _messageBufferMock.SetupGet(x => x.Length).Returns(3000); // Already at 3000 bytes
@@ -223,36 +221,44 @@ public class SequentialMessageProcessorTests
         // Arrange
         var token = CancellationToken.None;
         var messageData = new byte[] { 1, 2, 3 };
-        var receiveResult = new ValueWebSocketReceiveResult(
+        var receiveResult = new WebSocketReceiveResult(
             messageData.Length,
             WebSocketMessageType.Binary,
             endOfMessage: true);
 
+        using var bufferMock = new TestMessageBuffer();
+        _bufferFactoryMock
+            .Setup(c => c.Create(It.IsAny<int>()))
+            .Returns(bufferMock);
+
         var first = true;
         _socketMock
             .Setup(x => x.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(() =>
             {
-                var result = first ? receiveResult : new ValueWebSocketReceiveResult(0, WebSocketMessageType.Close, true);
+                var result = first ? receiveResult : new WebSocketReceiveResult(0, WebSocketMessageType.Close, true);
                 first = false;
                 return result;
             })
-            .Callback((Memory<byte> memory, CancellationToken ct) =>
+            .Callback((ArraySegment<byte> memory, CancellationToken ct) =>
             {
-                messageData.CopyTo(memory);
+                messageData.CopyTo(memory.AsSpan());
             });
 
         // Act
         await _processor.Process(
             _globalContextMock.Object,
             _serializerMock.Object,
-            _config,
+            new WsConfiguration(new WsOptions
+            {
+                ShrinkBuffers = true
+            }),
             token);
 
         // Assert
-        _messageBufferMock.Verify(x => x.Shrink(), Times.Once);
+        Assert.Equal(1, bufferMock.ShrinkCount);
     }
 
     [Fact]
@@ -261,22 +267,31 @@ public class SequentialMessageProcessorTests
         // Arrange
         var token = CancellationToken.None;
         var messageData = new byte[] { 1, 2, 3 };
-        var receiveResult = new ValueWebSocketReceiveResult(
+        var receiveResult = new WebSocketReceiveResult(
             messageData.Length,
             WebSocketMessageType.Binary,
             endOfMessage: true);
 
+        using var bufferMock = new TestMessageBuffer();
+        _bufferFactoryMock
+            .Setup(c => c.Create(It.IsAny<int>()))
+            .Returns(bufferMock);
+
+        var first = true;
         _socketMock
             .Setup(x => x.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(receiveResult)
-            .Callback((Memory<byte> memory, CancellationToken ct) =>
+            .ReturnsAsync(() =>
             {
-                messageData.CopyTo(memory);
+                var result = first ? receiveResult : new WebSocketReceiveResult(0, WebSocketMessageType.Close, true);
+                first = false;
+                return result;
+            })
+            .Callback((ArraySegment<byte> memory, CancellationToken ct) =>
+            {
+                messageData.CopyTo(memory.AsSpan());
             });
-
-        _messageBufferMock.SetupGet(x => x.Length).Returns(0);
 
         // Act
         await _processor.Process(
@@ -286,7 +301,7 @@ public class SequentialMessageProcessorTests
             token);
 
         // Assert
-        _messageBufferMock.Verify(x => x.Shrink(), Times.Never);
+        Assert.Equal(0, bufferMock.ShrinkCount);
     }
 
     [Fact]
@@ -396,7 +411,6 @@ public class SequentialMessageProcessorTests
                 messageData.CopyTo(memory);
             });
 
-        _messageBufferMock.SetupGet(x => x.Length).Returns(0);
         _dispatcherMock
             .Setup(x => x.DispatchMessage(
                 It.IsAny<IGlobalContext>(),
@@ -419,47 +433,13 @@ public class SequentialMessageProcessorTests
 
     public class TestMessageBuffer : MemoryManager<byte>, IMessageBuffer
     {
-        private readonly List<byte> _buffer = new();
-        public int Length => _buffer.Count;
+        public int ShrinkCount = 0;
+
+        public int Length => 0;
 
         public int Capacity => throw new NotImplementedException();
 
         public Span<byte> Span => throw new NotImplementedException();
-
-        public void Write(ReadOnlySpan<byte> data)
-        {
-            _buffer.AddRange(data.ToArray());
-        }
-
-        public void SetLength(int length)
-        {
-            if (length < _buffer.Count)
-            {
-                _buffer.RemoveRange(length, _buffer.Count - length);
-            }
-        }
-
-        public void Shrink()
-        {
-            // Implementation for testing
-        }
-
-        public byte[] GetWrittenData() => _buffer.ToArray();
-
-        public void Dispose()
-        {
-            _buffer.Clear();
-        }
-
-        public void Write(ReadOnlySequence<byte> data)
-        {
-            throw new NotImplementedException();
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            throw new NotImplementedException();
-        }
 
         public override Span<byte> GetSpan()
         {
@@ -471,9 +451,24 @@ public class SequentialMessageProcessorTests
             throw new NotImplementedException();
         }
 
-        public override void Unpin()
+        public void SetLength(int length)
+        { }
+
+        public void Shrink()
         {
-            throw new NotImplementedException();
+            ShrinkCount++;
         }
+
+        public override void Unpin()
+        { }
+
+        public void Write(ReadOnlySpan<byte> data)
+        { }
+
+        public void Write(ReadOnlySequence<byte> data)
+        { }
+
+        protected override void Dispose(bool disposing)
+        { }
     }
 }

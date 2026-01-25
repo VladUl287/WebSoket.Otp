@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using WebSockets.Otp.Core.Services.Serializers;
 using WebSockets.Otp.Core.Services.Utils;
 
@@ -11,7 +12,12 @@ public sealed class JsonMessageSerializerTests
 
     public JsonMessageSerializerTests()
     {
-        _sut = new JsonMessageSerializer(new());
+        _sut = new JsonMessageSerializer(new()
+        {
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+        });
     }
 
     #region Constructor Tests
