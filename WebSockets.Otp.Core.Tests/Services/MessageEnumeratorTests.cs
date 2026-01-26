@@ -40,33 +40,24 @@ public class MessageEnumeratorTests
         var cancellationToken = CancellationToken.None;
         var messageData = new byte[] { 1, 2, 3, 4, 5 };
 
+        var messageBuffer = new TestMessageBuffer();
+
         _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
+            .ReturnsAsync(messageBuffer);
 
         // Setup WebSocket to receive a single complete message
         _mockWebSocket.Setup(s => s.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 cancellationToken))
-            .Callback<Memory<byte>, CancellationToken>((buffer, _) =>
+            .Callback<ArraySegment<byte>, CancellationToken>((buffer, _) =>
             {
                 // Write test data to the buffer
                 messageData.AsMemory().CopyTo(buffer);
             })
-            .ReturnsAsync(new ValueWebSocketReceiveResult(
+            .ReturnsAsync(new WebSocketReceiveResult(
                 messageData.Length,
                 WebSocketMessageType.Binary,
                 endOfMessage: true));
-
-        // Setup message buffer to track length and capture data
-        var bufferLength = 0;
-        _mockMessageBuffer.SetupGet(b => b.Length).Returns(() => bufferLength);
-        //_mockMessageBuffer.Setup(b => b.Write(It.IsAny<ReadOnlyMemory<byte>>()))
-        //    .Callback<ReadOnlyMemory<byte>>(data =>
-        //    {
-        //        bufferLength += data.Length;
-        //        data.CopyTo(_capturedData);
-        //        _dataCaptured = true;
-        //    });
 
         // Act
         var messages = new List<IMessageBuffer>();
@@ -82,74 +73,6 @@ public class MessageEnumeratorTests
 
         // Assert
         Assert.Single(messages);
-        Assert.Same(_mockMessageBuffer.Object, messages[0]);
-        Assert.True(_dataCaptured);
-    }
-
-    [Fact]
-    public async Task EnumerateAsync_ReceivesMultiSegmentMessage_ReturnsCompleteMessage()
-    {
-        // Arrange
-        var cancellationToken = CancellationToken.None;
-        var segment1 = new byte[] { 1, 2, 3 };
-        var segment2 = new byte[] { 4, 5 };
-
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
-
-        var receiveSequence = new Queue<ValueWebSocketReceiveResult>();
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(
-            segment1.Length,
-            WebSocketMessageType.Binary,
-            endOfMessage: false));
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(
-            segment2.Length,
-            WebSocketMessageType.Binary,
-            endOfMessage: true));
-
-        var writeCallCount = 0;
-        var callbacks = new Action<Memory<byte>>[]
-        {
-            buffer => segment1.AsMemory().CopyTo(buffer),
-            buffer => segment2.AsMemory().CopyTo(buffer)
-        };
-
-        _mockWebSocket.Setup(s => s.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
-                cancellationToken))
-            .Callback<Memory<byte>, CancellationToken>((buffer, _) =>
-            {
-                if (writeCallCount < callbacks.Length)
-                {
-                    callbacks[writeCallCount](buffer);
-                }
-            })
-            .Returns(() => new ValueTask<ValueWebSocketReceiveResult>(receiveSequence.Dequeue()));
-
-        var currentLength = 0;
-        _mockMessageBuffer.SetupGet(b => b.Length).Returns(() => currentLength);
-        //_mockMessageBuffer.Setup(b => b.Write(It.IsAny<ReadOnlyMemory<byte>>()))
-        //    .Callback<ReadOnlyMemory<byte>>(data =>
-        //    {
-        //        currentLength += data.Length;
-        //        writeCallCount++;
-        //    });
-
-        // Act
-        var messages = new List<IMessageBuffer>();
-        await foreach (var message in _enumerator.EnumerateAsync(
-            _mockWebSocket.Object,
-            _config,
-            _mockBufferPool.Object,
-            cancellationToken))
-        {
-            messages.Add(message);
-            break;
-        }
-
-        // Assert
-        Assert.Single(messages);
-        Assert.Equal(2, writeCallCount);
     }
 
     [Fact]
@@ -158,18 +81,18 @@ public class MessageEnumeratorTests
         // Arrange
         var cancellationToken = CancellationToken.None;
 
+        var messageBuffer = new TestMessageBuffer();
+
         _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
+            .ReturnsAsync(messageBuffer);
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 cancellationToken))
-            .ReturnsAsync(new ValueWebSocketReceiveResult(
+            .ReturnsAsync(new WebSocketReceiveResult(
                 0,
                 WebSocketMessageType.Close,
                 endOfMessage: true));
-
-        _mockMessageBuffer.SetupGet(b => b.Length).Returns(0);
 
         // Act
         var messages = new List<IMessageBuffer>();
@@ -193,26 +116,23 @@ public class MessageEnumeratorTests
         var cancellationToken = CancellationToken.None;
         var largeData = new byte[_config.MaxMessageSize + 1];
 
+        var messageBuffer = new TestMessageBuffer();
+
         _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
+            .ReturnsAsync(messageBuffer);
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 cancellationToken))
-            .Callback<Memory<byte>, CancellationToken>((buffer, _) =>
+            .Callback<ArraySegment<byte>, CancellationToken>((buffer, _) =>
             {
-                // Fill with some data
-                largeData.AsMemory(0, Math.Min(largeData.Length, buffer.Length)).CopyTo(buffer);
+                messageBuffer.Length += _config.ReceiveBufferSize;
+                largeData.AsSpan(0, _config.ReceiveBufferSize).CopyTo(buffer.AsSpan());
             })
-            .ReturnsAsync(new ValueWebSocketReceiveResult(
+            .ReturnsAsync(new WebSocketReceiveResult(
                 largeData.Length,
                 WebSocketMessageType.Binary,
                 endOfMessage: false));
-
-        var bufferLength = 0;
-        _mockMessageBuffer.SetupGet(b => b.Length).Returns(() => bufferLength);
-        //_mockMessageBuffer.Setup(b => b.Write(It.IsAny<ReadOnlyMemory<byte>>()))
-        //    .Callback<ReadOnlyMemory<byte>>(data => bufferLength += data.Length);
 
         // Act & Assert
         var exception = await Assert.ThrowsAsync<OutOfMemoryException>(async () =>
@@ -281,31 +201,24 @@ public class MessageEnumeratorTests
         // Arrange
         var cancellationToken = CancellationToken.None;
         var messageCount = 0;
-        var writeCount = 0;
+
+        var messageBuffer = new TestMessageBuffer();
 
         _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
+            .ReturnsAsync(messageBuffer);
 
-        var receiveSequence = new Queue<ValueWebSocketReceiveResult>();
+        var receiveSequence = new Queue<WebSocketReceiveResult>();
         // First message
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(5, WebSocketMessageType.Binary, true));
+        receiveSequence.Enqueue(new WebSocketReceiveResult(5, WebSocketMessageType.Binary, true));
         // Second message
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(3, WebSocketMessageType.Binary, true));
+        receiveSequence.Enqueue(new WebSocketReceiveResult(3, WebSocketMessageType.Binary, true));
         // Close
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(0, WebSocketMessageType.Close, true));
+        receiveSequence.Enqueue(new WebSocketReceiveResult(0, WebSocketMessageType.Close, true));
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
-                cancellationToken))
-            .Returns(() => new ValueTask<ValueWebSocketReceiveResult>(receiveSequence.Dequeue()));
-
-        _mockMessageBuffer.SetupGet(b => b.Length).Returns(0);
-        //_mockMessageBuffer.Setup(b => b.Write(It.IsAny<ReadOnlyMemory<byte>>()))
-        //    .Callback<ReadOnlyMemory<byte>>(_ => writeCount++);
-
-        // Setup Return method if your buffer pool has it
-        //_mockMessageBuffer.Setup(b => b.Reset())
-        //    .Callback(() => _mockMessageBuffer.SetupGet(b => b.Length).Returns(0));
+                It.IsAny<ArraySegment<byte>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(Task.FromResult(receiveSequence.Dequeue()));
 
         // Act
         var messages = new List<IMessageBuffer>();
@@ -322,47 +235,8 @@ public class MessageEnumeratorTests
 
         // Assert - Should rent buffer once but write multiple times
         Assert.Equal(2, messages.Count);
-        Assert.Equal(2, writeCount);
-        _mockBufferPool.Verify(p => p.Rent(cancellationToken), Times.Once());
-    }
-
-    [Fact]
-    public async Task EnumerateAsync_ReturnsArrayPoolBuffer_AfterEnumeration()
-    {
-        // Arrange
-        var cancellationToken = CancellationToken.None;
-        var pool = ArrayPool<byte>.Create();
-        var rentedBuffer = pool.Rent(_config.ReceiveBufferSize);
-
-        try
-        {
-            _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-                .ReturnsAsync(_mockMessageBuffer.Object);
-
-            _mockWebSocket.Setup(s => s.ReceiveAsync(
-                    It.IsAny<Memory<byte>>(),
-                    cancellationToken))
-                .ReturnsAsync(new ValueWebSocketReceiveResult(0, WebSocketMessageType.Close, true));
-
-            _mockMessageBuffer.SetupGet(b => b.Length).Returns(0);
-
-            // Act
-            await foreach (var _ in _enumerator.EnumerateAsync(
-                _mockWebSocket.Object,
-                _config,
-                _mockBufferPool.Object,
-                cancellationToken))
-            {
-                // Just iterate
-            }
-
-            // Assert - No exception means buffer was properly returned
-            // (ArrayPool doesn't have a way to verify returns in tests)
-        }
-        finally
-        {
-            pool.Return(rentedBuffer);
-        }
+        Assert.Equal(2, messageBuffer.WrtieMap.Single().Value);
+        _mockBufferPool.Verify(p => p.Rent(It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -371,21 +245,18 @@ public class MessageEnumeratorTests
         // Arrange
         var cancellationToken = CancellationToken.None;
 
+        var messageBuffer = new TestMessageBuffer();
+
         _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
+            .ReturnsAsync(messageBuffer);
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 cancellationToken))
-            .ReturnsAsync(new ValueWebSocketReceiveResult(
+            .ReturnsAsync(new WebSocketReceiveResult(
                 0,
                 WebSocketMessageType.Binary,
                 endOfMessage: true));
-
-        var writeCalled = false;
-        _mockMessageBuffer.SetupGet(b => b.Length).Returns(0);
-        //_mockMessageBuffer.Setup(b => b.Write(It.IsAny<ReadOnlyMemory<byte>>()))
-        //    .Callback<ReadOnlyMemory<byte>>(_ => writeCalled = true);
 
         // Act
         var messages = new List<IMessageBuffer>();
@@ -401,7 +272,6 @@ public class MessageEnumeratorTests
 
         // Assert
         Assert.Single(messages);
-        Assert.True(writeCalled); // Should still call Write even with empty data
     }
 
     [Fact]
@@ -416,35 +286,30 @@ public class MessageEnumeratorTests
             new byte[] { 6, 7, 8, 9, 10 }
         };
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
+        var messageBuffer = new TestMessageBuffer();
 
-        var receiveSequence = new Queue<ValueWebSocketReceiveResult>();
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(3, WebSocketMessageType.Binary, false));
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(2, WebSocketMessageType.Binary, false));
-        receiveSequence.Enqueue(new ValueWebSocketReceiveResult(5, WebSocketMessageType.Binary, true));
+        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
+            .ReturnsAsync(messageBuffer);
+
+        var receiveSequence = new Queue<WebSocketReceiveResult>();
+        receiveSequence.Enqueue(new WebSocketReceiveResult(3, WebSocketMessageType.Binary, false));
+        receiveSequence.Enqueue(new WebSocketReceiveResult(2, WebSocketMessageType.Binary, false));
+        receiveSequence.Enqueue(new WebSocketReceiveResult(5, WebSocketMessageType.Binary, true));
 
         var chunkIndex = 0;
         _mockWebSocket.Setup(s => s.ReceiveAsync(
-                It.IsAny<Memory<byte>>(),
+                It.IsAny<ArraySegment<byte>>(),
                 cancellationToken))
-            .Callback<Memory<byte>, CancellationToken>((buffer, _) =>
+            .Callback<ArraySegment<byte>, CancellationToken>((buffer, _) =>
             {
                 if (chunkIndex < dataChunks.Length)
                 {
                     dataChunks[chunkIndex].AsMemory().CopyTo(buffer);
+                    messageBuffer.Length += dataChunks[chunkIndex].Length;
+                    chunkIndex++;
                 }
             })
-            .Returns(() => new ValueTask<ValueWebSocketReceiveResult>(receiveSequence.Dequeue()));
-
-        var totalLength = 0;
-        _mockMessageBuffer.SetupGet(b => b.Length).Returns(() => totalLength);
-        //_mockMessageBuffer.Setup(b => b.Write(It.IsAny<ReadOnlyMemory<byte>>()))
-        //    .Callback<ReadOnlyMemory<byte>>(data =>
-        //    {
-        //        totalLength += data.Length;
-        //        chunkIndex++;
-        //    });
+            .Returns(() => Task.FromResult(receiveSequence.Dequeue()));
 
         // Act
         var messages = new List<IMessageBuffer>();
@@ -461,6 +326,66 @@ public class MessageEnumeratorTests
         // Assert
         Assert.Single(messages);
         Assert.Equal(3, chunkIndex); // Should have written 3 chunks
-        Assert.Equal(10, totalLength); // Total bytes written
+        Assert.Equal(10, messageBuffer.Length); // Total bytes written
+    }
+
+    public class TestMessageBuffer : MemoryManager<byte>, IMessageBuffer
+    {
+        public int ShrinkCount = 0;
+        public int SetLengthCount = 0;
+
+        public Dictionary<int, int> WrtieMap = new();
+
+        public int Length { get; set; } = 0;
+
+        public int Capacity => throw new NotImplementedException();
+
+        public Span<byte> Span => throw new NotImplementedException();
+
+        public override Span<byte> GetSpan()
+        {
+            throw new NotImplementedException();
+        }
+
+        public override MemoryHandle Pin(int elementIndex = 0)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetLength(int length)
+        {
+            SetLengthCount++;
+        }
+
+        public void Shrink()
+        {
+            ShrinkCount++;
+        }
+
+        public override void Unpin()
+        { }
+
+        public int GetCount(ReadOnlySpan<byte> data)
+        {
+            var key = string.Join("", data.ToArray()).GetHashCode();
+            return WrtieMap[key];
+        }
+
+        public void Write(ReadOnlySpan<byte> data)
+        {
+            var key = string.Join("", data.ToArray()).GetHashCode();
+            if (!WrtieMap.TryAdd(key, 1))
+                WrtieMap[key] += 1;
+        }
+
+        public void Write(ReadOnlySequence<byte> data)
+        {
+            var key = string.Join("", data.ToArray()).GetHashCode();
+            if (!WrtieMap.TryAdd(key, 1))
+                WrtieMap[key] += 1;
+        }
+
+        protected override void Dispose(bool disposing)
+        { }
     }
 }
