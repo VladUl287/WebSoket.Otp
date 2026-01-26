@@ -189,8 +189,7 @@ public class ChatEndpoint : WsEndpoint<ChatMessage>
 
 * Pre-alpha: API may change
 * No built-in reconnection handling: Client must handle reconnection
-* Limited protocol support: Only raw WebSocket messages (no Socket.IO, SignalR protocol)
-* No built-in scaling: Single-server by default (extendable)
+* No built-in scaling: Single-server by default (yet)
 
 ## Roadmap
 
