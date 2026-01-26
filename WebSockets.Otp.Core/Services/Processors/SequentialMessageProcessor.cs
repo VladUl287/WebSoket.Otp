@@ -1,4 +1,5 @@
-﻿using System.Buffers;
+﻿using Microsoft.Extensions.Logging;
+using System.Buffers;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
@@ -6,10 +7,12 @@ using WebSockets.Otp.Abstractions.Enums;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
+using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Services.Processors;
 
-public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory) : IMessageProcessor
+public sealed class SequentialMessageProcessor(
+    IMessageDispatcher dispatcher, IMessageBufferFactory bufferFactory, ILogger<SequentialMessageProcessor> logger) : IMessageProcessor
 {
     private static readonly ArrayPool<byte> _arrayPool = ArrayPool<byte>.Create();
 
@@ -38,6 +41,10 @@ public sealed class SequentialMessageProcessor(IMessageDispatcher dispatcher, IM
                 try
                 {
                     await dispatcher.DispatchMessage(globalContext, serializer, buffer, token);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogDispatchMessageFailure(ex);
                 }
                 finally
                 {
