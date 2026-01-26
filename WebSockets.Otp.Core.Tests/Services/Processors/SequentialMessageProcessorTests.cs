@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,7 +48,8 @@ public class SequentialMessageProcessorTests
 
         _processor = new SequentialMessageProcessor(
             _dispatcherMock.Object,
-            _bufferFactoryMock.Object);
+            _bufferFactoryMock.Object,
+            NullLogger<SequentialMessageProcessor>.Instance);
     }
 
     [Fact]
