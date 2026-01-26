@@ -33,7 +33,7 @@ public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
 
 public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
 {
-    public async ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token)
+    public async ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token = default)
         where TResponse : notnull
     {
         if (_targetAll)
@@ -53,7 +53,7 @@ public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<
 public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
     where TResponse : notnull
 {
-    public async ValueTask SendAsync(TResponse data, CancellationToken token)
+    public async ValueTask SendAsync(TResponse data, CancellationToken token = default)
     {
         if (_targetAll)
         {
@@ -68,35 +68,3 @@ public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendM
             await _manager.SendAsync(_groups, data, token);
     }
 }
-
-//public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
-//{
-//    protected readonly IWsConnectionManager _manager = manager;
-//    protected readonly HashSet<string> _connectionIds = [];
-//    protected readonly HashSet<string> _groups = [];
-//    protected bool _targetAll = false;
-
-//    protected internal SendManagerBase<TDerived> AddClient(string connectionId)
-//    {
-//        if (!_targetAll)
-//            _connectionIds.Add(connectionId);
-//        return this;
-//    }
-
-//    protected internal SendManagerBase<TDerived> AddGroup(string groupName)
-//    {
-//        if (!_targetAll)
-//            _groups.Add(groupName);
-//        return this;
-//    }
-
-//    protected internal SendManagerBase<TDerived> SetAll()
-//    {
-//        _targetAll = true;
-//        return this;
-//    }
-
-//    public abstract TDerived Client(string connectionId);
-//    public abstract TDerived Group(string groupName);
-//    public abstract TDerived All();
-//}
