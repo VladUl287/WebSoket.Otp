@@ -139,20 +139,20 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new { Message = "Hello" };
-        var serializedData = new ArraySegment<byte>(new byte[] { 1, 2, 3 });
+        var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(System.Net.WebSockets.WebSocketMessageType.Text);
-        _mockSocket.Setup(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None))
-            .Returns(Task.CompletedTask);
+        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask);
 
         // Act
         await _connectionManager.SendAsync("test-connection-1", testData, CancellationToken.None);
 
         // Assert
         _mockSerializer.Verify(s => s.Serialize(testData), Times.Once);
-        _mockSocket.Verify(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None), Times.Once);
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Once);
     }
 
     [Fact]
@@ -171,10 +171,10 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new { Message = "Broadcast" };
-        var serializedData = new ArraySegment<byte>(new byte[] { 1, 2, 3 });
+        var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
-        var mockConnection2 = CreateMockConnection("test-connection-2");
-        var mockConnection3 = CreateMockConnection("test-connection-3");
+        var mockConnection2 = CreateMockConnection("test-connection-2", _mockSocket, _mockSerializer);
+        var mockConnection3 = CreateMockConnection("test-connection-3", _mockSocket, _mockSerializer);
 
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
@@ -183,10 +183,10 @@ public class InMemoryConnectionManagerTests
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
         _mockSerializer.SetupGet(s => s.MessageType).Returns(System.Net.WebSockets.WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None))
-            .Returns(Task.CompletedTask);
+            .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _connectionManager.SendAsync(new[] { "test-connection-1", "test-connection-2" }, testData, CancellationToken.None);
+        await _connectionManager.SendAsync(["test-connection-1", "test-connection-2"], testData, CancellationToken.None);
 
         // Assert - should send to connections 1 and 2, but not 3
         _mockSerializer.Verify(s => s.Serialize(testData), Times.Exactly(2));
@@ -198,51 +198,54 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new { Message = "Broadcast" };
-        var serializedData = new ArraySegment<byte>(new byte[] { 1, 2, 3 });
+        var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
-        var mockConnection2 = CreateMockConnection("test-connection-2");
+        var mockConnection2 = CreateMockConnection("test-connection-2", _mockSocket, _mockSerializer);
 
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
 
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(System.Net.WebSockets.WebSocketMessageType.Text);
-        _mockSocket.Setup(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None))
-            .Returns(Task.CompletedTask);
+        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask);
 
         // Act
         await _connectionManager.SendAsync(testData, CancellationToken.None);
 
         // Assert - should send to all connections
         _mockSerializer.Verify(s => s.Serialize(testData), Times.Exactly(2));
-        _mockSocket.Verify(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(2));
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(2));
     }
+
+    public sealed record GroupMessage(string Message);
 
     [Fact]
     public async Task SendToGroupAsync_SingleGroup_SendsToAllConnectionsInGroup()
     {
         // Arrange
-        var testData = new { Message = "GroupMessage" };
-        var serializedData = new ArraySegment<byte>(new byte[] { 1, 2, 3 });
+        var testData = new GroupMessage("GroupMessage");
+        var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
-        var mockConnection2 = CreateMockConnection("test-connection-2");
+        var mockConnection2 = CreateMockConnection("test-connection-2", _mockSocket, _mockSerializer);
 
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
         await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
         await _connectionManager.AddToGroupAsync("group1", "test-connection-2", CancellationToken.None);
 
-        _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(System.Net.WebSockets.WebSocketMessageType.Text);
-        _mockSocket.Setup(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None))
-            .Returns(Task.CompletedTask);
+        _mockSerializer.Setup(s => s.Serialize(testData))
+            .Returns(serializedData);
+        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask);
 
         // Act
         await _connectionManager.SendToGroupAsync("group1", testData, CancellationToken.None);
 
-        // Assert - should send to both connections in group1
+        // Assert
         _mockSerializer.Verify(s => s.Serialize(testData), Times.Exactly(2));
-        _mockSocket.Verify(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(2));
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(2));
     }
 
     [Fact]
@@ -261,10 +264,10 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new { Message = "MultiGroupMessage" };
-        var serializedData = new ArraySegment<byte>(new byte[] { 1, 2, 3 });
+        var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
-        var mockConnection2 = CreateMockConnection("test-connection-2");
-        var mockConnection3 = CreateMockConnection("test-connection-3");
+        var mockConnection2 = CreateMockConnection("test-connection-2", _mockSocket, _mockSerializer);
+        var mockConnection3 = CreateMockConnection("test-connection-3", _mockSocket, _mockSerializer);
 
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
@@ -275,16 +278,16 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.AddToGroupAsync("group2", "test-connection-3", CancellationToken.None);
 
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(System.Net.WebSockets.WebSocketMessageType.Text);
-        _mockSocket.Setup(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None))
-            .Returns(Task.CompletedTask);
+        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
+            .Returns(ValueTask.CompletedTask);
 
         // Act
         await _connectionManager.SendToGroupAsync(new[] { "group1", "group2" }, testData, CancellationToken.None);
 
         // Assert - should send to connection1 (group1) and connections 2 & 3 (group2)
         _mockSerializer.Verify(s => s.Serialize(testData), Times.Exactly(3));
-        _mockSocket.Verify(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(3));
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(3));
     }
 
     [Fact]
@@ -350,6 +353,28 @@ public class InMemoryConnectionManagerTests
     {
         var mockSocket = new Mock<WebSocket>();
         var mockSerializer = new Mock<ISerializer>();
+        var mockConnection = new Mock<IWsConnection>();
+
+        mockConnection.SetupGet(c => c.Id).Returns(connectionId);
+        mockConnection.SetupGet(c => c.Socket).Returns(mockSocket.Object);
+        mockConnection.SetupGet(c => c.Serializer).Returns(mockSerializer.Object);
+
+        mockSerializer.Setup(s => s.Serialize(It.IsAny<object>()))
+            .Returns(new ArraySegment<byte>(new byte[] { 1, 2, 3 }));
+        mockSerializer.SetupGet(s => s.MessageType)
+            .Returns(System.Net.WebSockets.WebSocketMessageType.Text);
+
+        mockSocket.Setup(s => s.SendAsync(It.IsAny<ArraySegment<byte>>(),
+            It.IsAny<System.Net.WebSockets.WebSocketMessageType>(),
+            It.IsAny<bool>(),
+            It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return mockConnection;
+    }
+
+    private Mock<IWsConnection> CreateMockConnection(string connectionId, Mock<WebSocket> mockSocket, Mock<ISerializer> mockSerializer)
+    {
         var mockConnection = new Mock<IWsConnection>();
 
         mockConnection.SetupGet(c => c.Id).Returns(connectionId);
