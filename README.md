@@ -1,5 +1,8 @@
 # WebSockets.Otp
 
+[![NuGet Status](https://img.shields.io/nuget/v/WebSockets.Otp.Abstractions.svg?label=WebSockets.Otp.Abstractions)](https://www.nuget.org/packages/WebSockets.Otp.Abstractions/)
+[![NuGet Status](https://img.shields.io/nuget/v/WebSockets.Otp.Core.svg?label=WebSockets.Otp.Core)](https://www.nuget.org/packages/WebSockets.Otp.Core/)
+
 A minimal WebSocket library for ASP.NET Core inspired by FastEndpoints architecture. Provides clean endpoint-based API for building real-time applications.
 
 ## Quick Start
