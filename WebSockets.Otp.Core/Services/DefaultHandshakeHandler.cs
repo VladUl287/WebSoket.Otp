@@ -30,7 +30,7 @@ public sealed class DefaultHandshakeHandler(
 
         logger.HandshakeAwaitHandshakeMessage(traceId);
 
-        using var handshakeBuffer = await messagesEnumerable.FirstOrDefaultAsync(token);
+        using var handshakeBuffer = await AsyncEnumerableExtensions.FirstOrDefaultAsync(messagesEnumerable, token);
         if (handshakeBuffer is null)
         {
             logger.HandshakeFailReadHandshakeMessage(traceId);

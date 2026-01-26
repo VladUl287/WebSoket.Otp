@@ -19,7 +19,11 @@ public sealed class AsyncObjectPool<TObject>(int capacity, Func<TObject> factory
 
     private int _disposed;
     private int _created;
+#if NET9_0_OR_GREATER
     private readonly Lock _creationLock = new();
+#else
+    private readonly object _creationLock = new();
+#endif
 
     public ValueTask<TObject> Rent(CancellationToken token = default)
     {
