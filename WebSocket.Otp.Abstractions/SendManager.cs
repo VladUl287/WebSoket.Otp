@@ -50,7 +50,7 @@ public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<
     }
 }
 
-public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
+public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendManagerBase<SendManager<TResponse>>(manager)
     where TResponse : notnull
 {
     public async ValueTask SendAsync(TResponse data, CancellationToken token = default)
