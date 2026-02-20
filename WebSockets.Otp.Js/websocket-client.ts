@@ -1,8 +1,14 @@
 import { WsMessage, HandshakeOptions } from "./types"
 
+export type WsSecurityOptions = {
+    token?: string | (() => string) | (() => Promise<string>)
+    tokenRefreshThreshold?: number
+    onTokenRefresh?: () => Promise<string>
+}
+
 export type WsMultiplexingOptions = {
-    // mode: 'round-robin' | 'least-loaded' | 'parallel'
     connectionsCount: number
+    // mode: 'round-robin' | 'least-loaded' | 'parallel'
     // minConnections: number
     // maxConnections: number
 }
@@ -12,6 +18,10 @@ export type WsReconnectOptions = {
     interval: number
     maxInterval?: number
     reconnectDecay?: number
+    shouldReconnect?: (attempt: number, error: Event) => boolean | Promise<boolean>
+    onReconnectAttempt?: (attempt: number) => void
+    onReconnectSuccess?: (attempt: number) => void
+    onReconnectFailed?: () => void
 }
 
 export type WsOptions = {
