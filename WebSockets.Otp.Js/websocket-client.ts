@@ -6,13 +6,6 @@ export type WsSecurityOptions = {
     onTokenRefresh?: () => Promise<string>
 }
 
-export type WsMultiplexingOptions = {
-    connectionsCount: number
-    // mode: 'round-robin' | 'least-loaded' | 'parallel'
-    // minConnections: number
-    // maxConnections: number
-}
-
 export type WsReconnectOptions = {
     maxAttempts: number
     interval: number
@@ -27,49 +20,30 @@ export type WsReconnectOptions = {
 export type WsOptions = {
     url: string | URL
     protocols?: string | string[]
-    multiplexing?: WsMultiplexingOptions
     reconnect?: WsReconnectOptions
+    auth?: WsSecurityOptions
 }
 
 export function useWsEndpoints(options: WsOptions) {
-    const sockets: WebSocket[] = []
+    const socket: WebSocket = new WebSocket(options.url, options.protocols)
     const listeners = new Map<string, (message: any) => any>()
 
-    const initConnections = (options: WsOptions) => {
-        const connectionsCount = Math.max(options.multiplexing?.connectionsCount ?? 1, 1)
-
-        for (let i = 0; i < connectionsCount; i++) {
-            const socket = new WebSocket(options.url, options.protocols);
-
-            socket.onmessage = (event) => {
-                const data = JSON.parse(event.data) as WsMessage
-                const listener = listeners.get(data.key)
-                listener && listener(data)
-            }
-
-            sockets.push(socket)
-        }
-    }
-
-    initConnections(options)
-
-    let currentConnectionIndex = 0
-
-    const getNextConnection = (options: WsOptions) => {
-        const connection = sockets[currentConnectionIndex]
-        currentConnectionIndex = (currentConnectionIndex + 1) % (options.multiplexing?.connectionsCount ?? 1)
-        return connection
+    socket.onmessage = (event) => {
+        const data = JSON.parse(event.data) as WsMessage
+        const listener = listeners.get(data.key)
+        listener && listener(data)
     }
 
     const connect = (options: HandshakeOptions) => {
-        sockets.forEach((socket) => {
-            socket.send(JSON.stringify(options))
-        })
+        socket.send(JSON.stringify(options))
+    }
+
+    const disconnect = () => {
+        socket.close()
     }
 
     const send = <T>(key: string, message: T) => {
-        const webSocket = getNextConnection(options)
-        webSocket.send(JSON.stringify({
+        socket.send(JSON.stringify({
             key,
             ...message
         }))
@@ -81,16 +55,10 @@ export function useWsEndpoints(options: WsOptions) {
         listeners.set(key, callback)
     }
 
-    const disconnect = () => {
-        sockets.forEach((socket) => {
-            socket.close()
-        })
-    }
-
     return {
         connect,
+        disconnect,
         send,
         receive,
-        disconnect
     }
 }
