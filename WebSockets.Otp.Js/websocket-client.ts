@@ -7,10 +7,18 @@ export type WsMultiplexingOptions = {
     // maxConnections: number
 }
 
+export type WsReconnectOptions = {
+    maxAttempts: number
+    interval: number
+    maxInterval?: number
+    reconnectDecay?: number
+}
+
 export type WsOptions = {
     url: string | URL
     protocols?: string | string[]
     multiplexing?: WsMultiplexingOptions
+    reconnect?: WsReconnectOptions
 }
 
 export function useWsEndpoints(options: WsOptions) {
