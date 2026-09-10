@@ -1,4 +1,4 @@
 ﻿using BenchmarkDotNet.Running;
-using WebSockets.Otp.Benchmark.EndpointInvokers;
+using WebSockets.Otp.Benchmark;
 
-BenchmarkRunner.Run<EmptyEndpointInvokerBench>();
+BenchmarkRunner.Run<ServiceResolve>();

@@ -24,17 +24,3 @@ public class WsOptions
     public Func<IGlobalContext, Task>? OnConnected { get; set; }
     public Func<IGlobalContext, Task>? OnDisconnected { get; set; }
 }
-
-public sealed class WsGlobalOptions : WsOptions
-{
-    public KeyOptions Keys { get; set; } = new();
-
-    public sealed class KeyOptions
-    {
-        public StringComparer Comparer { get; set; } = StringComparer.OrdinalIgnoreCase;
-        public int MinLength { get; set; } = 1;
-        public int MaxLength { get; set; } = 1024;
-        public Regex? Pattern { get; set; }
-        public bool UnsafeIntern { get; set; } = false;
-    }
-}

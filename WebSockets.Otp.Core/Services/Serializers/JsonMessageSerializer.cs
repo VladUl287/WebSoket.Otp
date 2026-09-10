@@ -47,9 +47,11 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
         throw new NullReferenceException();
     }
 
-    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> jsonUtf8, IStringPool stringPool)
+    public long FieldIndex(byte[] data, byte[] field) => FieldIndex(data.AsSpan(), field.AsSpan());
+
+    public long FieldIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field)
     {
-        var reader = new Utf8JsonReader(jsonUtf8);
+        var reader = new Utf8JsonReader(data);
 
         while (reader.Read())
         {
@@ -63,9 +65,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
                 if (reader.TokenType is not JsonTokenType.String)
                     break;
 
-                return reader.HasValueSequence ?
-                    stringPool.Intern(reader.ValueSequence) :
-                    stringPool.Intern(reader.ValueSpan);
+                return reader.BytesConsumed;
             }
 
             reader.Skip();

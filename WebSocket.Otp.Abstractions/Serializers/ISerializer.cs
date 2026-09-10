@@ -13,7 +13,7 @@ public interface ISerializer
 
     object? Deserialize(Type type, ReadOnlySpan<byte> data);
 
-    string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data);
+    long FieldIndex(byte[] data, byte[] field);
 
-    string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data, IStringPool stringPool);
+    long FieldIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field);
 }

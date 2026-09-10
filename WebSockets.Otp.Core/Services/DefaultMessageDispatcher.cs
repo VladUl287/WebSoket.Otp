@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using WebSockets.Otp.Abstractions;
+using System.Text;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
@@ -13,33 +13,32 @@ namespace WebSockets.Otp.Core.Services;
 
 public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IContextFactory contextFactory,
-    IPipelineFactory pipelineFactory, IStringPool stringPool) : IMessageDispatcher
+    IPipelineFactory pipelineFactory, ITrieResolver<Type> endpointTypeResolver) : IMessageDispatcher
 {
-    private readonly ReadOnlyMemory<byte> _endpointKeyBytes = stringPool.Encoding.GetBytes(WsMessageFields.Key).AsMemory();
+    private readonly ReadOnlyMemory<byte> _endpointKeyBytes = Encoding.UTF8.GetBytes(WsMessageFields.Key).AsMemory();
 
     public async Task DispatchMessage(
         IGlobalContext globalContext, ISerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
-        var endpointKey = serializer.ExtractField(
-            _endpointKeyBytes.Span,
-            payload.Span,
-            stringPool
-        );
+        var keyIndex = serializer.FieldIndex(payload.Span, _endpointKeyBytes.Span);
+
+        if(keyIndex == -1)
+        {
+            throw new Exception("");
+        }
+
+        var endpointType = endpointTypeResolver.Resolve(payload.Span.Slice((int)keyIndex));
+        if(endpointType is null)
+        {
+            throw new Exception("");
+        }
 
         await using var scope = scopeFactory.CreateAsyncScope();
+        var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
-        var endpoint = scope.ServiceProvider.GetRequiredKeyedService(typeof(IWsEndpoint), endpointKey);
+        var execCtx = contextFactory.Create(globalContext, connectionManager, payload, serializer, token);
 
-        var execCtx = contextFactory.Create(
-            globalContext,
-            connectionManager,
-            payload,
-            serializer,
-            token);
-
-        var endpointType = endpoint.GetType();
         var pipeline = pipelineFactory.CreatePipeline(endpointType);
-
         await pipeline.ExecuteAsync(endpoint, execCtx);
     }
 }

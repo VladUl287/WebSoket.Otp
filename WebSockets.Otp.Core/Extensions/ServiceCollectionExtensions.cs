@@ -26,24 +26,24 @@ namespace WebSockets.Otp.Core.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure, Assembly[] assemblies)
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsOptions> configure, Assembly[] assemblies)
     {
-        var options = new WsGlobalOptions();
+        var options = new WsOptions();
         configure(options);
 
         return services.AddWsEndpointsCore(options, assemblies);
     }
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions options, Assembly[] assemblies) =>
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsOptions options, Assembly[] assemblies) =>
         services.AddWsEndpointsCore(options, assemblies);
 
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Assembly[] assemblies) =>
         services.AddWsEndpointsCore(new(), assemblies);
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsGlobalOptions> configure) =>
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, Action<WsOptions> configure) =>
         services.AddWsEndpoints(configure, [Assembly.GetCallingAssembly()]);
 
-    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsGlobalOptions options) =>
+    public static IServiceCollection AddWsEndpoints(this IServiceCollection services, WsOptions options) =>
         services.AddWsEndpoints(options, [Assembly.GetCallingAssembly()]);
 
     public static IServiceCollection AddWsEndpoints(this IServiceCollection services) =>
@@ -57,7 +57,7 @@ public static class ServiceCollectionExtensions
     }
 
 
-    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsGlobalOptions options, Assembly[] assemblies)
+    private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsOptions options, Assembly[] assemblies)
     {
         var configuration = new WsConfiguration(options);
 
@@ -153,7 +153,7 @@ public static class ServiceCollectionExtensions
                 .Where(type => type.IsWsEndpoint())
             );
 
-        var endpointsKeys = new HashSet<string>(config.Keys.Comparer);
+        var endpointsKeys = new HashSet<string>();
         foreach (var endpointType in endpointsTypes)
         {
             var attribute = endpointType.GetCustomAttribute<WsEndpointAttribute>() ??
@@ -172,9 +172,6 @@ public static class ServiceCollectionExtensions
                 _ => services.AddKeyedTransient(serviceType, endpointKey, endpointType),
             };
         }
-
-        services.AddSingleton<IStringPool>(
-            new EndpointsKeysPool(endpointsKeys, Encoding.UTF8, config.Keys.UnsafeIntern));
 
         return services;
     }
