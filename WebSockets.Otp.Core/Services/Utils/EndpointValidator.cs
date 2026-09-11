@@ -25,31 +25,8 @@ public sealed class EndpointValidator(IServiceScopeFactory factory) : IStartupFi
             var attribute = endpoint
                 .GetType()
                 .GetCustomAttribute<WsEndpointAttribute>();
-
-            Validate(attribute, options);
         }
 
         return next;
-    }
-
-    public static WsEndpointAttribute Validate(WsEndpointAttribute attribute, WsConfiguration config)
-    {
-        ArgumentNullException.ThrowIfNull(attribute);
-        ArgumentNullException.ThrowIfNull(config);
-
-        var key = attribute.Key;
-
-        ArgumentException.ThrowIfNullOrEmpty(key, "WsEndpoint key cannot be null or empty");
-
-        if (attribute.Key.Length < config.Keys.MinLength)
-            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too short. Minimum length is {config.Keys.MinLength}");
-
-        if (attribute.Key.Length > config.Keys.MaxLength)
-            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' is too long. Maximum length is {config.Keys.MaxLength}");
-
-        if (config.Keys.Pattern is not null && !config.Keys.Pattern.IsMatch(attribute.Key))
-            throw new InvalidOperationException($"WsEndpoint key '{attribute.Key}' does not match the required pattern");
-
-        return attribute;
     }
 }
