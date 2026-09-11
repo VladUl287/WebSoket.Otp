@@ -254,18 +254,16 @@ public static class TrieGenerator
         il.Emit(OpCodes.Ret);
     }
 
+    private static readonly MethodInfo SpanGetItem =
+        typeof(ReadOnlySpan<byte>).GetMethod("get_Item", BindingFlags.Public | BindingFlags.Instance, null, [typeof(int)], null)!;
+
     private static void EmitLoadByte(ILGenerator il, int offset)
     {
-        il.Emit(OpCodes.Ldarg_0);           // a
-        il.Emit(OpCodes.Ldarg_1);           // i
-        if (offset != 0)
-        {
+        il.Emit(OpCodes.Ldarga_S, (byte)0);   // &b
             il.Emit(OpCodes.Ldc_I4, offset);
-            il.Emit(OpCodes.Add);
-        }
-        il.Emit(OpCodes.Ldelem_U1);         // a[i+offset]  (zero-extended)
+        il.Emit(OpCodes.Call, SpanGetItem);  // ref readonly byte
+        il.Emit(OpCodes.Ldind_U1);            // byte
     }
-
 
     private static readonly MethodInfo ReadInt64LE =
         typeof(BinaryPrimitives).GetMethod(nameof(BinaryPrimitives.ReadInt64LittleEndian), [typeof(ReadOnlySpan<byte>)])!;
