@@ -3,7 +3,6 @@ using System.Text;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
@@ -13,7 +12,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IContextFactory contextFactory,
-    IPipelineFactory pipelineFactory, ITrieResolver<Type> endpointTypeResolver) : IMessageDispatcher
+    IEndpointInvoker invoker, ITrieResolver endpointTypeResolver) : IMessageDispatcher
 {
     private readonly ReadOnlyMemory<byte> _endpointKeyBytes = Encoding.UTF8.GetBytes(WsMessageFields.Key).AsMemory();
 
@@ -34,11 +33,11 @@ public class DefaultMessageDispatcher(
         }
 
         await using var scope = scopeFactory.CreateAsyncScope();
+
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
         var execCtx = contextFactory.Create(globalContext, connectionManager, payload, serializer, token);
 
-        var pipeline = pipelineFactory.CreatePipeline(endpointType);
-        await pipeline.ExecuteAsync(endpoint, execCtx);
+        await invoker.Invoke(endpoint, execCtx);
     }
 }
