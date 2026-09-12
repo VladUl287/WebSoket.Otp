@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Enums;
 
@@ -23,6 +24,8 @@ public sealed class WsConfiguration
     }
 
     public IList<IAuthorizeData> AuthorizationData { get; init; }
+    public RequestDelegate AuthPipeline { get; init; }
+
     public WebSocketOptions WebSocketOptions { get; init; }
 
     public ProcessingMode ProcessingMode { get; init; }
