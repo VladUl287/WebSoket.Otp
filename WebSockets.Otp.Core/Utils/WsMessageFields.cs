@@ -2,6 +2,5 @@
 
 internal static class WsMessageFields
 {
-    internal static string Key = "key";
-    internal static string Priority = "priority";
+    internal const string Key = "key";
 }
