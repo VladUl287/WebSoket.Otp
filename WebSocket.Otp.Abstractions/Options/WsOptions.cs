@@ -1,18 +1,15 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
-using System.Text.RegularExpressions;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Enums;
 
 namespace WebSockets.Otp.Abstractions.Options;
 
-public class WsOptions
+public sealed class WsOptions
 {
     public IList<IAuthorizeData> AuthorizationData { get; set; } = [];
 
     public WebSocketOptions WebSocketOptions { get; set; } = new();
 
-    public ProcessingMode ProcessingMode { get; set; } = ProcessingMode.Parallel;
     public int MaxDegreeOfParallelism { get; set; } = Environment.ProcessorCount;
     public TaskScheduler? TaskScheduler { get; set; }
 
