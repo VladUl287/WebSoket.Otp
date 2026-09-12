@@ -19,8 +19,8 @@ public sealed class DefaultHandshakeHandler(
     private static readonly string _protocol = "json";
     private static readonly ReadOnlyMemory<byte> _responseBytes = "{}"u8.ToArray();
 
-    public async ValueTask<WsHandshakeOptions?> HandleAsync(
-        HttpContext context, WebSocket socket, WsConfiguration options, CancellationToken token)
+    public async ValueTask<HandshakeOptions?> HandleAsync(
+        HttpContext context, WebSocket socket, WsOptionsSnapshot options, CancellationToken token)
     {
         var traceId = new TraceId(context);
 
@@ -47,7 +47,7 @@ public sealed class DefaultHandshakeHandler(
 
         logger.HandshakeSerializerObtained(_protocol, traceId);
 
-        var handshakeOptions = (WsHandshakeOptions?)serializer.Deserialize(typeof(WsHandshakeOptions), handshakeBuffer.Span);
+        var handshakeOptions = (HandshakeOptions?)serializer.Deserialize(typeof(HandshakeOptions), handshakeBuffer.Span);
         if (handshakeOptions is null)
         {
             logger.HandshakeDeserializeFailed(traceId);
