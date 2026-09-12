@@ -8,7 +8,7 @@ using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Logging;
 
-namespace WebSockets.Otp.Core.Services.Processors;
+namespace WebSockets.Otp.Core.Processors;
 
 public sealed class ParallelMessageProcessor(
     IMessageDispatcher dispatcher, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> bufferPool,
@@ -17,7 +17,7 @@ public sealed class ParallelMessageProcessor(
     public ProcessingMode Mode => ProcessingMode.Parallel;
 
     public async Task Process(
-        IGlobalContext globalContext, ISerializer serializer, WsConfiguration options,
+        IGlobalContext globalContext, ISerializer serializer, WsOptionsSnapshot options,
         CancellationToken token)
     {
         var parallelOptions = new ParallelOptions
@@ -33,7 +33,7 @@ public sealed class ParallelMessageProcessor(
         {
             try
             {
-                await dispatcher.DispatchMessage(globalContext, serializer, buffer, token);
+                await dispatcher.DispatchMessage(globalContext, serializer, buffer, options, token);
             }
             catch (Exception ex)
             {
