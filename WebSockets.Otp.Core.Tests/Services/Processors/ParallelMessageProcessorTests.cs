@@ -11,7 +11,7 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
-using WebSockets.Otp.Core.Services.Processors;
+using WebSockets.Otp.Core.Processors;
 
 namespace WebSockets.Otp.Core.Tests.Services.Processors;
 
@@ -23,7 +23,7 @@ public class ParallelMessageProcessorTests
     private readonly ParallelMessageProcessor _processor;
     private readonly Mock<IGlobalContext> _mockGlobalContext;
     private readonly Mock<ISerializer> _mockSerializer;
-    private readonly WsConfiguration _options;
+    private readonly WsOptionsSnapshot _options;
 
     public ParallelMessageProcessorTests()
     {
@@ -40,7 +40,7 @@ public class ParallelMessageProcessorTests
             NullLogger<ParallelMessageProcessor>.Instance
         );
 
-        _options = new WsConfiguration(new WsOptions
+        _options = new WsOptionsSnapshot(new WsOptions
         {
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             ShrinkBuffers = true,
@@ -195,7 +195,7 @@ public class ParallelMessageProcessorTests
         var mockBuffer = new Mock<IMessageBuffer>();
         var token = CancellationToken.None;
 
-        var options = new WsConfiguration(new WsOptions
+        var options = new WsOptionsSnapshot(new WsOptions
         {
             ShrinkBuffers = false
         });
@@ -250,7 +250,7 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
         var maxDegree = 2;
 
-        var options = new WsConfiguration(new WsOptions()
+        var options = new WsOptionsSnapshot(new WsOptions()
         {
             MaxDegreeOfParallelism = maxDegree,
         });

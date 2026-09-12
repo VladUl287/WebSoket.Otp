@@ -54,7 +54,7 @@ public class DefaultConnectionHandlerTests
     {
         // Arrange
         var webSocketManagerMock = new Mock<WebSocketManager>();
-        var config = new WsConfiguration(new WsOptions());
+        var config = new WsOptionsSnapshot(new WsOptions());
         var token = new CancellationTokenSource().Token;
 
         _httpContextMock.Setup(x => x.WebSockets).Returns(webSocketManagerMock.Object);
@@ -63,8 +63,8 @@ public class DefaultConnectionHandlerTests
         webSocketManagerMock.Setup(x => x.AcceptWebSocketAsync())
             .ReturnsAsync(_webSocketMock.Object);
 
-        _handshakeServiceMock.Setup(x => x.HandleAsync(It.IsAny<HttpContext>(), It.IsAny<WebSocket>(), It.IsAny<WsConfiguration>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((WsHandshakeOptions?)null);
+        _handshakeServiceMock.Setup(x => x.HandleAsync(It.IsAny<HttpContext>(), It.IsAny<WebSocket>(), It.IsAny<WsOptionsSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((HandshakeOptions?)null);
 
         // Act
         await _handler.HandleAsync(_httpContextMock.Object, config);
@@ -78,7 +78,7 @@ public class DefaultConnectionHandlerTests
     {
         // Arrange
         var webSocketManagerMock = new Mock<WebSocketManager>();
-        var config = new WsConfiguration(new WsOptions());
+        var config = new WsOptionsSnapshot(new WsOptions());
         var token = new CancellationTokenSource().Token;
 
         _httpContextMock.Setup(x => x.WebSockets).Returns(webSocketManagerMock.Object);
@@ -87,8 +87,8 @@ public class DefaultConnectionHandlerTests
         webSocketManagerMock.Setup(x => x.AcceptWebSocketAsync())
             .ReturnsAsync(_webSocketMock.Object);
 
-        _handshakeServiceMock.Setup(x => x.HandleAsync(It.IsAny<HttpContext>(), It.IsAny<WebSocket>(), It.IsAny<WsConfiguration>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((WsHandshakeOptions?)null);
+        _handshakeServiceMock.Setup(x => x.HandleAsync(It.IsAny<HttpContext>(), It.IsAny<WebSocket>(), It.IsAny<WsOptionsSnapshot>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((HandshakeOptions?)null);
 
         // Act
         await _handler.HandleAsync(_httpContextMock.Object, config);
@@ -103,9 +103,9 @@ public class DefaultConnectionHandlerTests
     {
         // Arrange
         var webSocketManagerMock = new Mock<WebSocketManager>();
-        var config = new WsConfiguration(new WsOptions());
+        var config = new WsOptionsSnapshot(new WsOptions());
         var token = new CancellationTokenSource().Token;
-        var handshakeOptions = new WsHandshakeOptions()
+        var handshakeOptions = new HandshakeOptions()
         {
             Protocol = "test-protocol"
         };
@@ -116,7 +116,7 @@ public class DefaultConnectionHandlerTests
         webSocketManagerMock.Setup(x => x.AcceptWebSocketAsync())
             .ReturnsAsync(_webSocketMock.Object);
 
-        _handshakeServiceMock.Setup(x => x.HandleAsync(It.IsAny<HttpContext>(), It.IsAny<WebSocket>(), It.IsAny<WsConfiguration>(), It.IsAny<CancellationToken>()))
+        _handshakeServiceMock.Setup(x => x.HandleAsync(It.IsAny<HttpContext>(), It.IsAny<WebSocket>(), It.IsAny<WsOptionsSnapshot>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(handshakeOptions);
 
         _serializerStoreMock.Setup(x => x.TryGet("test-protocol", out It.Ref<ISerializer>.IsAny))

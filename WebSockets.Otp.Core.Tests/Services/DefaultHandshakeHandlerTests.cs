@@ -44,7 +44,7 @@ public class DefaultHandshakeHandlerTests
     public async Task HandleAsync_ReturnsNull_WhenNoHandshakeMessage()
     {
         // Arrange
-        var options = new WsConfiguration(new WsOptions());
+        var options = new WsOptionsSnapshot(new WsOptions());
         var token = CancellationToken.None;
 
         // Create empty async enumerable
@@ -65,7 +65,7 @@ public class DefaultHandshakeHandlerTests
     public async Task HandleAsync_ReturnsNull_WhenSerializerNotFound()
     {
         // Arrange
-        var options = new WsConfiguration(new WsOptions());
+        var options = new WsOptionsSnapshot(new WsOptions());
         var token = CancellationToken.None;
         var bufferMock = new Mock<IMessageBuffer>();
 
@@ -95,7 +95,7 @@ public class DefaultHandshakeHandlerTests
     public async Task HandleAsync_ThrowsOperationCanceledException_WhenCancelled()
     {
         // Arrange
-        var options = new WsConfiguration(new WsOptions());
+        var options = new WsOptionsSnapshot(new WsOptions());
         var cts = new CancellationTokenSource();
         cts.Cancel();
         var token = cts.Token;

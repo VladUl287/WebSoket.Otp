@@ -13,7 +13,7 @@ public class MessageEnumeratorTests
     private readonly Mock<WebSocket> _mockWebSocket;
     private readonly Mock<IAsyncObjectPool<IMessageBuffer>> _mockBufferPool;
     private readonly Mock<IMessageBuffer> _mockMessageBuffer;
-    private readonly WsConfiguration _config;
+    private readonly WsOptionsSnapshot _config;
     private readonly MessageEnumerator _enumerator;
     private readonly Memory<byte> _capturedData;
     private bool _dataCaptured;
@@ -23,7 +23,7 @@ public class MessageEnumeratorTests
         _mockWebSocket = new Mock<WebSocket>();
         _mockBufferPool = new Mock<IAsyncObjectPool<IMessageBuffer>>();
         _mockMessageBuffer = new Mock<IMessageBuffer>();
-        _config = new WsConfiguration(new WsOptions
+        _config = new WsOptionsSnapshot(new WsOptions
         {
             ReceiveBufferSize = 1024,
             MaxMessageSize = 8192

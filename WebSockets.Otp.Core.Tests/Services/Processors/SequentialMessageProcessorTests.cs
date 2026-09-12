@@ -23,7 +23,7 @@ public class SequentialMessageProcessorTests
     private readonly Mock<WebSocket> _socketMock;
     private readonly Mock<IMessageBuffer> _messageBufferMock;
     private readonly SequentialMessageProcessor _processor;
-    private readonly WsConfiguration _config;
+    private readonly WsOptionsSnapshot _config;
 
     public SequentialMessageProcessorTests()
     {
@@ -34,7 +34,7 @@ public class SequentialMessageProcessorTests
         _socketMock = new Mock<WebSocket>();
         _messageBufferMock = new Mock<IMessageBuffer>();
 
-        _config = new WsConfiguration(new WsOptions
+        _config = new WsOptionsSnapshot(new WsOptions
         {
             ReceiveBufferSize = 2048,
             MaxMessageSize = 4096,
@@ -271,7 +271,7 @@ public class SequentialMessageProcessorTests
         await _processor.Process(
             _globalContextMock.Object,
             _serializerMock.Object,
-            new WsConfiguration(new WsOptions
+            new WsOptionsSnapshot(new WsOptions
             {
                 ShrinkBuffers = true
             }),
