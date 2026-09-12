@@ -22,7 +22,7 @@ public class DefaultMessageDispatcher(
     private readonly ReadOnlyMemory<byte> _endpointKeyBytes = Encoding.UTF8.GetBytes(WsMessageFields.Key).AsMemory();
 
     public async Task DispatchMessage(
-        IGlobalContext globalContext, ISerializer serializer, IMessageBuffer payload, WsConfiguration configuration, CancellationToken token)
+        IGlobalContext globalContext, ISerializer serializer, IMessageBuffer payload, WsOptionsSnapshot configuration, CancellationToken token)
     {
         var keyIndex = serializer.FieldIndex(payload.Span, _endpointKeyBytes.Span);
 
