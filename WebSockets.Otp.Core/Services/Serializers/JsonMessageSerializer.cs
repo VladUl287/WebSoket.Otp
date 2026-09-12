@@ -1,8 +1,6 @@
-﻿using System.Net.WebSockets;
-using System.Text;
-using System.Text.Json;
+﻿using System.Text.Json;
+using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Serializers;
-using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
@@ -22,33 +20,6 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
 
     public object? Deserialize(Type type, ReadOnlySpan<byte> data) =>
         JsonSerializer.Deserialize(data, type, _options);
-
-    public string ExtractField(ReadOnlySpan<byte> field, ReadOnlySpan<byte> data)
-    {
-        var reader = new Utf8JsonReader(data);
-
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(field))
-            {
-                reader.Read();
-
-                if (reader.TokenType is not JsonTokenType.String)
-                    break;
-
-                return reader.GetString() ?? throw new NullReferenceException();
-            }
-
-            reader.Skip();
-        }
-
-        throw new NullReferenceException();
-    }
-
-    public long FieldIndex(byte[] data, byte[] field) => FieldIndex(data.AsSpan(), field.AsSpan());
 
     public long FieldIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field)
     {

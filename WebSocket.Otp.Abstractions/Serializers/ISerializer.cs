@@ -13,7 +13,5 @@ public interface ISerializer
 
     object? Deserialize(Type type, ReadOnlySpan<byte> data);
 
-    long FieldIndex(byte[] data, byte[] field);
-
     long FieldIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field);
 }
