@@ -14,8 +14,9 @@ public static class EndpointRouteBuilderExtensions
         this IEndpointRouteBuilder builder, string pattern, Action<WsOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
+        ArgumentNullException.ThrowIfNull(pattern, nameof(pattern));
 
-        var options = GetOptions(builder, configure);
+        var options = EnsureOptions(builder, configure);
 
         var app = builder.CreateApplicationBuilder();
         app.UseWebSockets(options.WebSocketOptions);
@@ -41,13 +42,19 @@ public static class EndpointRouteBuilderExtensions
         return new WsEndpointConventionBuilder(executeBuilder);
     }
 
-    private static WsConfiguration GetOptions(IEndpointRouteBuilder builder, Action<WsOptions>? configure)
+    private static WsOptionsSnapshot EnsureOptions(IEndpointRouteBuilder builder, Action<WsOptions>? configure)
     {
-        if (configure is null)
-            return builder.ServiceProvider.GetRequiredService<WsConfiguration>();
+        var options = builder.ServiceProvider.GetService<WsOptions>() ?? new WsOptions();
+        configure?.Invoke(options);
 
-        var options = new WsOptions();
-        configure(options);
-        return new WsConfiguration(options);
+        var authPipeline = builder.CreateApplicationBuilder();
+        authPipeline.UseAuthentication();
+        authPipeline.UseAuthorization();
+        authPipeline.Run(ctx => Task.CompletedTask);
+
+        return new WsOptionsSnapshot(options)
+        {
+            AuthPipeline = authPipeline.Build()
+        };
     }
 }
