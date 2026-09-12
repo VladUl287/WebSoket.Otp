@@ -10,17 +10,16 @@ using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Pipeline;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
-using WebSockets.Otp.Core.Pipeline;
+using WebSockets.Otp.Core.Processors;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
-using WebSockets.Otp.Core.Services.Processors;
 using WebSockets.Otp.Core.Services.Serializers;
 using WebSockets.Otp.Core.Services.Utils;
+using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;
 
@@ -30,7 +29,6 @@ public static class ServiceCollectionExtensions
     {
         var options = new WsOptions();
         configure(options);
-
         return services.AddWsEndpointsCore(options, assemblies);
     }
 
@@ -56,20 +54,16 @@ public static class ServiceCollectionExtensions
         return services.AddSingleton<ISerializer>(new JsonMessageSerializer(jsonOptions));
     }
 
-
     private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsOptions options, Assembly[] assemblies)
     {
-        var configuration = new WsConfiguration(options);
+        services.AddSingleton(options);
 
-        services.AddSingleton(configuration);
-
-        services.AddPipeline();
         services.AddTransport();
         services.AddDefaultSerializers();
         services.AddCoreServices();
         services.AddConnectionServices();
-        services.AddUtility(configuration);
-        services.AddEndpoints(configuration, assemblies);
+        services.AddUtility(options);
+        services.AddEndpoints(options, assemblies);
 
         return services;
     }
@@ -79,8 +73,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
-        services.AddSingleton<IMessageProcessor, SequentialMessageProcessor>();
-        services.AddSingleton<IMessageProcessorStore, MessageProcessorStore>();
         return services;
     }
 
@@ -105,12 +97,6 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddPipeline(this IServiceCollection services)
-    {
-        services.AddSingleton<IPipelineFactory, PipelineFactory>();
-        return services;
-    }
-
     private static IServiceCollection AddCoreServices(this IServiceCollection services)
     {
         services.AddSingleton<IConnectionHandler, DefaultConnectionHandler>();
@@ -126,23 +112,19 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddUtility(this IServiceCollection services, WsConfiguration configuration)
+    private static IServiceCollection AddUtility(this IServiceCollection services, WsOptions options)
     {
         services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>(
             (_) => new AsyncObjectPool<IMessageBuffer>(
-                configuration.BufferPoolSize,
-                () => new NativeChunkedBuffer(configuration.ReceiveBufferSize)
+                options.BufferPoolSize,
+                () => new NativeChunkedBuffer(options.ReceiveBufferSize)
             )
         );
-
         services.AddSingleton<IIdProvider, GuidIdProvider>();
-
-        services.AddSingleton<IStartupFilter, EndpointValidator>();
-
         return services;
     }
 
-    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsConfiguration config, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsOptions config, params Assembly[] assemblies)
     {
         services.AddSingleton<IEndpointInvokerFactory, DefaultInvokerFactory>();
         services.AddSingleton<IContextFactory, DefaultContextFactory>();
@@ -153,6 +135,7 @@ public static class ServiceCollectionExtensions
                 .Where(type => type.IsWsEndpoint())
             );
 
+        var endpointsKeysBytes = new List<byte[]>();
         var endpointsKeys = new HashSet<string>();
         foreach (var endpointType in endpointsTypes)
         {
@@ -167,12 +150,15 @@ public static class ServiceCollectionExtensions
             var serviceType = typeof(IWsEndpoint);
             _ = attribute.Scope switch
             {
-                ServiceLifetime.Singleton => services.AddKeyedSingleton(serviceType, endpointKey, endpointType),
-                ServiceLifetime.Scoped => services.AddKeyedScoped(serviceType, endpointKey, endpointType),
-                _ => services.AddKeyedTransient(serviceType, endpointKey, endpointType),
+                ServiceLifetime.Singleton => services.AddSingleton(endpointType),
+                ServiceLifetime.Scoped => services.AddScoped(endpointType),
+                _ => services.AddTransient(endpointType),
             };
+
+            endpointsKeysBytes.Add(Encoding.UTF8.GetBytes(endpointKey));
         }
 
+        services.AddSingleton<ITrieResolver>(new EndpointTypeResolver([.. endpointsKeysBytes], [.. endpointsTypes]));
         return services;
     }
 }
