@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Enums;
-using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
@@ -14,12 +12,11 @@ public sealed class ParallelMessageProcessor(
     IMessageDispatcher dispatcher, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> bufferPool,
     ILogger<ParallelMessageProcessor> logger) : IMessageProcessor
 {
-    public ProcessingMode Mode => ProcessingMode.Parallel;
-
     public async Task Process(
-        IGlobalContext globalContext, ISerializer serializer, WsOptionsSnapshot options,
-        CancellationToken token)
+        IGlobalContext globalContext, ISerializer serializer, CancellationToken token)
     {
+        var options = globalContext.Options;
+
         var parallelOptions = new ParallelOptions
         {
             MaxDegreeOfParallelism = options.MaxDegreeOfParallelism,
