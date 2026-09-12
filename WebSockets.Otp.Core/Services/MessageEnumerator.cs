@@ -12,7 +12,7 @@ public sealed class MessageEnumerator : IMessageEnumerator
     private static readonly ArrayPool<byte> _arrayPool = ArrayPool<byte>.Create();
 
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-         WebSocket socket, WsConfiguration config, IAsyncObjectPool<IMessageBuffer> bufferPool,
+         WebSocket socket, WsOptionsSnapshot config, IAsyncObjectPool<IMessageBuffer> bufferPool,
          [EnumeratorCancellation] CancellationToken token)
     {
         var receiveBuffer = _arrayPool.Rent(config.ReceiveBufferSize);
