@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using System.Text;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Utils;
@@ -65,7 +66,8 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
                 if (reader.TokenType is not JsonTokenType.String)
                     break;
 
-                return reader.BytesConsumed;
+                var len = reader.HasValueSequence ? (int)reader.ValueSequence.Length : reader.ValueSpan.Length;
+                return reader.BytesConsumed - len;
             }
 
             reader.Skip();
