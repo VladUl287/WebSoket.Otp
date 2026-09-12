@@ -67,7 +67,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
                     break;
 
                 var len = reader.HasValueSequence ? (int)reader.ValueSequence.Length : reader.ValueSpan.Length;
-                return reader.BytesConsumed - len;
+                return reader.BytesConsumed - len - 1;
             }
 
             reader.Skip();
