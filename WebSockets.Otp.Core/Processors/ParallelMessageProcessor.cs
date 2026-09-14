@@ -12,10 +12,9 @@ public sealed class ParallelMessageProcessor(
     IMessageDispatcher dispatcher, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> bufferPool,
     ILogger<ParallelMessageProcessor> logger) : IMessageProcessor
 {
-    public async Task Process(
-        IGlobalContext globalContext, ISerializer serializer, CancellationToken token)
+    public async Task Process(IGlobalContext context, ISerializer serializer, CancellationToken token)
     {
-        var options = globalContext.Options;
+        var options = context.Options;
 
         var parallelOptions = new ParallelOptions
         {
@@ -24,13 +23,13 @@ public sealed class ParallelMessageProcessor(
             CancellationToken = token
         };
 
-        var messages = enumerator.EnumerateAsync(globalContext.Socket, options, bufferPool, token);
+        var messages = enumerator.EnumerateAsync(context.Socket, options, bufferPool, token);
 
         await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
         {
             try
             {
-                await dispatcher.DispatchMessage(globalContext, serializer, buffer, options, token);
+                await dispatcher.DispatchMessage(context, serializer, buffer, token);
             }
             catch (Exception ex)
             {
