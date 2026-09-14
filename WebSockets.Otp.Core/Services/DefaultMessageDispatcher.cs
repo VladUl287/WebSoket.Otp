@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Text;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
@@ -24,8 +22,7 @@ public class DefaultMessageDispatcher(
             throw new Exception("");
         }
 
-        var endpointInfo = endpointTypeResolver.Resolve(payload.Span[keyIndex..]);
-        if(endpointInfo is null)
+        if(!endpointTypeResolver.TryResolve(payload.Span[keyIndex..], out var endpointInfo))
         {
             throw new Exception("");
         }

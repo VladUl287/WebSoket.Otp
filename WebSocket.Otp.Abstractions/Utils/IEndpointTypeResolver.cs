@@ -1,6 +1,8 @@
-﻿namespace WebSockets.Otp.Abstractions.Utils;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace WebSockets.Otp.Abstractions.Utils;
 
 public interface ITrieResolver<T>
 {
-    T Resolve(ReadOnlySpan<byte> sequence);
+    bool TryResolve(ReadOnlySpan<byte> sequence, [NotNullWhen(true)] out T? value);
 }

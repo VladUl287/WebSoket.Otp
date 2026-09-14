@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Models;
@@ -36,14 +37,17 @@ public unsafe sealed class EndpointTypeResolver : ITrieResolver<WsEndpointInfo>
         _resolve = method.CreateDelegate<Func<byte[], int, int>>();
     }
 
-    public WsEndpointInfo Resolve(ReadOnlySpan<byte> sequence)
+    public bool TryResolve(ReadOnlySpan<byte> sequence, [NotNullWhen(true)] out WsEndpointInfo? value)
     {
+        value = null;
+
         var index = _resolve(sequence.ToArray(), 0);
 
         if (index == -1)
-            throw new Exception();
+            return false;
 
-        return _types[index];
+        value = _types[index];
+        return true;
         //return Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_types), (nint)index);
     }
 }
