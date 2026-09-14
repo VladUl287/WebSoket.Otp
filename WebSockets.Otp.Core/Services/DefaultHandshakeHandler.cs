@@ -22,7 +22,7 @@ public sealed class DefaultHandshakeHandler(
     public async ValueTask<HandshakeOptions?> HandleAsync(
         HttpContext context, WebSocket socket, WsOptionsSnapshot options, CancellationToken token)
     {
-        var traceId = new TraceId(context);
+        var traceId = new RequestId(context);
 
         logger.HandshakeProcessStarted(traceId);
 

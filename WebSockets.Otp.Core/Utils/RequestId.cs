@@ -2,9 +2,9 @@
 
 namespace WebSockets.Otp.Core.Utils;
 
-public readonly struct TraceId(HttpContext context)
+public readonly struct RequestId(HttpContext context)
 {
     public override string ToString() => context.TraceIdentifier;
 
-    public static implicit operator TraceId(HttpContext ctx) => new(ctx);
+    public static implicit operator RequestId(HttpContext ctx) => new(ctx);
 }
