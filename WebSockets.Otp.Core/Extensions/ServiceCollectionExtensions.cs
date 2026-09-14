@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -72,7 +73,7 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddTransport(this IServiceCollection services)
     {
-        services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
+        services.AddSingleton<IMessageEnumerator>(new MessageEnumerator(ArrayPool<byte>.Create()));
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
         return services;
