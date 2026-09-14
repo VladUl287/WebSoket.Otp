@@ -21,7 +21,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
     public object? Deserialize(Type type, ReadOnlySpan<byte> data) =>
         JsonSerializer.Deserialize(data, type, _options);
 
-    public long FieldIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field)
+    public int FieldValueIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field)
     {
         var reader = new Utf8JsonReader(data);
 
@@ -38,7 +38,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
                     break;
 
                 var len = reader.HasValueSequence ? (int)reader.ValueSequence.Length : reader.ValueSpan.Length;
-                return reader.BytesConsumed - len - 1;
+                return (int)(reader.BytesConsumed - len - 1);
             }
 
             reader.Skip();
