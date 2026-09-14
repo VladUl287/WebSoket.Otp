@@ -12,24 +12,9 @@ public unsafe sealed class EndpointTypeResolver : ITrieResolver<WsEndpointInfo>
     private readonly WsEndpointInfo[] _types;
     private readonly Func<byte[], int, int> _resolve;
 
-    public EndpointTypeResolver(byte[][] values, Type[] types)
+    public EndpointTypeResolver(byte[][] values, WsEndpointInfo[] types)
     {
-        _types = [.. types
-            .Select((t) =>
-            {
-                var attribute = t.GetCustomAttribute<AuthorizeAttribute>();
-
-                return new WsEndpointInfo
-                {
-                    EndpointType = t,
-                    AuthEndpoint = attribute is not null ? 
-                        new Endpoint(
-                            requestDelegate: null,
-                            metadata: new EndpointMetadataCollection(attribute),
-                            displayName: "ws-auth") : 
-                        null
-                };
-            })];
+        _types = types;
 
         //var references = AppDomain.CurrentDomain.GetAssemblies()
         //    .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))

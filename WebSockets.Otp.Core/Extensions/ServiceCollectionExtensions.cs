@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 using System.Text;
@@ -13,6 +14,7 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Core.Models;
 using WebSockets.Otp.Core.Processors;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Endpoints;
@@ -158,7 +160,47 @@ public static class ServiceCollectionExtensions
             endpointsKeysBytes.Add(Encoding.UTF8.GetBytes(endpointKey));
         }
 
-        services.AddSingleton<ITrieResolver>(new EndpointTypeResolver([.. endpointsKeysBytes], [.. endpointsTypes]));
+        var endpoints = endpointsTypes
+            .Select((t) =>
+            {
+                var attribute = t.GetCustomAttribute<AuthorizeAttribute>();
+
+                var baseType = t.GetBaseEndpointType() ??
+                    throw new NotSupportedException($"Type {t} does not inherit from WsEndpoint");
+
+                IEndpointInvoker invoker = new EmptyEndpointInvoker();
+
+                if (baseType.IsGenericType)
+                {
+                    var genericArgs = baseType.GetGenericArguments();
+
+                    if (genericArgs.Length == 2)
+                    {
+                        var invokerType = typeof(RequestResponseEndpointInvoker<,>).MakeGenericType(genericArgs[0], genericArgs[1]);
+                        invoker = (IEndpointInvoker)Activator.CreateInstance(invokerType)!;
+                    }
+
+                    if (genericArgs.Length == 1)
+                    {
+                        var invokerType = typeof(RequestEndpointInvoker<>).MakeGenericType(genericArgs[0]);
+                        invoker = (IEndpointInvoker)Activator.CreateInstance(invokerType)!;
+                    }
+                }
+
+                return new WsEndpointInfo
+                {
+                    EndpointType = t,
+                    Invoker = invoker,
+                    AuthEndpoint = attribute is not null ?
+                        new Endpoint(
+                            requestDelegate: null,
+                            metadata: new EndpointMetadataCollection(attribute),
+                            displayName: "ws-auth") :
+                        null
+                };
+            });
+
+        services.AddSingleton<ITrieResolver<WsEndpointInfo>>(new EndpointTypeResolver([.. endpointsKeysBytes], [.. endpoints]));
         return services;
     }
 }

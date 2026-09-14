@@ -15,7 +15,7 @@ namespace WebSockets.Otp.Core.Services;
 
 public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IContextFactory contextFactory,
-    IEndpointInvokerFactory invokerFactory, ITrieResolver<WsEndpointInfo> endpointTypeResolver) : IMessageDispatcher
+    ITrieResolver<WsEndpointInfo> endpointTypeResolver) : IMessageDispatcher
 {
     private readonly ReadOnlyMemory<byte> _endpointKeyBytes = Encoding.UTF8.GetBytes(WsMessageFields.Key).AsMemory();
 
@@ -71,7 +71,6 @@ public class DefaultMessageDispatcher(
 
         var execCtx = contextFactory.Create(globalContext, connectionManager, payload, serializer, token);
 
-        var invoker = invokerFactory.Create(endpointType);
-        await invoker.Invoke(endpoint, execCtx);
+        await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }
 }
