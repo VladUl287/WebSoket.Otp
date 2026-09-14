@@ -1,5 +1,4 @@
 ﻿using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Abstractions.Serializers;
 
@@ -13,5 +12,5 @@ public interface ISerializer
 
     object? Deserialize(Type type, ReadOnlySpan<byte> data);
 
-    int FieldValueIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field);
+    bool TryGetFieldValueIndex(ReadOnlySpan<byte> data, string fieldName, out int index);
 }

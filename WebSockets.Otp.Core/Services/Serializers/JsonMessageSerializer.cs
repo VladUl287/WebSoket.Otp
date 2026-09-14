@@ -21,8 +21,10 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
     public object? Deserialize(Type type, ReadOnlySpan<byte> data) =>
         JsonSerializer.Deserialize(data, type, _options);
 
-    public int FieldValueIndex(ReadOnlySpan<byte> data, ReadOnlySpan<byte> field)
+    public bool TryGetFieldValueIndex(ReadOnlySpan<byte> data, string field, out int index)
     {
+        index = 0;
+
         var reader = new Utf8JsonReader(data);
 
         while (reader.Read())
@@ -30,7 +32,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
             if (reader.TokenType is not JsonTokenType.PropertyName)
                 continue;
 
-            if (reader.ValueTextEquals(field))
+            if (reader.ValueTextEquals(field.AsSpan()))
             {
                 reader.Read();
 
@@ -38,12 +40,13 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
                     break;
 
                 var len = reader.HasValueSequence ? (int)reader.ValueSequence.Length : reader.ValueSpan.Length;
-                return (int)(reader.BytesConsumed - len - 1);
+                index = (int)(reader.BytesConsumed - len - 1);
+                return true;
             }
 
             reader.Skip();
         }
 
-        throw new NullReferenceException();
+        return false;
     }
 }

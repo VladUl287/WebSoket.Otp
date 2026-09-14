@@ -17,27 +17,20 @@ public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IContextFactory contextFactory,
     ITrieResolver<WsEndpointInfo> endpointTypeResolver) : IMessageDispatcher
 {
-    private readonly ReadOnlyMemory<byte> _endpointKeyBytes = Encoding.UTF8.GetBytes(WsMessageFields.Key).AsMemory();
-
     public async Task DispatchMessage(IGlobalContext context, ISerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
-        var keyIndex = serializer.FieldValueIndex(payload.Span, _endpointKeyBytes.Span);
-
-        if(keyIndex == -1)
+        if(!serializer.TryGetFieldValueIndex(payload.Span, WsMessageFields.Key, out var keyIndex))
         {
             throw new Exception("");
         }
 
-        var endpointInfo = endpointTypeResolver.Resolve(payload.Span.Slice((int)keyIndex));
+        var endpointInfo = endpointTypeResolver.Resolve(payload.Span[keyIndex..]);
         if(endpointInfo is null)
         {
             throw new Exception("");
         }
 
         await using var scope = scopeFactory.CreateAsyncScope();
-
-        var endpointType = endpointInfo.EndpointType;
-        var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
         if(endpointInfo.AuthEndpoint is not null)
         {
@@ -60,8 +53,10 @@ public class DefaultMessageDispatcher(
             }
         }
 
-        var execCtx = contextFactory.Create(context, connectionManager, payload, serializer, token);
+        var endpointType = endpointInfo.EndpointType;
+        var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
+        var execCtx = contextFactory.Create(context, connectionManager, payload, serializer, token);
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }
 }
