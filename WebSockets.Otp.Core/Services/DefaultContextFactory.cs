@@ -8,14 +8,13 @@ using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class DefaultContextFactory : IContextFactory
+public sealed class DefaultContextFactory(IWsConnectionManager manager) : IContextFactory
 {
     public IGlobalContext CreateGlobal(
         HttpContext context, WebSocket socket, string connectionId, IWsConnectionManager manager) =>
         new WsGlobalContext(context, socket, connectionId, manager);
 
     public IEndpointContext Create(
-        IGlobalContext global, IWsConnectionManager manager, IMessageBuffer payload,
-        ISerializer serializer, CancellationToken token) =>
+        IGlobalContext global, IMessageBuffer payload, ISerializer serializer, CancellationToken token) =>
         new WsEndpointContext(global, manager, serializer, payload, token);
 }

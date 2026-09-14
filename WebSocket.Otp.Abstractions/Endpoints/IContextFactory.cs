@@ -10,7 +10,5 @@ public interface IContextFactory
 {
     IGlobalContext CreateGlobal(HttpContext context, WebSocket socket, string connectionId, IWsConnectionManager manager);
 
-    IEndpointContext Create(
-        IGlobalContext global, IWsConnectionManager manager, IMessageBuffer payload,
-        ISerializer serializer, CancellationToken token);
+    IEndpointContext Create(IGlobalContext global, IMessageBuffer payload, ISerializer serializer, CancellationToken token);
 }
