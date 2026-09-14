@@ -1,7 +1,6 @@
 ﻿namespace WebSockets.Otp.Abstractions.Utils;
 
-public interface ITrieResolver
+public interface ITrieResolver<T>
 {
-    Type Resolve(byte[] sequence);
-    Type Resolve(ReadOnlySpan<byte> sequence);
+    T Resolve(ReadOnlySpan<byte> sequence);
 }

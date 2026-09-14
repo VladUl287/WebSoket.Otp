@@ -1,16 +1,35 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.CodeAnalysis;
+using System.Reflection;
 using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Utils;
 
-public unsafe sealed class EndpointTypeResolver : ITrieResolver
+public unsafe sealed class EndpointTypeResolver : ITrieResolver<WsEndpointInfo>
 {
-    private readonly Type[] _types;
+    private readonly WsEndpointInfo[] _types;
     private readonly Func<byte[], int, int> _resolve;
 
     public EndpointTypeResolver(byte[][] values, Type[] types)
     {
-        _types = types;
+        _types = [.. types
+            .Select((t) =>
+            {
+                var attribute = t.GetCustomAttribute<AuthorizeAttribute>();
+
+                return new WsEndpointInfo
+                {
+                    EndpointType = t,
+                    AuthEndpoint = attribute is not null ? 
+                        new Endpoint(
+                            requestDelegate: null,
+                            metadata: new EndpointMetadataCollection(attribute),
+                            displayName: "ws-auth") : 
+                        null
+                };
+            })];
 
         //var references = AppDomain.CurrentDomain.GetAssemblies()
         //    .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
@@ -32,16 +51,11 @@ public unsafe sealed class EndpointTypeResolver : ITrieResolver
         _resolve = method.CreateDelegate<Func<byte[], int, int>>();
     }
 
-    public Type Resolve(byte[] sequence)
-    {
-        return Resolve(sequence.AsSpan());
-    }
-
-    public Type Resolve(ReadOnlySpan<byte> sequence)
+    public WsEndpointInfo Resolve(ReadOnlySpan<byte> sequence)
     {
         var index = _resolve(sequence.ToArray(), 0);
 
-        if(index == -1)
+        if (index == -1)
             throw new Exception();
 
         return _types[index];

@@ -1,8 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.IO;
-using System.Reflection;
 using System.Text;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -11,61 +8,68 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Core.Models;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
 public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IContextFactory contextFactory,
-    IEndpointInvokerFactory invokerFactory, ITrieResolver endpointTypeResolver) : IMessageDispatcher
+    IEndpointInvokerFactory invokerFactory, ITrieResolver<WsEndpointInfo> endpointTypeResolver) : IMessageDispatcher
 {
     private readonly ReadOnlyMemory<byte> _endpointKeyBytes = Encoding.UTF8.GetBytes(WsMessageFields.Key).AsMemory();
 
     public async Task DispatchMessage(
         IGlobalContext globalContext, ISerializer serializer, IMessageBuffer payload, WsOptionsSnapshot configuration, CancellationToken token)
     {
-        var keyIndex = serializer.FieldIndex(payload.Span, _endpointKeyBytes.Span);
+        var keyIndex = serializer.FieldValueIndex(payload.Span, _endpointKeyBytes.Span);
 
         if(keyIndex == -1)
         {
             throw new Exception("");
         }
 
-        var endpointType = endpointTypeResolver.Resolve(payload.Span.Slice((int)keyIndex));
-        if(endpointType is null)
+        var endpointInfo = endpointTypeResolver.Resolve(payload.Span.Slice((int)keyIndex));
+        if(endpointInfo is null)
         {
             throw new Exception("");
         }
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
+        var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
-        var execCtx = contextFactory.Create(globalContext, connectionManager, payload, serializer, token);
-
-        var source = globalContext.Context;
-        var ctx = new DefaultHttpContext
+        if(endpointInfo.AuthEndpoint is not null)
         {
-            RequestServices = scope.ServiceProvider,
-            User = source.User,
-            RequestAborted = token,
-            Items = source.Items
-        };
+            var source = globalContext.Context;
+            var ctx = new DefaultHttpContext
+            {
+                RequestServices = scope.ServiceProvider,
+                User = source.User,
+                RequestAborted = token,
+                Items = source.Items
+            };
 
-        var attribute = endpointType.GetCustomAttribute<AuthorizeAttribute>() ??
-              throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
-        
-        ctx.SetEndpoint(new Endpoint(
-            requestDelegate: null,
-            metadata: new EndpointMetadataCollection(attribute),
-            displayName: "ws-auth"));
+            ctx.SetEndpoint(endpointInfo.AuthEndpoint);
 
-        await configuration.AuthPipeline(ctx);
+            //var attribute = endpointType.GetCustomAttribute<AuthorizeAttribute>() ??
+            //      throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
 
-        if (ctx.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
-        {
-            return;
+            //ctx.SetEndpoint(new Endpoint(
+            //    requestDelegate: null,
+            //    metadata: new EndpointMetadataCollection(attribute),
+            //    displayName: "ws-auth"));
+
+            await configuration.AuthPipeline(ctx);
+
+            if (ctx.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
+            {
+                return;
+            }
         }
+
+        var execCtx = contextFactory.Create(globalContext, connectionManager, payload, serializer, token);
 
         var invoker = invokerFactory.Create(endpointType);
         await invoker.Invoke(endpoint, execCtx);
