@@ -19,8 +19,7 @@ public class DefaultMessageDispatcher(
 {
     private readonly ReadOnlyMemory<byte> _endpointKeyBytes = Encoding.UTF8.GetBytes(WsMessageFields.Key).AsMemory();
 
-    public async Task DispatchMessage(
-        IGlobalContext globalContext, ISerializer serializer, IMessageBuffer payload, WsOptionsSnapshot configuration, CancellationToken token)
+    public async Task DispatchMessage(IGlobalContext context, ISerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
         var keyIndex = serializer.FieldValueIndex(payload.Span, _endpointKeyBytes.Span);
 
@@ -42,7 +41,7 @@ public class DefaultMessageDispatcher(
 
         if(endpointInfo.AuthEndpoint is not null)
         {
-            var source = globalContext.Context;
+            var source = context.Context;
             var ctx = new DefaultHttpContext
             {
                 RequestServices = scope.ServiceProvider,
@@ -53,15 +52,7 @@ public class DefaultMessageDispatcher(
 
             ctx.SetEndpoint(endpointInfo.AuthEndpoint);
 
-            //var attribute = endpointType.GetCustomAttribute<AuthorizeAttribute>() ??
-            //      throw new InvalidOperationException($"Type {endpointType.Name} is missing WsEndpointAttribute");
-
-            //ctx.SetEndpoint(new Endpoint(
-            //    requestDelegate: null,
-            //    metadata: new EndpointMetadataCollection(attribute),
-            //    displayName: "ws-auth"));
-
-            await configuration.AuthPipeline(ctx);
+            await context.Options.AuthPipeline(ctx);
 
             if (ctx.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
             {
@@ -69,7 +60,7 @@ public class DefaultMessageDispatcher(
             }
         }
 
-        var execCtx = contextFactory.Create(globalContext, connectionManager, payload, serializer, token);
+        var execCtx = contextFactory.Create(context, connectionManager, payload, serializer, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }
