@@ -7,6 +7,7 @@ using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
+using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Core.Models;
 using WebSockets.Otp.Core.Utils;
 
@@ -20,13 +21,13 @@ public class DefaultMessageDispatcher(
     {
         if (!serializer.TryGetFieldValueIndex(payload.Span, WsMessageFields.Key, out var keyIndex))
         {
-            logger.LogError("Ignoring message because the endpoint key field is missing");
+            logger.MessageKeyFieldMissing();
             return;
         }
 
         if (!endpointTypeResolver.TryResolve(payload.Span[keyIndex..], out var endpointInfo))
         {
-            logger.LogError("Serializer returned an invalid endpoint key index: {KeyIndex}. Payload length: {PayloadLength}", keyIndex, payload.Span.Length);
+            logger.FailToResolveFieldInfo(keyIndex, payload.Span.Length);
             return;
         }
 
@@ -49,7 +50,7 @@ public class DefaultMessageDispatcher(
 
             if (ctx.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
             {
-                logger.LogDebug("Request was rejected with HTTP status {StatusCode}", ctx.Response.StatusCode);
+                logger.AuthFailed(ctx.Response.StatusCode);
                 return;
             }
         }
