@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
@@ -13,23 +14,25 @@ namespace WebSockets.Otp.Core.Services;
 
 public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IWsConnectionManager connectionManager, IContextFactory contextFactory,
-    ITrieResolver<WsEndpointInfo> endpointTypeResolver) : IMessageDispatcher
+    ITrieResolver<WsEndpointInfo> endpointTypeResolver, ILogger<DefaultMessageDispatcher> logger) : IMessageDispatcher
 {
     public async Task DispatchMessage(IGlobalContext context, ISerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
-        if(!serializer.TryGetFieldValueIndex(payload.Span, WsMessageFields.Key, out var keyIndex))
+        if (!serializer.TryGetFieldValueIndex(payload.Span, WsMessageFields.Key, out var keyIndex))
         {
-            throw new Exception("");
+            logger.LogError("Ignoring message because the endpoint key field is missing");
+            return;
         }
 
-        if(!endpointTypeResolver.TryResolve(payload.Span[keyIndex..], out var endpointInfo))
+        if (!endpointTypeResolver.TryResolve(payload.Span[keyIndex..], out var endpointInfo))
         {
-            throw new Exception("");
+            logger.LogError("Serializer returned an invalid endpoint key index: {KeyIndex}. Payload length: {PayloadLength}", keyIndex, payload.Span.Length);
+            return;
         }
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        if(endpointInfo.AuthEndpoint is not null)
+        if (endpointInfo.AuthEndpoint is not null)
         {
             var source = context.Context;
             var ctx = new DefaultHttpContext
@@ -46,6 +49,7 @@ public class DefaultMessageDispatcher(
 
             if (ctx.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
             {
+                logger.LogDebug("Request was rejected with HTTP status {StatusCode}", ctx.Response.StatusCode);
                 return;
             }
         }
