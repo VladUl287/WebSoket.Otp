@@ -18,9 +18,9 @@ public sealed class DefaultConnectionHandler(
 {
     public async Task HandleAsync(HttpContext context, WsOptionsSnapshot options)
     {
-        var traceId = new RequestId(context);
+        var requestId = new RequestId(context);
 
-        logger.RequestProcessingStarted(traceId);
+        logger.RequestProcessingStarted(requestId);
 
         var token = context.RequestAborted;
 
@@ -29,15 +29,15 @@ public sealed class DefaultConnectionHandler(
         var handshakeOptions = await hanshakeService.HandleAsync(context, socket, options, token);
         if (handshakeOptions is null)
         {
-            logger.HandshakeOptionsNotFound(traceId);
+            logger.HandshakeOptionsNotFound(requestId);
             return;
         }
 
-        logger.HandshakeCompleted(handshakeOptions.Protocol, traceId);
+        logger.HandshakeCompleted(handshakeOptions.Protocol, requestId);
 
         if (!serializerStore.TryGet(handshakeOptions.Protocol, out var serializer))
         {
-            logger.SerializerNotFound(handshakeOptions.Protocol, traceId);
+            logger.SerializerNotFound(handshakeOptions.Protocol, requestId);
             return;
         }
 
@@ -45,33 +45,33 @@ public sealed class DefaultConnectionHandler(
 
         if (!await connectionManager.TryAdd(connection, token))
         {
-            logger.ConnectionAddFailed(connection.Id, traceId);
+            logger.ConnectionAddFailed(connection.Id, requestId);
             return;
         }
 
-        logger.ConnectionEstablished(connection.Id, traceId);
+        logger.ConnectionEstablished(connection.Id, requestId);
 
         var globalContext = contextFactory.CreateGlobal(context, socket, connection.Id, options);
         try
         {
-            logger.InvokingOnConnectedCallback(connection.Id, traceId);
+            logger.InvokingOnConnectedCallback(connection.Id, requestId);
             options.OnConnected?.Invoke(globalContext);
 
-            logger.MessageProcessingStarted(connection.Id, traceId);
+            logger.MessageProcessingStarted(connection.Id, requestId);
 
             await messageProcessor.Process(globalContext, serializer, token);
 
-            logger.MessageProcessingCompleted(connection.Id, traceId);
+            logger.MessageProcessingCompleted(connection.Id, requestId);
         }
         finally
         {
-            logger.RemovingConnection(connection.Id, traceId);
+            logger.RemovingConnection(connection.Id, requestId);
             await connectionManager.TryRemove(connection.Id, token);
 
-            logger.InvokingOnDisconnectedCallback(connection.Id, traceId);
+            logger.InvokingOnDisconnectedCallback(connection.Id, requestId);
             options.OnDisconnected?.Invoke(globalContext);
 
-            logger.ConnectionClosed(connection.Id, traceId);
+            logger.ConnectionClosed(connection.Id, requestId);
         }
     }
 }
