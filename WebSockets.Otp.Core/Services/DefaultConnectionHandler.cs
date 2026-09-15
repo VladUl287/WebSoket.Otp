@@ -13,12 +13,12 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultConnectionHandler(
     IWsConnectionManager connectionManager, IWsConnectionFactory connectionFactory, IHandshakeHandler hanshakeService,
-    IContextFactory contextFactory, IMessageProcessorStore processorResolver, ISerializerStore serializerStore,
+    IContextFactory contextFactory, IMessageProcessor messageProcessor, ISerializerStore serializerStore,
     ILogger<DefaultConnectionHandler> logger) : IConnectionHandler
 {
-    public async Task HandleAsync(HttpContext context, WsConfiguration config)
+    public async Task HandleAsync(HttpContext context, WsOptionsSnapshot options)
     {
-        var traceId = new TraceId(context);
+        var traceId = new RequestId(context);
 
         logger.RequestProcessingStarted(traceId);
 
@@ -26,7 +26,7 @@ public sealed class DefaultConnectionHandler(
 
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
-        var handshakeOptions = await hanshakeService.HandleAsync(context, socket, config, token);
+        var handshakeOptions = await hanshakeService.HandleAsync(context, socket, options, token);
         if (handshakeOptions is null)
         {
             logger.HandshakeOptionsNotFound(traceId);
@@ -51,17 +51,15 @@ public sealed class DefaultConnectionHandler(
 
         logger.ConnectionEstablished(connection.Id, traceId);
 
-        var globalContext = contextFactory.CreateGlobal(context, socket, connection.Id, connectionManager);
+        var globalContext = contextFactory.CreateGlobal(context, socket, connection.Id, options);
         try
         {
             logger.InvokingOnConnectedCallback(connection.Id, traceId);
-            config.OnConnected?.Invoke(globalContext);
-
-            var messageProcessor = processorResolver.Get(config.ProcessingMode);
+            options.OnConnected?.Invoke(globalContext);
 
             logger.MessageProcessingStarted(connection.Id, traceId);
 
-            await messageProcessor.Process(globalContext, serializer, config, token);
+            await messageProcessor.Process(globalContext, serializer, token);
 
             logger.MessageProcessingCompleted(connection.Id, traceId);
         }
@@ -71,7 +69,7 @@ public sealed class DefaultConnectionHandler(
             await connectionManager.TryRemove(connection.Id, token);
 
             logger.InvokingOnDisconnectedCallback(connection.Id, traceId);
-            config.OnDisconnected?.Invoke(globalContext);
+            options.OnDisconnected?.Invoke(globalContext);
 
             logger.ConnectionClosed(connection.Id, traceId);
         }
