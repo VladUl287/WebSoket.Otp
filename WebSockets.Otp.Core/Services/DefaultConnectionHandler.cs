@@ -20,12 +20,9 @@ public sealed class DefaultConnectionHandler(
     {
         var requestId = new RequestId(context);
 
-        logger.RequestProcessingStarted(requestId);
-
-        var token = context.RequestAborted;
-
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
+        var token = context.RequestAborted;
         var handshakeOptions = await hanshakeService.HandleAsync(context, socket, options, token);
         if (handshakeOptions is null)
         {
@@ -54,24 +51,13 @@ public sealed class DefaultConnectionHandler(
         var globalContext = contextFactory.CreateGlobal(context, socket, connection.Id, options);
         try
         {
-            logger.InvokingOnConnectedCallback(connection.Id, requestId);
             options.OnConnected?.Invoke(globalContext);
-
-            logger.MessageProcessingStarted(connection.Id, requestId);
-
             await messageProcessor.Process(globalContext, serializer, token);
-
-            logger.MessageProcessingCompleted(connection.Id, requestId);
         }
         finally
         {
-            logger.RemovingConnection(connection.Id, requestId);
             await connectionManager.TryRemove(connection.Id, token);
-
-            logger.InvokingOnDisconnectedCallback(connection.Id, requestId);
             options.OnDisconnected?.Invoke(globalContext);
-
-            logger.ConnectionClosed(connection.Id, requestId);
         }
     }
 }
