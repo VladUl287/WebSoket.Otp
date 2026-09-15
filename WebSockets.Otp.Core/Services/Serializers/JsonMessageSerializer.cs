@@ -8,7 +8,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
 {
     private readonly JsonSerializerOptions _options = options;
 
-    public string ProtocolName => "json";
+    public string Protocol => "json";
 
     public WebSocketMessageType MessageType => WebSocketMessageType.Text;
 
@@ -18,8 +18,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
         return JsonSerializer.SerializeToUtf8Bytes(message, _options);
     }
 
-    public object? Deserialize(Type type, ReadOnlySpan<byte> data) =>
-        JsonSerializer.Deserialize(data, type, _options);
+    public T? Deserialize<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, _options);
 
     public bool TryGetFieldValueIndex(ReadOnlySpan<byte> data, string field, out int index)
     {

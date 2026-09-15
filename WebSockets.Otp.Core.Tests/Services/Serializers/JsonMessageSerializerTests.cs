@@ -29,7 +29,7 @@ public sealed class JsonMessageSerializerTests
         var serializer = new JsonMessageSerializer(new());
 
         // Assert
-        Assert.Equal("json", serializer.ProtocolName);
+        Assert.Equal("json", serializer.Protocol);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed class JsonMessageSerializerTests
         var serializer = new JsonMessageSerializer(customOptions);
 
         // Assert
-        Assert.Equal("json", serializer.ProtocolName);
+        Assert.Equal("json", serializer.Protocol);
     }
 
     #endregion
@@ -57,7 +57,7 @@ public sealed class JsonMessageSerializerTests
     public void ProtocolName_ShouldReturnJson()
     {
         // Assert
-        Assert.Equal("json", _sut.ProtocolName);
+        Assert.Equal("json", _sut.Protocol);
     }
 
     #endregion

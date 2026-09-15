@@ -47,7 +47,7 @@ public sealed class DefaultHandshakeHandler(
 
         logger.HandshakeSerializerObtained(_protocol, traceId);
 
-        var handshakeOptions = (HandshakeOptions?)serializer.Deserialize(typeof(HandshakeOptions), handshakeBuffer.Span);
+        var handshakeOptions = serializer.Deserialize<HandshakeOptions>(handshakeBuffer.Span);
         if (handshakeOptions is null)
         {
             logger.HandshakeDeserializeFailed(traceId);

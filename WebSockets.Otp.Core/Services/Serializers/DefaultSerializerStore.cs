@@ -6,7 +6,7 @@ namespace WebSockets.Otp.Core.Services.Serializers;
 
 public sealed class DefaultSerializerStore(IEnumerable<ISerializer> serializers) : ISerializerStore
 {
-    private readonly FrozenDictionary<string, ISerializer> _store = serializers.ToFrozenDictionary(c => c.ProtocolName);
+    private readonly FrozenDictionary<string, ISerializer> _store = serializers.ToFrozenDictionary(c => c.Protocol);
 
     public bool TryGet(string format, [NotNullWhen(true)] out ISerializer? serializer) =>
         _store.TryGetValue(format, out serializer);

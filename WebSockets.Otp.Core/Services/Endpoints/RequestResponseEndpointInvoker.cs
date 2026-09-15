@@ -12,7 +12,7 @@ public sealed class RequestResponseEndpointInvoker<TRequest, TResponse> : IEndpo
         var typedEndpoint = Unsafe.As<WsEndpoint<TRequest, TResponse>>(endpoint);
         var typedContext = Unsafe.As<EndpointContext<TResponse>>(context);
 
-        var request = typedContext.Serializer.Deserialize(typeof(TRequest), typedContext.Payload.Span) ??
+        var request = typedContext.Serializer.Deserialize<TRequest>(typedContext.Payload.Span) ??
             throw new NullReferenceException($"Fail to deserialize message for endpoint '{endpoint.GetType()}'");
 
         return typedEndpoint.HandleAsync((TRequest)request, typedContext);
