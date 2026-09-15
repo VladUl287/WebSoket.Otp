@@ -37,7 +37,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         var socket = connection.Socket;
         var serializer = connection.Serializer;
         var message = serializer.Serialize(data);
-        return socket.SendAsync(message, serializer.MessageType, true, token);
+        return socket.SendAsync(message, serializer.Type, true, token);
     }
 
     public async ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
@@ -48,7 +48,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
             var socket = connection.Value.Socket;
             var serializer = connection.Value.Serializer;
             var message = serializer.Serialize(data);
-            await socket.SendAsync(message, serializer.MessageType, true, token);
+            await socket.SendAsync(message, serializer.Type, true, token);
         }
     }
 
@@ -60,7 +60,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
             var socket = connection.Socket;
             var serializer = connection.Serializer;
             var message = serializer.Serialize(data);
-            await socket.SendAsync(message, serializer.MessageType, true, token);
+            await socket.SendAsync(message, serializer.Type, true, token);
         }
     }
 
@@ -78,7 +78,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
                 var socket = connection.Socket;
                 var serializer = connection.Serializer;
                 var message = serializer.Serialize(data);
-                await socket.SendAsync(message, serializer.MessageType, true, token);
+                await socket.SendAsync(message, serializer.Type, true, token);
             }
         }
     }

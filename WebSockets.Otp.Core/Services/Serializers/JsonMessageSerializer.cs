@@ -10,7 +10,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
 
     public string Protocol => "json";
 
-    public WebSocketMessageType MessageType => WebSocketMessageType.Text;
+    public WebSocketMessageType Type => WebSocketMessageType.Text;
 
     public ReadOnlyMemory<byte> Serialize<T>(T message)
     {

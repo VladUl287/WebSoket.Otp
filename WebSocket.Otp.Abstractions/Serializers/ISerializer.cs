@@ -6,6 +6,8 @@ public interface ISerializer
 {
     string Protocol { get; }
 
+    WebSocketMessageType Type { get; }
+
     ReadOnlyMemory<byte> Serialize<T>(T message);
 
     T? Deserialize<T>(ReadOnlySpan<byte> data);

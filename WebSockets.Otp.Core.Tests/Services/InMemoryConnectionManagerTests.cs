@@ -143,7 +143,7 @@ public class InMemoryConnectionManagerTests
 
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
@@ -181,7 +181,7 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.TryAdd(mockConnection3.Object, CancellationToken.None);
 
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(System.Net.WebSockets.WebSocketMessageType.Text);
+        _mockSerializer.SetupGet(s => s.Type).Returns(System.Net.WebSockets.WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, System.Net.WebSockets.WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
@@ -206,7 +206,7 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
 
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
@@ -236,7 +236,7 @@ public class InMemoryConnectionManagerTests
 
         _mockSerializer.Setup(s => s.Serialize(testData))
             .Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
@@ -278,7 +278,7 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.AddToGroupAsync("group2", "test-connection-3", CancellationToken.None);
 
         _mockSerializer.Setup(s => s.Serialize(testData)).Returns(serializedData);
-        _mockSerializer.SetupGet(s => s.MessageType).Returns(WebSocketMessageType.Text);
+        _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
@@ -361,7 +361,7 @@ public class InMemoryConnectionManagerTests
 
         mockSerializer.Setup(s => s.Serialize(It.IsAny<object>()))
             .Returns(new ArraySegment<byte>(new byte[] { 1, 2, 3 }));
-        mockSerializer.SetupGet(s => s.MessageType)
+        mockSerializer.SetupGet(s => s.Type)
             .Returns(System.Net.WebSockets.WebSocketMessageType.Text);
 
         mockSocket.Setup(s => s.SendAsync(It.IsAny<ArraySegment<byte>>(),
@@ -383,7 +383,7 @@ public class InMemoryConnectionManagerTests
 
         mockSerializer.Setup(s => s.Serialize(It.IsAny<object>()))
             .Returns(new ArraySegment<byte>(new byte[] { 1, 2, 3 }));
-        mockSerializer.SetupGet(s => s.MessageType)
+        mockSerializer.SetupGet(s => s.Type)
             .Returns(System.Net.WebSockets.WebSocketMessageType.Text);
 
         mockSocket.Setup(s => s.SendAsync(It.IsAny<ArraySegment<byte>>(),
