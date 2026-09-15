@@ -1,12 +1,10 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq.Expressions;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Enums;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
@@ -45,17 +43,10 @@ public class ParallelMessageProcessorTests
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             ShrinkBuffers = true,
             TaskScheduler = TaskScheduler.Default
-        });
-    }
-
-    [Fact]
-    public void Mode_ShouldReturnParallel()
-    {
-        // Act
-        var result = _processor.Mode;
-
-        // Assert
-        Assert.Equal(ProcessingMode.Parallel, result);
+        })
+        {
+            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+        };
     }
 
     [Fact]
@@ -75,7 +66,7 @@ public class ParallelMessageProcessorTests
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Assert
         _mockEnumerator.Verify(x => x.EnumerateAsync(
@@ -103,7 +94,7 @@ public class ParallelMessageProcessorTests
             .Returns(new List<IMessageBuffer> { mockBuffer1.Object, mockBuffer2.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Assert
         _mockDispatcher.Verify(x => x.DispatchMessage(
@@ -135,7 +126,7 @@ public class ParallelMessageProcessorTests
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Assert
         _mockBufferPool.Verify(x => x.Return(mockBuffer.Object, It.IsAny<CancellationToken>()), Times.Once);
@@ -158,7 +149,7 @@ public class ParallelMessageProcessorTests
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Assert
         mockBuffer.Verify(x => x.SetLength(0), Times.Once);
@@ -181,7 +172,7 @@ public class ParallelMessageProcessorTests
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Assert
         mockBuffer.Verify(x => x.Shrink(), Times.Once);
@@ -198,7 +189,10 @@ public class ParallelMessageProcessorTests
         var options = new WsOptionsSnapshot(new WsOptions
         {
             ShrinkBuffers = false
-        });
+        })
+        {
+            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+        };
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
@@ -209,7 +203,7 @@ public class ParallelMessageProcessorTests
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Assert
         mockBuffer.Verify(x => x.Shrink(), Times.Never);
@@ -231,7 +225,7 @@ public class ParallelMessageProcessorTests
             .Returns(Enumerable.Empty<IMessageBuffer>().ToAsyncEnumerable());
 
         // Act & Assert (should not throw)
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Verify no dispatches were attempted
         _mockDispatcher.Verify(x => x.DispatchMessage(
@@ -253,7 +247,10 @@ public class ParallelMessageProcessorTests
         var options = new WsOptionsSnapshot(new WsOptions()
         {
             MaxDegreeOfParallelism = maxDegree,
-        });
+        })
+        {
+            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+        };
 
         // Create more buffers than max degree of parallelism
         for (int i = 0; i < 5; i++)
@@ -292,7 +289,7 @@ public class ParallelMessageProcessorTests
             .Returns(Task.CompletedTask);
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Assert
         Assert.Equal(buffers.Count, callCount);
@@ -326,7 +323,7 @@ public class ParallelMessageProcessorTests
 
         // Act & Assert
         var exception = await Record.ExceptionAsync(() =>
-            _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token));
+            _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token));
 
         // Buffer should still be returned to pool even if dispatch fails
         mockBuffer.Verify(x => x.SetLength(0), Times.Once);
@@ -351,7 +348,7 @@ public class ParallelMessageProcessorTests
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Note: We can't easily verify TaskScheduler usage without more complex setup
         // This test at least ensures the option is accepted without throwing
@@ -398,7 +395,7 @@ public class ParallelMessageProcessorTests
             });
 
         // Start processing
-        var processTask = _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
+        var processTask = _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
         // Allow some time for parallel tasks to start
         await Task.Delay(100);

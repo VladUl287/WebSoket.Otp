@@ -5,7 +5,6 @@ using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Enums;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
@@ -20,7 +19,7 @@ public class DefaultConnectionHandlerTests
     private readonly Mock<IWsConnectionFactory> _connectionFactoryMock;
     private readonly Mock<IHandshakeHandler> _handshakeServiceMock;
     private readonly Mock<IContextFactory> _contextFactoryMock;
-    private readonly Mock<IMessageProcessorStore> _processorResolverMock;
+    private readonly Mock<IMessageProcessor> _processorResolverMock;
     private readonly Mock<ISerializerStore> _serializerStoreMock;
     private readonly DefaultConnectionHandler _handler;
     private readonly Mock<HttpContext> _httpContextMock;
@@ -32,7 +31,7 @@ public class DefaultConnectionHandlerTests
         _connectionFactoryMock = new Mock<IWsConnectionFactory>();
         _handshakeServiceMock = new Mock<IHandshakeHandler>();
         _contextFactoryMock = new Mock<IContextFactory>();
-        _processorResolverMock = new Mock<IMessageProcessorStore>();
+        _processorResolverMock = new Mock<IMessageProcessor>();
         _serializerStoreMock = new Mock<ISerializerStore>();
 
         _handler = new DefaultConnectionHandler(
@@ -54,7 +53,10 @@ public class DefaultConnectionHandlerTests
     {
         // Arrange
         var webSocketManagerMock = new Mock<WebSocketManager>();
-        var config = new WsOptionsSnapshot(new WsOptions());
+        var config = new WsOptionsSnapshot(new WsOptions())
+        {
+            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+        };
         var token = new CancellationTokenSource().Token;
 
         _httpContextMock.Setup(x => x.WebSockets).Returns(webSocketManagerMock.Object);
@@ -78,7 +80,10 @@ public class DefaultConnectionHandlerTests
     {
         // Arrange
         var webSocketManagerMock = new Mock<WebSocketManager>();
-        var config = new WsOptionsSnapshot(new WsOptions());
+        var config = new WsOptionsSnapshot(new WsOptions())
+        {
+            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+        };
         var token = new CancellationTokenSource().Token;
 
         _httpContextMock.Setup(x => x.WebSockets).Returns(webSocketManagerMock.Object);
@@ -103,7 +108,10 @@ public class DefaultConnectionHandlerTests
     {
         // Arrange
         var webSocketManagerMock = new Mock<WebSocketManager>();
-        var config = new WsOptionsSnapshot(new WsOptions());
+        var config = new WsOptionsSnapshot(new WsOptions())
+        {
+            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+        };
         var token = new CancellationTokenSource().Token;
         var handshakeOptions = new HandshakeOptions()
         {

@@ -1,4 +1,5 @@
-﻿using Moq;
+﻿using Microsoft.AspNetCore.Http;
+using Moq;
 using System.Buffers;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Options;
@@ -27,8 +28,11 @@ public class MessageEnumeratorTests
         {
             ReceiveBufferSize = 1024,
             MaxMessageSize = 8192
-        });
-        _enumerator = new MessageEnumerator();
+        })
+        {
+            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+        };
+        _enumerator = new MessageEnumerator(ArrayPool<byte>.Shared);
         _capturedData = new Memory<byte>(new byte[4096]);
         _dataCaptured = false;
     }
