@@ -22,18 +22,14 @@ public sealed class DefaultHandshakeHandler(
     public async ValueTask<HandshakeOptions?> HandleAsync(
         HttpContext context, WebSocket socket, WsOptionsSnapshot options, CancellationToken token)
     {
-        var traceId = new RequestId(context);
-
-        logger.HandshakeProcessStarted(traceId);
+        var requestId = new RequestId(context);
 
         var messagesEnumerable = enumerator.EnumerateAsync(socket, options, objectPool, token);
-
-        logger.HandshakeAwaitHandshakeMessage(traceId);
 
         using var handshakeBuffer = await AsyncEnumerableExtensions.FirstOrDefaultAsync(messagesEnumerable, token);
         if (handshakeBuffer is null)
         {
-            logger.HandshakeFailReadHandshakeMessage(traceId);
+            logger.HandshakeFailReadHandshakeMessage(requestId);
             return null;
         }
 
@@ -41,25 +37,18 @@ public sealed class DefaultHandshakeHandler(
 
         if (!store.TryGet(_protocol, out var serializer))
         {
-            logger.HandshakeSerializerNotFound(_protocol, traceId);
+            logger.HandshakeSerializerNotFound(_protocol, requestId);
             return null;
         }
-
-        logger.HandshakeSerializerObtained(_protocol, traceId);
 
         var handshakeOptions = serializer.Deserialize<HandshakeOptions>(handshakeBuffer.Span);
         if (handshakeOptions is null)
         {
-            logger.HandshakeDeserializeFailed(traceId);
+            logger.HandshakeDeserializeFailed(requestId);
             return null;
         }
 
-        logger.HandshakeStartResponseSending(traceId);
-
         await socket.SendAsync(_responseBytes, WebSocketMessageType.Text, true, token);
-
-        logger.HandshakeProcessFinished(traceId);
-
         return handshakeOptions;
     }
 }
