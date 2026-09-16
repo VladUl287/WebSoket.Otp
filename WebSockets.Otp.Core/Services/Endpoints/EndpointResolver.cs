@@ -26,11 +26,10 @@ public unsafe sealed class EndpointResolver : ITrieResolver<WsEndpointInfo>
             MetadataReference.CreateFromFile(typeof(object).Assembly.Location)
         };
 
-        var trie = CSharpTrieCodeGenerator.GenerateTrie(values);
-
-        var cmod = CSharpCompiler.Compile(trie, references);
-        var type = cmod.GetType("GeneratedTrie");
-        var method = type.GetMethod("Resolve");
+        var code = CSharpTrieCodeGenerator.GenerateTrie(values);
+        var assembly = CSharpCompiler.Compile(code, references);
+        var type = assembly.GetType("GeneratedTrie") ?? throw new NullReferenceException();
+        var method = type.GetMethod("Resolve") ?? throw new NullReferenceException();
 
         _resolve = method.CreateDelegate<Func<byte[], int, int>>();
     }
