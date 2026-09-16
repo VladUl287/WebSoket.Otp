@@ -1,19 +1,17 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Models;
+using WebSockets.Otp.Core.Utils;
 
-namespace WebSockets.Otp.Core.Utils;
+namespace WebSockets.Otp.Core.Services.Endpoints;
 
-public unsafe sealed class EndpointTypeResolver : ITrieResolver<WsEndpointInfo>
+public unsafe sealed class EndpointResolver : ITrieResolver<WsEndpointInfo>
 {
     private readonly WsEndpointInfo[] _types;
     private readonly Func<byte[], int, int> _resolve;
 
-    public EndpointTypeResolver(byte[][] values, WsEndpointInfo[] types)
+    public EndpointResolver(byte[][] values, WsEndpointInfo[] types)
     {
         _types = types;
 
@@ -48,6 +46,5 @@ public unsafe sealed class EndpointTypeResolver : ITrieResolver<WsEndpointInfo>
 
         value = _types[index];
         return true;
-        //return Unsafe.Add(ref MemoryMarshal.GetArrayDataReference(_types), (nint)index);
     }
 }

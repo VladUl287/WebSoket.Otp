@@ -200,7 +200,7 @@ public static class ServiceCollectionExtensions
                 };
             });
 
-        services.AddSingleton<ITrieResolver<WsEndpointInfo>>(new EndpointTypeResolver([.. endpointsKeysBytes], [.. endpoints]));
+        services.AddSingleton<ITrieResolver<WsEndpointInfo>>(new EndpointResolver([.. endpointsKeysBytes], [.. endpoints]));
         return services;
     }
 }
