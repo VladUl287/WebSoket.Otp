@@ -2,5 +2,5 @@
 
 public sealed class HandshakeOptions
 {
-    public string Protocol { get; init; } = "json";
+    public required string Protocol { get; init; }
 }
