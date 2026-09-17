@@ -46,7 +46,11 @@ public class DefaultHandshakeHandlerTests
         // Arrange
         var options = new WsOptionsSnapshot(new WsOptions())
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
         var token = CancellationToken.None;
 
@@ -70,7 +74,11 @@ public class DefaultHandshakeHandlerTests
         // Arrange
         var options = new WsOptionsSnapshot(new WsOptions())
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
         var token = CancellationToken.None;
         var bufferMock = new Mock<IMessageBuffer>();
@@ -103,7 +111,11 @@ public class DefaultHandshakeHandlerTests
         // Arrange
         var options = new WsOptionsSnapshot(new WsOptions())
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
         var cts = new CancellationTokenSource();
         cts.Cancel();

@@ -55,7 +55,11 @@ public class DefaultConnectionHandlerTests
         var webSocketManagerMock = new Mock<WebSocketManager>();
         var config = new WsOptionsSnapshot(new WsOptions())
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
         var token = new CancellationTokenSource().Token;
 
@@ -82,7 +86,11 @@ public class DefaultConnectionHandlerTests
         var webSocketManagerMock = new Mock<WebSocketManager>();
         var config = new WsOptionsSnapshot(new WsOptions())
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
         var token = new CancellationTokenSource().Token;
 
@@ -110,7 +118,11 @@ public class DefaultConnectionHandlerTests
         var webSocketManagerMock = new Mock<WebSocketManager>();
         var config = new WsOptionsSnapshot(new WsOptions())
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
         var token = new CancellationTokenSource().Token;
         var handshakeOptions = new HandshakeOptions()

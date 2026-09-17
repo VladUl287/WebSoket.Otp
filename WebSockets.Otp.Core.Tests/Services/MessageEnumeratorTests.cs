@@ -30,7 +30,11 @@ public class MessageEnumeratorTests
             MaxMessageSize = 8192
         })
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
         _enumerator = new MessageEnumerator(ArrayPool<byte>.Shared);
         _capturedData = new Memory<byte>(new byte[4096]);

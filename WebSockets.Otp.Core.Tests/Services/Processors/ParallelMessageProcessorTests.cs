@@ -45,7 +45,11 @@ public class ParallelMessageProcessorTests
             TaskScheduler = TaskScheduler.Default
         })
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
     }
 
@@ -58,6 +62,7 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -86,6 +91,7 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -118,6 +124,7 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -141,6 +148,7 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -164,6 +172,7 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -191,10 +200,15 @@ public class ParallelMessageProcessorTests
             ShrinkBuffers = false
         })
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 options,
@@ -217,6 +231,7 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -234,7 +249,7 @@ public class ParallelMessageProcessorTests
             It.IsAny<IMessageBuffer>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
-    
+
     [Fact]
     public async Task Process_ShouldRespectMaxDegreeOfParallelism()
     {
@@ -249,7 +264,11 @@ public class ParallelMessageProcessorTests
             MaxDegreeOfParallelism = maxDegree,
         })
         {
-            AuthPipeline = RequestDelegate.CreateDelegate(typeof(object), typeof(object).GetMethod("string")) as RequestDelegate
+            AuthPipeline = (RequestDelegate)(ctx =>
+            {
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            })
         };
 
         // Create more buffers than max degree of parallelism
@@ -263,6 +282,7 @@ public class ParallelMessageProcessorTests
         var maxConcurrentCalls = 0;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 options,
@@ -307,6 +327,7 @@ public class ParallelMessageProcessorTests
         var expectedException = new InvalidOperationException("Test exception");
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -339,7 +360,11 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
         var mockTaskScheduler = new Mock<TaskScheduler>();
 
-        _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext
+            .Setup(x => x.Socket)
+            .Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options)
+            .Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
@@ -374,6 +399,7 @@ public class ParallelMessageProcessorTests
         }
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
+        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
