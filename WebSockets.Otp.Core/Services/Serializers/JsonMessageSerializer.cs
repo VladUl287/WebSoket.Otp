@@ -35,9 +35,6 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
             {
                 reader.Read();
 
-                if (reader.TokenType is not JsonTokenType.String)
-                    break;
-
                 var len = reader.HasValueSequence ? (int)reader.ValueSequence.Length : reader.ValueSpan.Length;
                 index = (int)(reader.BytesConsumed - len - 1);
                 return true;
