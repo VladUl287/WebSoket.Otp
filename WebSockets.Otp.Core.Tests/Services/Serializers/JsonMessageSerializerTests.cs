@@ -2,7 +2,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using WebSockets.Otp.Core.Services.Serializers;
-using WebSockets.Otp.Core.Services.Utils;
 
 namespace WebSockets.Otp.Core.Tests.Services.Serializers;
 
@@ -143,7 +142,7 @@ public sealed class JsonMessageSerializerTests
         var bytes = System.Text.Encoding.UTF8.GetBytes(json);
 
         // Act
-        var result = _sut.Deserialize(typeof(TestClass), bytes);
+        var result = _sut.Deserialize<TestClass>(bytes);
 
         // Assert
         Assert.NotNull(result);
@@ -161,7 +160,7 @@ public sealed class JsonMessageSerializerTests
         var bytes = System.Text.Encoding.UTF8.GetBytes(invalidJson);
 
         // Act & Assert
-        Assert.Throws<JsonException>(() => _sut.Deserialize(typeof(TestClass), bytes));
+        Assert.Throws<JsonException>(() => _sut.Deserialize<TestClass>(bytes));
     }
 
     [Fact]
@@ -171,7 +170,7 @@ public sealed class JsonMessageSerializerTests
         ReadOnlyMemory<byte> emptyData = Array.Empty<byte>();
 
         // Act & Assert
-        Assert.Throws<JsonException>(() => _sut.Deserialize(typeof(TestClass), emptyData.Span));
+        Assert.Throws<JsonException>(() => _sut.Deserialize<TestClass>(emptyData.Span));
     }
 
     [Fact]
@@ -182,7 +181,7 @@ public sealed class JsonMessageSerializerTests
         var bytes = System.Text.Encoding.UTF8.GetBytes(json);
 
         // Act
-        var result = _sut.Deserialize(typeof(TestClass), bytes);
+        var result = _sut.Deserialize<TestClass>(bytes);
 
         // Assert
         Assert.NotNull(result);
@@ -201,74 +200,40 @@ public sealed class JsonMessageSerializerTests
     {
         // Arrange
         var json = "{\"id\":123,\"name\":\"John Doe\",\"active\":true}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
+        var bytes = Encoding.UTF8.GetBytes(json);
 
         // Act
-        var result = _sut.ExtractField(fieldName, bytes);
+        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "name", out var index);
 
         // Assert
-        Assert.Equal("John Doe", result);
+        Assert.True(result);
+        Assert.Equal(18, index);
     }
 
     [Fact]
-    public void ExtractField_FieldNotFound_ShouldThrowNullReferenceException()
+    public void ExtractField_FieldNotFound_ShouldReturnFalse()
     {
         // Arrange
         var json = "{\"id\":123,\"name\":\"John Doe\"}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("nonexistent");
+        var bytes = Encoding.UTF8.GetBytes(json);
 
         // Act & Assert
-        Assert.Throws<NullReferenceException>(() => _sut.ExtractField(fieldName, bytes));
+        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "nonexistent", out var index);
+        Assert.False(result);
+        Assert.Equal(default, index);
     }
 
     [Fact]
-    public void ExtractField_FieldValueIsNotString_ShouldThrowNullReferenceException()
+    public void ExtractField_FieldValueIsNotString_ShouldReturnCorrectIndex()
     {
         // Arrange
         var json = "{\"id\":123,\"name\":\"John Doe\"}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("id");
+        var bytes = Encoding.UTF8.GetBytes(json);
 
         // Act & Assert
-        Assert.Throws<NullReferenceException>(() => _sut.ExtractField(fieldName, bytes));
-    }
-
-    [Fact]
-    public void ExtractField_NullFieldValue_ShouldThrowNullReferenceException()
-    {
-        // Arrange
-        var json = "{\"id\":123,\"name\":null}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-
-        // Act & Assert
-        Assert.Throws<NullReferenceException>(() => _sut.ExtractField(fieldName, bytes));
-    }
-
-    [Fact]
-    public void ExtractField_EmptyJson_ShouldThrowNullReferenceException()
-    {
-        // Arrange
-        var json = "{}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-
-        // Act & Assert
-        Assert.Throws<NullReferenceException>(() => _sut.ExtractField(fieldName, bytes));
-    }
-
-    [Fact]
-    public void ExtractField_NestedObject_ShouldExtractFromNestedField()
-    {
-        // Arrange
-        var json = "{\"user\":{\"name\":\"John\",\"age\":30},\"active\":true}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-
-        // Act & Assert
-        Assert.Throws<NullReferenceException>(() => _sut.ExtractField(fieldName, bytes));
+        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "id", out var index);
+        Assert.True(result);
+        Assert.Equal(5, index);
     }
 
     [Fact]
@@ -276,34 +241,12 @@ public sealed class JsonMessageSerializerTests
     {
         // Arrange
         var json = "{\"id\":1,\"id\":2,\"name\":\"test\"}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
+        var bytes = Encoding.UTF8.GetBytes(json);
 
-        // Act
-        var result = _sut.ExtractField(fieldName, bytes);
+        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "name", out var index);
 
-        // Assert
-        Assert.Equal("test", result);
-    }
-
-    #endregion
-
-    #region ExtractField Tests (With StringPool)
-
-    [Fact]
-    public void ExtractField_WithStringPool_ValidField_ShouldInternString()
-    {
-        // Arrange
-        var json = "{\"id\":123,\"name\":\"John Doe\",\"active\":true}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-        var fieldName = System.Text.Encoding.UTF8.GetBytes("name");
-        var mockStringPool = new EndpointsKeysPool(["John Doe"], Encoding.UTF8, false);
-
-        // Act
-        var result = _sut.ExtractField(fieldName, bytes, mockStringPool);
-
-        // Assert
-        Assert.Equal("John Doe", result);
+        Assert.True(result);
+        Assert.Equal(23, index);
     }
 
     #endregion
@@ -323,7 +266,7 @@ public sealed class JsonMessageSerializerTests
 
         // Act
         var serialized = _sut.Serialize(original);
-        var deserialized = _sut.Deserialize(typeof(TestClass), serialized.Span) as TestClass;
+        var deserialized = _sut.Deserialize<TestClass>(serialized.Span) as TestClass;
 
         // Assert
         Assert.NotNull(deserialized);
