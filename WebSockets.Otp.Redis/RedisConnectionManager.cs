@@ -1,6 +1,6 @@
-﻿using StackExchange.Redis;
+﻿using System.Text.Json;
+using StackExchange.Redis;
 using System.Collections.Concurrent;
-using System.Text.Json;
 using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Redis;
@@ -24,6 +24,8 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     private readonly RedisChannel _groupRedisChannel;
 
     private readonly ConcurrentDictionary<string, Func<string, ValueTask>> _localHandlers = new();
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, IWsConnection>> _localGroups = new();
+    private readonly ConcurrentDictionary<string, IWsConnection> _localConnections = new();
 
     public RedisConnectionManager(
         IConnectionMultiplexer redis,
@@ -49,12 +51,21 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         var added = await _db.SetAddAsync(ConnectionsSetKey, connection.Id);
         if (!added) return false;
 
-        var entries = new HashEntry[]
+        _localConnections[connection.Id] = connection;
+        _localHandlers[DirectKey(connection.Id)] = (json) =>
         {
-            new("id", connection.Id),
-            new("connectedAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds())
+            var socket = connection.Socket;
+            var serializer = connection.Serializer;
+            var message = serializer.Serialize(json);
+            return socket.SendAsync(message, serializer.Type, true, token);
         };
-        await _db.HashSetAsync(ConnHashPrefix + connection.Id, entries);
+
+        await _db.HashSetAsync(ConnHashPrefix + connection.Id,
+        [
+            new("id", connection.Id),
+            new("connectedAt", DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()),
+        ]);
+
         return true;
     }
 
@@ -66,17 +77,24 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         if (groups.Length > 0)
         {
             var batch = _db.CreateBatch();
-            var tasks = new List<Task>(groups.Length);
+            var tasks = new List<Task>(groups.Length * 2);
             foreach (var g in groups)
             {
                 var grp = (string)g!;
                 tasks.Add(batch.SetRemoveAsync(GroupSetPrefix + grp, connectionId));
+                tasks.Add(batch.SetRemoveAsync(ConnGroupsPrefix + connectionId, grp));
+
+                if (_localGroups.TryGetValue(grp, out var members))
+                    members.TryRemove(connectionId, out _);
             }
             batch.Execute();
             await Task.WhenAll(tasks);
         }
 
         var removed = await _db.SetRemoveAsync(ConnectionsSetKey, connectionId);
+
+        _localConnections.TryRemove(connectionId, out _);
+        _localHandlers.TryRemove(DirectKey(connectionId), out _);
 
         await Task.WhenAll(
             _db.KeyDeleteAsync(ConnHashPrefix + connectionId),
@@ -93,7 +111,30 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         var tran = _db.CreateTransaction();
         _ = tran.SetAddAsync(GroupSetPrefix + group, connectionId);
         _ = tran.SetAddAsync(ConnGroupsPrefix + connectionId, group);
-        return await tran.ExecuteAsync();
+        var ok = await tran.ExecuteAsync();
+
+        if (ok && _localConnections.TryGetValue(connectionId, out var conn))
+        {
+            var members = _localGroups.GetOrAdd(group, _ => new());
+            members[connectionId] = conn;
+
+            _localHandlers.TryAdd(GroupKey(group), async (json) =>
+            {
+                if (!_localGroups.TryGetValue(group, out var set)) return;
+                foreach (var c in set.Values)
+                {
+                    try
+                    {
+                        var message = c.Serializer.Serialize(json);
+                        await c.Socket.SendAsync(message, c.Serializer.Type, true, token);
+                    }
+                    catch
+                    { }
+                }
+            });
+        }
+
+        return ok;
     }
 
     public async ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token)
@@ -104,8 +145,24 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         var tran = _db.CreateTransaction();
         _ = tran.SetRemoveAsync(GroupSetPrefix + group, connectionId);
         _ = tran.SetRemoveAsync(ConnGroupsPrefix + connectionId, group);
-        return await tran.ExecuteAsync();
+        var ok = await tran.ExecuteAsync();
+
+        if (_localGroups.TryGetValue(group, out var members))
+        {
+            members.TryRemove(connectionId, out _);
+
+            if (members.IsEmpty)
+            {
+                _localGroups.TryRemove(group, out _);
+                _localHandlers.TryRemove(GroupKey(group), out _);
+            }
+        }
+
+        return ok;
     }
+
+    private static string DirectKey(string id) => "direct:" + id;
+    private static string GroupKey(string g) => "group:" + g;
 
     public ValueTask SendAsync<TData>(TData data, CancellationToken token) where TData : notnull
     {
@@ -180,9 +237,8 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
             if (_localHandlers.TryGetValue(Key(env.Kind, target), out var handler))
             {
                 try { await handler(env.PayloadJson); }
-                catch { 
-                    
-                }
+                catch
+                { }
             }
         }
     }
@@ -206,6 +262,6 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
             await _sub.UnsubscribeAsync(_groupRedisChannel);
         }
         catch
-        {}
+        { }
     }
 }
