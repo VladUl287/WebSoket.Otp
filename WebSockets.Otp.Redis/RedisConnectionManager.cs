@@ -5,7 +5,7 @@ using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Redis;
 
-public sealed class RedisWsConnectionManager : IWsConnectionManager, IAsyncDisposable
+public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposable
 {
     private const string DirectChannel = "ws:pubsub:direct";
     private const string GroupChannel = "ws:pubsub:group";
@@ -25,7 +25,7 @@ public sealed class RedisWsConnectionManager : IWsConnectionManager, IAsyncDispo
 
     private readonly ConcurrentDictionary<string, Func<string, ValueTask>> _localHandlers = new();
 
-    public RedisWsConnectionManager(
+    public RedisConnectionManager(
         IConnectionMultiplexer redis,
         JsonSerializerOptions? jsonOptions = null)
     {

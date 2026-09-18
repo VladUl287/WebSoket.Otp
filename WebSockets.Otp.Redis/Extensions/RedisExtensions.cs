@@ -7,7 +7,7 @@ public static class RedisExtensions
 {
     public static IServiceCollection AddConnectionServices(this IServiceCollection services)
     {
-        services.AddSingleton<IWsConnectionManager, RedisWsConnectionManager>();
+        services.AddSingleton<IWsConnectionManager, RedisConnectionManager>();
         return services;
     }
 }
