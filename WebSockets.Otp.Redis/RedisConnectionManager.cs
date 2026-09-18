@@ -245,15 +245,6 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
 
     private static string Key(string kind, string target) => kind + ":" + target;
 
-    public void RegisterLocalHandler(string kind, string target, Func<string, ValueTask> handler)
-    {
-        if (string.IsNullOrEmpty(target) || handler is null) return;
-        _localHandlers[Key(kind, target)] = handler;
-    }
-
-    public void UnregisterLocalHandler(string kind, string target)
-        => _localHandlers.TryRemove(Key(kind, target), out _);
-
     public async ValueTask DisposeAsync()
     {
         try
