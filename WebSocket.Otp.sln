@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Redis", "Web
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.CodeGen", "WebSockets.Otp.CodeGen\WebSockets.Otp.CodeGen.csproj", "{70940D3B-5ECE-4DA5-B97D-98A5F127E3F4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebSockets.Otp.Redis.Tests", "WebSockets.Otp.Redis.Tests\WebSockets.Otp.Redis.Tests.csproj", "{28ED014F-B29E-4F79-988B-B41DC8461066}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +53,10 @@ Global
 		{70940D3B-5ECE-4DA5-B97D-98A5F127E3F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{70940D3B-5ECE-4DA5-B97D-98A5F127E3F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{70940D3B-5ECE-4DA5-B97D-98A5F127E3F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28ED014F-B29E-4F79-988B-B41DC8461066}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28ED014F-B29E-4F79-988B-B41DC8461066}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28ED014F-B29E-4F79-988B-B41DC8461066}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28ED014F-B29E-4F79-988B-B41DC8461066}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
