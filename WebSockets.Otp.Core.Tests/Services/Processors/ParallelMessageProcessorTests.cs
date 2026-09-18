@@ -208,7 +208,7 @@ public class ParallelMessageProcessorTests
         };
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
+        _mockGlobalContext.Setup(x => x.Options).Returns(options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 options,
@@ -282,7 +282,7 @@ public class ParallelMessageProcessorTests
         var maxConcurrentCalls = 0;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
+        _mockGlobalContext.Setup(x => x.Options).Returns(options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 options,
