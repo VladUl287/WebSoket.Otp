@@ -14,7 +14,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     private const string GroupSetPrefix = "ws:group:";
     private const string ConnGroupsPrefix = "ws:conn_groups:";
 
-    private sealed record Envelope(string Kind, string[] Targets, string PayloadJson);
+    private sealed record Envelope(string Kind, string[] Targets, string Data, string TypeName);
 
     private readonly IConnectionMultiplexer _redis;
     private readonly IDatabase _db;
@@ -23,7 +23,6 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     private readonly RedisChannel _directRedisChannel;
     private readonly RedisChannel _groupRedisChannel;
 
-    private readonly ConcurrentDictionary<string, Func<string, ValueTask>> _localHandlers = new();
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, IWsConnection>> _localGroups = new();
     private readonly ConcurrentDictionary<string, IWsConnection> _localConnections = new();
 
@@ -52,13 +51,6 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         if (!added) return false;
 
         _localConnections[connection.Id] = connection;
-        _localHandlers[DirectKey(connection.Id)] = (json) =>
-        {
-            var socket = connection.Socket;
-            var serializer = connection.Serializer;
-            var message = serializer.Serialize(json);
-            return socket.SendAsync(message, serializer.Type, true, token);
-        };
 
         await _db.HashSetAsync(ConnHashPrefix + connection.Id,
         [
@@ -94,7 +86,6 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         var removed = await _db.SetRemoveAsync(ConnectionsSetKey, connectionId);
 
         _localConnections.TryRemove(connectionId, out _);
-        _localHandlers.TryRemove(DirectKey(connectionId), out _);
 
         await Task.WhenAll(
             _db.KeyDeleteAsync(ConnHashPrefix + connectionId),
@@ -117,21 +108,6 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         {
             var members = _localGroups.GetOrAdd(group, _ => new());
             members[connectionId] = conn;
-
-            _localHandlers.TryAdd(GroupKey(group), async (json) =>
-            {
-                if (!_localGroups.TryGetValue(group, out var set)) return;
-                foreach (var c in set.Values)
-                {
-                    try
-                    {
-                        var message = c.Serializer.Serialize(json);
-                        await c.Socket.SendAsync(message, c.Serializer.Type, true, token);
-                    }
-                    catch
-                    { }
-                }
-            });
         }
 
         return ok;
@@ -154,15 +130,11 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
             if (members.IsEmpty)
             {
                 _localGroups.TryRemove(group, out _);
-                _localHandlers.TryRemove(GroupKey(group), out _);
             }
         }
 
         return ok;
     }
-
-    private static string DirectKey(string id) => "direct:" + id;
-    private static string GroupKey(string g) => "group:" + g;
 
     public ValueTask SendAsync<TData>(TData data, CancellationToken token) where TData : notnull
     {
@@ -172,31 +144,39 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     public ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token)
         where TData : notnull
     {
-        if (string.IsNullOrEmpty(connectionId)) return ValueTask.CompletedTask;
-        return PublishAsync("direct", [connectionId], data, token);
+        if (string.IsNullOrEmpty(connectionId))
+            return ValueTask.CompletedTask;
+
+        return PublishAsync("direct", [connectionId], data);
     }
 
     public ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
         where TData : notnull
     {
         var targets = connections?.Where(c => !string.IsNullOrEmpty(c)).Distinct().ToArray() ?? [];
-        if (targets.Length == 0) return ValueTask.CompletedTask;
-        return PublishAsync("direct", targets, data, token);
+        if (targets.Length == 0)
+            return ValueTask.CompletedTask;
+
+        return PublishAsync("direct", targets, data);
     }
 
     public ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token)
         where TData : notnull
     {
-        if (string.IsNullOrEmpty(group)) return ValueTask.CompletedTask;
-        return PublishAsync("group", [group], data, token);
+        if (string.IsNullOrEmpty(group))
+            return ValueTask.CompletedTask;
+
+        return PublishAsync("group", [group], data);
     }
 
     public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, TData data, CancellationToken token)
         where TData : notnull
     {
         var targets = groups?.Where(g => !string.IsNullOrEmpty(g)).Distinct().ToArray() ?? [];
-        if (targets.Length == 0) return ValueTask.CompletedTask;
-        return PublishAsync("group", targets, data, token);
+        if (targets.Length == 0)
+            return ValueTask.CompletedTask;
+
+        return PublishAsync("group", targets, data);
     }
 
     private async ValueTask BroadcastAsync<TData>(TData data, CancellationToken token) where TData : notnull
@@ -206,13 +186,20 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
 
         var targets = new string[ids.Length];
         for (int i = 0; i < ids.Length; i++) targets[i] = ids[i]!;
-        await PublishAsync("direct", targets, data, token);
+        await PublishAsync("direct", targets, data);
     }
 
-    private async ValueTask PublishAsync<TData>(string kind, string[] targets, TData data, CancellationToken token) where TData : notnull
+    private async ValueTask PublishAsync<TData>(string kind, string[] targets, TData data) where TData : notnull
     {
         var payload = JsonSerializer.Serialize(data, _jsonOptions);
-        var envelope = new Envelope(kind, targets, payload);
+
+        var declaredType = typeof(TData);
+        var typeName = declaredType.AssemblyQualifiedName
+            ?? declaredType.FullName
+            ?? declaredType.Name
+            ?? throw new NullReferenceException("");
+
+        var envelope = new Envelope(kind, targets, payload, typeName);
         var json = JsonSerializer.Serialize(envelope, _jsonOptions);
 
         var channel = kind == "direct" ? _directRedisChannel : _groupRedisChannel;
@@ -232,18 +219,61 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
 
         if (env is null || env.Kind != expectedKind) return;
 
+        var type = Type.GetType(env.TypeName, throwOnError: false);
+        if (type is null) return;
+
+        object? data;
+        try
+        {
+            data = JsonSerializer.Deserialize(env.Data, type, _jsonOptions);
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+
+        if (data is null) return;
+
         foreach (var target in env.Targets)
         {
-            if (_localHandlers.TryGetValue(Key(env.Kind, target), out var handler))
+            var sockets = env.Kind == "direct"
+                ? GetLocalDirect(target)
+                : GetLocalGroup(target);
+
+            if (sockets.Count == 0) continue;
+
+            foreach (var group in sockets.GroupBy(c => c.Serializer.Type))
             {
-                try { await handler(env.PayloadJson); }
+                ReadOnlyMemory<byte> bytes;
+                var serializer = group.First().Serializer;
+                try
+                {
+                    bytes = serializer.Serialize(message);
+                }
                 catch
-                { }
+                {
+                    continue;
+                }
+
+                foreach (var conn in group)
+                {
+                    try { await conn.Socket.SendAsync(bytes, conn.Serializer.Type, true, CancellationToken.None); }
+                    catch
+                    { }
+                }
             }
         }
     }
 
-    private static string Key(string kind, string target) => kind + ":" + target;
+    private List<IWsConnection> GetLocalDirect(string connectionId)
+        => _localConnections.TryGetValue(connectionId, out var c)
+            ? [c]
+            : [];
+
+    private List<IWsConnection> GetLocalGroup(string group)
+        => _localGroups.TryGetValue(group, out var set)
+            ? [.. set.Values]
+            : [];
 
     public async ValueTask DisposeAsync()
     {
