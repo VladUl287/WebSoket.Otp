@@ -19,6 +19,14 @@ public sealed class RedisFixture : IAsyncLifetime
         Multiplexer = await ConnectionMultiplexer.ConnectAsync(options);
     }
 
+    public IConnectionMultiplexer CreateMultiplexer()
+    {
+        var options = ConfigurationOptions.Parse(_container.GetConnectionString());
+        options.AbortOnConnectFail = false;
+        options.ConnectRetry = 5;
+        return ConnectionMultiplexer.Connect(options);
+    }
+
     public async Task DisposeAsync()
     {
         await Multiplexer.DisposeAsync();
