@@ -1,7 +1,6 @@
 ﻿using BenchmarkDotNet.Attributes;
 using Microsoft.CodeAnalysis;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using WebSockets.Otp.Core.Utils;
 
@@ -10,7 +9,7 @@ namespace WebSockets.Otp.Benchmark;
 [MemoryDiagnoser]
 public class TrieResolveSpeed
 {
-    private static readonly byte[] Bytes = Encoding.UTF8.GetBytes("/api/users/{id}/sessions");
+    private static readonly byte[] Bytes = [.. Encoding.UTF8.GetBytes("/api/users/{id}/sessions"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
     public static readonly string[] ControllerPaths = new[]
     {
@@ -101,31 +100,12 @@ public class TrieResolveSpeed
 
     private static readonly Assembly Assem = CSharpCompiler.Compile(
         CSharpTrieCodeGenerator.GenerateTrie([.. ControllerPaths.Select(Encoding.UTF8.GetBytes)]), references);
-
+    
     public delegate int DayNameFn(byte[] bytes, int index);
 
     private static readonly MethodInfo Method = Assem.GetType("GeneratedTrie").GetMethod("Resolve");
-    private static readonly DayNameFn Func = Assem.GetType("GeneratedTrie").GetMethod("Resolve").CreateDelegate<DayNameFn>();
-    private static readonly IntPtr RawPointer = Method.MethodHandle.GetFunctionPointer();
-
-    public static unsafe int Execute(byte[] bytes, int index)
-    {
-        // Cast the raw memory address directly to a managed static function pointer
-        delegate* managed<byte[], int, int> nativeCall = (delegate* managed<byte[], int, int>)RawPointer;
-
-        // This executes as a raw assembly indirect call instruction, bypassing the 14.8 ns delegate tax
-        return nativeCall(bytes, index);
-    }
-
-    [Benchmark]
-    public int Resolve_Imrpofew()
-    {
-        return Execute(Bytes, 0);
-    }
+    private static readonly DayNameFn Func = Method.CreateDelegate<DayNameFn>();
 
     [Benchmark]
     public int Resolve_Reflection() => Func(Bytes, 0);
-
-    [Benchmark]
-    public int Resolve() => GeneratedTrie.Resolve(Bytes, 0);
 }
