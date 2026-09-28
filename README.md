@@ -217,6 +217,25 @@ public class ChatEndpoint : WsEndpoint<ChatMessage>
 
 Global and endpoint-level authorization are additive a connection must satisfy both to reach the endpoint. Use global rules for connection-wide concerns (e.g. authentication scheme) and per-endpoint attributes for fine-grained policies.
 
+#### 4. Distributed Connections
+Scale across multiple server instances by backing the connection registry with a shared store. Requires a Redis instance.
+
+**Install**
+
+```sh
+dotnet add package WebSockets.Otp.Redis
+```
+
+**Setup**
+
+Register a Redis multiplexer, then enable the Redis-backed connection manager:
+
+```cs
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    _ => ConnectionMultiplexer.Connect("localhost:6379"));
+builder.Services.AddRedisManager();
+```
+
 ## Roadmap
 
 - Performance & memory optimization
