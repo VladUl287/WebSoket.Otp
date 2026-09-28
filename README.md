@@ -2,8 +2,9 @@
 
 [![NuGet Status](https://img.shields.io/nuget/v/WebSockets.Otp.Abstractions.svg?label=WebSockets.Otp.Abstractions)](https://www.nuget.org/packages/WebSockets.Otp.Abstractions/)
 [![NuGet Status](https://img.shields.io/nuget/v/WebSockets.Otp.Core.svg?label=WebSockets.Otp.Core)](https://www.nuget.org/packages/WebSockets.Otp.Core/)
+[![NuGet Status](https://img.shields.io/nuget/v/WebSockets.Otp.Redis.svg?label=WebSockets.Otp.Redis)](https://www.nuget.org/packages/WebSockets.Otp.Redis/)
 
-A minimal WebSocket library for ASP.NET Core inspired by FastEndpoints architecture. Provides clean endpoint-based API for building real-time applications.
+A minimal WebSocket library for ASP.NET Core inspired by REPR principles. Provides a clean endpoint-based API for building real-time applications.
 
 ## Quick Start
 
@@ -45,19 +46,7 @@ public class ChatResponse
 
 ```cs
 // Program.cs
-builder.Services.AddWsEndpoints(options =>
-{
-    options.Keys.CaseSensitive = false;
-    options.BufferPoolSize = 1000;
-    options.ReceiveBufferSize = 4096;
-});
-
-// Optional: Configure JSON serialization
-builder.Services.AddJsonSerializer(options =>
-{
-    options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-    options.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-});
+builder.Services.AddWsEndpoints();
 ```
 
 #### 3. Map WebSocket endpoints
@@ -188,12 +177,49 @@ public class ChatEndpoint : WsEndpoint<ChatMessage>
 }
 ```
 
-## Limitations
+#### 3. Authorization
 
-* Pre-alpha: API may change
-* No built-in reconnection handling: Client must handle reconnection
-* No built-in scaling: Single-server by default (yet)
+Authorization can be applied globally (per connection), per endpoint, or both. Endpoint-level attributes are evaluated in addition to global settings.
+
+**Global (per connection)**
+
+Applied to every endpoint mapped under the same base path:
+
+```cs
+app.MapEndpoints(
+    "/ws",
+    (opt) =>
+    {
+        opt.AuthorizationData =
+        [
+            new AuthorizeAttribute
+            {
+                AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme
+            }
+        ];
+    });
+```
+
+**Per endpoint**
+
+Applied only to the decorated endpoint:
+
+```cs
+[Authorize(Policy = "ws.chat")]
+[WsEndpoint("chat/message/send")]
+public class ChatEndpoint : WsEndpoint<ChatMessage>
+{
+    // ...
+}
+```
+
+**Combined**
+
+Global and endpoint-level authorization are additive a connection must satisfy both to reach the endpoint. Use global rules for connection-wide concerns (e.g. authentication scheme) and per-endpoint attributes for fine-grained policies.
 
 ## Roadmap
 
-...
+- Performance & memory optimization
+- Pre/Post processors
+- Rate limiting
+- Versioning
