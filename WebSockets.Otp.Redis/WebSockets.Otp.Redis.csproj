@@ -4,15 +4,25 @@
 		<TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
-		<Version>0.0.2</Version>
+		<Version>0.0.3</Version>
 		<PackageVersion>$(Version)</PackageVersion>
 
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/VladUl287/WebSoket.Otp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/VladUl287/WebSoket.Otp</RepositoryUrl>
+
+		<PackageIcon>icon.png</PackageIcon>
+
+		<Title>WebSockets.Otp.Redis — Distributed WebSocket connections via Redis for ASP.NET Core.</Title>
+		<Description>
+			Redis-backed connection manager for WebSockets.Otp.Core. Enables distributed, multi-instance WebSocket deployments by storing the connection registry in a shared Redis store.
+		</Description>
+		<PackageTags>websocket, websockets, aspnetcore, aspnet, dotnet, redis, distributed, scale-out, multi-instance, connection-manager, real-time, realtime, ws, group-broadcast, signalr-alternative</PackageTags>
+
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Include="icon.png" />
 		<ProjectReference Include="..\WebSocket.Otp.Abstractions\WebSockets.Otp.Abstractions.csproj" />
 	</ItemGroup>
 
