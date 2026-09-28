@@ -5,7 +5,7 @@ namespace WebSockets.Otp.Redis.Extensions;
 
 public static class RedisExtensions
 {
-    public static IServiceCollection AddConnectionServices(this IServiceCollection services)
+    public static IServiceCollection AddRedisManager(this IServiceCollection services)
     {
         services.AddSingleton<IWsConnectionManager, RedisConnectionManager>();
         return services;
