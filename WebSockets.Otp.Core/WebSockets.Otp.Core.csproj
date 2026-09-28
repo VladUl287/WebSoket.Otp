@@ -14,6 +14,13 @@
 		<RepositoryUrl>https://github.com/VladUl287/WebSoket.Otp</RepositoryUrl>
 
 		<PackageIcon>icon.png</PackageIcon>
+
+		<Title>WebSockets.Otp.Core — Minimal WebSocket APIs for ASP.NET Core.</Title>
+		<Description>
+			A minimal, endpoint-based WebSocket library for ASP.NET Core inspired by REPR and Minimal APIs.
+		</Description>
+		<PackageTags>websocket, websockets, aspnetcore, aspnet, dotnet, minimal-api, repr, endpoints, real-time, realtime, signalr-alternative, ws, group-broadcast, redis, authorization, dependency-injection</PackageTags>
+
 	</PropertyGroup>
 
 	<ItemGroup>
