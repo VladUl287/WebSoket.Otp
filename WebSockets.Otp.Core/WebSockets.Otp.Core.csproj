@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
-		<Version>0.0.1-prealpha</Version>
+		<Version>0.0.1</Version>
 		<PackageVersion>$(Version)</PackageVersion>
 
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
