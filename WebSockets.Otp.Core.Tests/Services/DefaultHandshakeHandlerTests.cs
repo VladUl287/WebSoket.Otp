@@ -1,14 +1,12 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using System.Buffers;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Services;
-using WebSockets.Otp.Core.Services.Serializers;
 
 namespace WebSockets.Otp.Core.Tests.Services;
 
@@ -44,14 +42,7 @@ public class DefaultHandshakeHandlerTests
     public async Task HandleAsync_ReturnsNull_WhenNoHandshakeMessage()
     {
         // Arrange
-        var options = new WsOptionsSnapshot(new WsOptions())
-        {
-            AuthPipeline = (RequestDelegate)(ctx =>
-            {
-                ctx.Response.StatusCode = 200;
-                return Task.CompletedTask;
-            })
-        };
+        var options = new WsOptionsSnapshot(new WsOptions());
         var token = CancellationToken.None;
 
         // Create empty async enumerable
@@ -72,14 +63,7 @@ public class DefaultHandshakeHandlerTests
     public async Task HandleAsync_ReturnsNull_WhenSerializerNotFound()
     {
         // Arrange
-        var options = new WsOptionsSnapshot(new WsOptions())
-        {
-            AuthPipeline = (RequestDelegate)(ctx =>
-            {
-                ctx.Response.StatusCode = 200;
-                return Task.CompletedTask;
-            })
-        };
+        var options = new WsOptionsSnapshot(new WsOptions());
         var token = CancellationToken.None;
         var bufferMock = new Mock<IMessageBuffer>();
 
@@ -109,14 +93,7 @@ public class DefaultHandshakeHandlerTests
     public async Task HandleAsync_ThrowsOperationCanceledException_WhenCancelled()
     {
         // Arrange
-        var options = new WsOptionsSnapshot(new WsOptions())
-        {
-            AuthPipeline = (RequestDelegate)(ctx =>
-            {
-                ctx.Response.StatusCode = 200;
-                return Task.CompletedTask;
-            })
-        };
+        var options = new WsOptionsSnapshot(new WsOptions());
         var cts = new CancellationTokenSource();
         cts.Cancel();
         var token = cts.Token;
