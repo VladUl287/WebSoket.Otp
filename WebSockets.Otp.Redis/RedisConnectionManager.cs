@@ -242,13 +242,13 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
 
             if (sockets.Count == 0) continue;
 
-            foreach (var group in sockets.GroupBy(c => c.Serializer.Type))
+            foreach (var group in sockets.GroupBy(c => c.Serializer.Protocol))
             {
                 ReadOnlyMemory<byte> bytes;
                 var serializer = group.First().Serializer;
                 try
                 {
-                    bytes = serializer.Serialize(message);
+                    bytes = serializer.Serialize(data);
                 }
                 catch
                 {
