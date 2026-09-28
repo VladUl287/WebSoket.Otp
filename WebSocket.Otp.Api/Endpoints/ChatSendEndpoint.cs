@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Attributes;
 using WebSockets.Otp.Abstractions.Endpoints;
@@ -8,6 +10,7 @@ using WebSockets.Otp.Api.Models;
 
 namespace WebSockets.Otp.Api.Endpoints;
 
+[Authorize(Policy = "test")]
 [WsEndpoint("chat/message/send")]
 public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
     WsEndpoint<ChatMessage>
@@ -48,7 +51,6 @@ public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
         const int SendThreshold = 100;
         var counter = 0;
         var send = ctx.Send;
-
         await foreach (var chatUser in usersIds)
         {
             if (token.IsCancellationRequested)

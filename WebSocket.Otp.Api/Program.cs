@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
@@ -18,6 +19,11 @@ var builder = WebApplication.CreateBuilder(args);
         op.UseNpgsql("Host=localhost;Port=5432;Database=chatdb;Username=postgres;Password=qwerty");
     });
 
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy("test", policy => policy.RequireClaim("scope", "ws.chat"));
+    });
+
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
@@ -26,7 +32,8 @@ var builder = WebApplication.CreateBuilder(args);
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("secretsecretsecretsecretsecretsecretsecretsecretsecret")),
                 ValidateIssuer = false,
-                ValidateAudience = false
+                ValidateAudience = false,
+                RoleClaimType = ClaimTypes.Role
             };
             options.Events = new JwtBearerEvents
             {
@@ -42,6 +49,8 @@ var builder = WebApplication.CreateBuilder(args);
                 }
             };
         });
+
+    builder.Services.AddSignalR();
 
     builder.Services.AddAuthorization();
 
@@ -71,6 +80,7 @@ var app = builder.Build();
         "/ws",
         (opt) =>
         {
+            opt.AuthorizationData = [new AuthorizeAttribute() { AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme }];
             opt.OnConnected = async (context) =>
             {
                 var userId = context.Context.User.GetUserId<long>();
