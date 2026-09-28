@@ -22,7 +22,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="icon.png" />
+		<None Include="icon.png" Pack="true" PackagePath="\" />
 		<ProjectReference Include="..\WebSocket.Otp.Abstractions\WebSockets.Otp.Abstractions.csproj" />
 	</ItemGroup>
 
