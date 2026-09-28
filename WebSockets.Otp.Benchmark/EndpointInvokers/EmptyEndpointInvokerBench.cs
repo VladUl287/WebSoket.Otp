@@ -13,11 +13,11 @@ public class EmptyEndpointInvokerBench
     public IEndpointInvoker GenericEndpointInvoker = new EmptyEndpointInvoker();
 
     private readonly EndpointTest EndpointTestInstance = new();
-    private readonly WsEndpointContext EndpointContext = default!;
+    private readonly EndpointContext EndpointContext = default!;
 
     public EmptyEndpointInvokerBench()
     {
-        EndpointContext = new WsEndpointContext(new WsGlobalContext(default!, default!, default!, default!, default!), default!, default!, default!, default);
+        EndpointContext = new EndpointContext(new WsGlobalContext(default!, default!, default!, default!, default!), default!, default!, default!, default, default);
     }
 
     [Benchmark]
