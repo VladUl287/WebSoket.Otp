@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
@@ -43,14 +42,7 @@ public class ParallelMessageProcessorTests
             MaxDegreeOfParallelism = Environment.ProcessorCount,
             ShrinkBuffers = true,
             TaskScheduler = TaskScheduler.Default
-        })
-        {
-            AuthPipeline = (RequestDelegate)(ctx =>
-            {
-                ctx.Response.StatusCode = 200;
-                return Task.CompletedTask;
-            })
-        };
+        });
     }
 
     [Fact]
@@ -198,14 +190,7 @@ public class ParallelMessageProcessorTests
         var options = new WsOptionsSnapshot(new WsOptions
         {
             ShrinkBuffers = false
-        })
-        {
-            AuthPipeline = (RequestDelegate)(ctx =>
-            {
-                ctx.Response.StatusCode = 200;
-                return Task.CompletedTask;
-            })
-        };
+        });
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
         _mockGlobalContext.Setup(x => x.Options).Returns(options);
@@ -262,14 +247,7 @@ public class ParallelMessageProcessorTests
         var options = new WsOptionsSnapshot(new WsOptions()
         {
             MaxDegreeOfParallelism = maxDegree,
-        })
-        {
-            AuthPipeline = (RequestDelegate)(ctx =>
-            {
-                ctx.Response.StatusCode = 200;
-                return Task.CompletedTask;
-            })
-        };
+        });
 
         // Create more buffers than max degree of parallelism
         for (int i = 0; i < 5; i++)
@@ -420,27 +398,22 @@ public class ParallelMessageProcessorTests
                 return processingTasks[currentIndex].Task;
             });
 
-        // Start processing
         var processTask = _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
 
-        // Allow some time for parallel tasks to start
         await Task.Delay(100);
 
-        // Complete all tasks
         foreach (var tcs in processingTasks)
         {
             tcs.SetResult(true);
         }
 
-        // Wait for completion
         await processTask;
 
-        // Assert: Multiple messages should have started processing (not necessarily in order)
+        // Assert
         Assert.True(processingOrder.Count > 1, "Multiple messages should have started processing");
     }
 }
 
-// Helper extensions for creating async enumerables
 public static class TestExtensions
 {
     public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> source)
