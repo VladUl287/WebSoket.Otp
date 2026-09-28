@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Net.WebSockets;
+using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Options;
@@ -14,6 +15,6 @@ public sealed class DefaultContextFactory(IWsConnectionManager manager) : IConte
     public IGlobalContext CreateGlobal(HttpContext context, WebSocket socket, string connectionId, WsOptionsSnapshot options) =>
         new WsGlobalContext(context, socket, connectionId, manager, options);
 
-    public IEndpointContext Create(IGlobalContext global, IMessageBuffer payload, ISerializer serializer, CancellationToken token) =>
-        new WsEndpointContext(global, manager, serializer, payload, token);
+    public IEndpointContext Create(IGlobalContext global, IMessageBuffer payload, ISerializer serializer, ClaimsPrincipal? user, CancellationToken token) =>
+        new EndpointContext(global, manager, serializer, payload, user, token);
 }

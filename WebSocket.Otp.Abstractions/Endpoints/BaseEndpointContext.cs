@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Net.WebSockets;
+using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
@@ -12,15 +13,17 @@ public abstract class BaseEndpointContext(
     IWsConnectionManager manager,
     ISerializer serializer,
     IMessageBuffer payload,
-    CancellationToken cancellation) : IEndpointContext
+    ClaimsPrincipal? user,
+    CancellationToken token) : IEndpointContext
 {
     protected IWsConnectionManager ConnectionManager => manager;
     public HttpContext Context => context.Context;
+    public ClaimsPrincipal? User => user ?? context.Context.User;
     public WebSocket Socket => context.Socket;
     public string ConnectionId => context.ConnectionId;
     public WsOptionsSnapshot Options => context.Options;
     public ISerializer Serializer => serializer;
     public IMessageBuffer Payload => payload;
-    public CancellationToken Cancellation => cancellation;
+    public CancellationToken Cancellation => token;
     public GroupManager Groups => new(ConnectionManager);
 }
