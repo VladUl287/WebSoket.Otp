@@ -46,15 +46,6 @@ public static class EndpointRouteBuilderExtensions
     {
         var options = builder.ServiceProvider.GetService<WsOptions>() ?? new WsOptions();
         configure?.Invoke(options);
-
-        var authPipeline = builder.CreateApplicationBuilder();
-        authPipeline.UseAuthentication();
-        authPipeline.UseAuthorization();
-        authPipeline.Run(ctx => Task.CompletedTask);
-
-        return new WsOptionsSnapshot(options)
-        {
-            AuthPipeline = authPipeline.Build()
-        };
+        return new WsOptionsSnapshot(options);
     }
 }

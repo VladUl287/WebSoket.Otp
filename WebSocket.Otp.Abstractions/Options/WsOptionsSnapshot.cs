@@ -8,7 +8,6 @@ namespace WebSockets.Otp.Abstractions.Options;
 public sealed class WsOptionsSnapshot(WsOptions options)
 {
     public IList<IAuthorizeData> AuthorizationData { get; init; } = options.AuthorizationData ?? [];
-    public required RequestDelegate AuthPipeline { get; init; }
 
     public WebSocketOptions WebSocketOptions { get; init; } = options.WebSocketOptions ?? new();
 
