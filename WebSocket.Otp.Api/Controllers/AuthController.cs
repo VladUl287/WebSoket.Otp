@@ -33,7 +33,9 @@ public class AuthController() : ControllerBase
             Subject = new ClaimsIdentity(
             [
                 new Claim(ClaimTypes.NameIdentifier.ToString(), user.Id.ToString()),
-                new Claim(ClaimTypes.Name.ToString(), user.Name)
+                new Claim(ClaimTypes.Name.ToString(), user.Name),
+                new Claim(ClaimTypes.Role.ToString(), "User"),
+                new Claim("scope", "ws.chat")
             ]),
             Expires = DateTime.UtcNow.AddDays(10),
             SigningCredentials = new SigningCredentials(
