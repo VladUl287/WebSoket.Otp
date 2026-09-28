@@ -4,8 +4,8 @@ namespace WebSockets.Otp.Core.Logging;
 
 internal static partial class DefaultMessageDispatcherLogging
 {
-    [LoggerMessage(Level = LogLevel.Error, Message = "Request was rejected with HTTP status {StatusCode}")]
-    internal static partial void AuthFailed(this ILogger logger, int StatusCode);
+    [LoggerMessage(Level = LogLevel.Error, Message = "Authorization failed. Reason: '{Reason}'")]
+    internal static partial void AuthFailed(this ILogger logger, string Reason);
     
     [LoggerMessage(Level = LogLevel.Error, Message = "Message key field is required")]
     internal static partial void MessageKeyFieldMissing(this ILogger logger);

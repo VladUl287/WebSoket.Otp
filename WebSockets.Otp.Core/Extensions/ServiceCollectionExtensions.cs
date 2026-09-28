@@ -131,6 +131,8 @@ public static class ServiceCollectionExtensions
     {
         services.AddSingleton<IContextFactory, DefaultContextFactory>();
 
+        services.AddSingleton<IEndpointAuthorizer, EndpointAuthorizer>();
+
         var endpointsTypes = assemblies
             .SelectMany(assembly => assembly
                 .GetTypes()

@@ -13,7 +13,7 @@ using WebSockets.Otp.Core.Utils;
 namespace WebSockets.Otp.Core.Services;
 
 public class DefaultMessageDispatcher(
-    IServiceScopeFactory scopeFactory, IContextFactory contextFactory, ITrieResolver<WsEndpointInfo> endpointTypeResolver, 
+    IServiceScopeFactory scopeFactory, IContextFactory contextFactory, ITrieResolver<WsEndpointInfo> endpointTypeResolver,
     ILogger<DefaultMessageDispatcher> logger) : IMessageDispatcher
 {
     public async Task DispatchMessage(IGlobalContext context, ISerializer serializer, IMessageBuffer payload, CancellationToken token)
@@ -34,22 +34,12 @@ public class DefaultMessageDispatcher(
 
         if (endpointInfo.AuthEndpoint is not null)
         {
-            var source = context.Context;
-            var ctx = new DefaultHttpContext
+            var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
+            var result = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
+
+            if (!result.Succeeded)
             {
-                RequestServices = scope.ServiceProvider,
-                User = source.User,
-                RequestAborted = token,
-                Items = source.Items
-            };
-
-            ctx.SetEndpoint(endpointInfo.AuthEndpoint);
-
-            await context.Options.AuthPipeline(ctx);
-
-            if (ctx.Response.StatusCode is StatusCodes.Status401Unauthorized or StatusCodes.Status403Forbidden)
-            {
-                logger.AuthFailed(ctx.Response.StatusCode);
+                logger.AuthFailed(result.FailureReason ?? "authorization failed");
                 return;
             }
         }
