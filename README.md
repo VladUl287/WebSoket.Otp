@@ -147,7 +147,7 @@ public class AuthEndpoint : WsEndpoint<AuthRequest, AuthResponse>
     {
         var isValid = await _authService.ValidateAsync(request.Token);
     }
-}s
+}
 ```
 
 #### 2. Group Management
