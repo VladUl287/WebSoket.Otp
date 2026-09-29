@@ -76,6 +76,20 @@ Server -> Client
 
 If the first message is not a valid handshake, the server will close the connection. This ensures protocol compatibility and allows for future protocol negotiation.
 
+All sequential messages must have ```key``` field to identify endpoint they meant to.
+
+```cs
+[WsEndpoint("chat/send-message")]
+```
+
+```json
+{
+    "key":"chat/send-message",
+    "username":"user",
+    "message":"test"
+}
+```
+
 ## Endpoint Types
 
 The library supports three endpoint patterns:
