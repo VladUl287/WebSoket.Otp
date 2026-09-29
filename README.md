@@ -16,7 +16,6 @@ public class ChatEndpoint : WsEndpoint<ChatMessage, ChatResponse>
 {
     public override async Task HandleAsync(ChatMessage request, EndpointContext<ChatResponse> context)
     {
-        // Broadcast message to group
         await context.Send
             .Group("general-chat")
             .SendAsync(new ChatResponse
@@ -47,27 +46,35 @@ public class ChatResponse
 ```cs
 // Program.cs
 builder.Services.AddWsEndpoints();
-```
 
-#### 3. Map WebSocket endpoints
-   
-```cs
 app.MapEndpoints(
     "/ws",
     (opt) =>
     {
         opt.OnConnected = async (context) =>
         {
-            var userId = context.Context.User.GetUserId<long>();
-            await context.Groups.AddAsync(userId.ToString(), context.ConnectionId);
+            await context.Groups.AddAsync("general-chat", context.ConnectionId);
         };
         opt.OnDisconnected = async (context) =>
         {
-            var userId = context.Context.User.GetUserId<long>();
-            await context.Groups.RemoveAsync(userId.ToString(), context.ConnectionId);
+            await context.Groups.RemoveAsync("general-chat", context.ConnectionId);
         };
     });
 ```
+
+## Handshake
+
+The first message sent over a WebSocket connection must be a handshake message. This is required before any endpoint can be invoked.
+
+Client -> Server
+
+```{"protocol":"json"}```
+
+Server -> Client
+
+```{}```
+
+If the first message is not a valid handshake, the server will close the connection. This ensures protocol compatibility and allows for future protocol negotiation.
 
 ## Endpoint Types
 
