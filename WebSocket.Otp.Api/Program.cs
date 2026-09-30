@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text;
 using WebSockets.Otp.Api;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Core.Extensions;
+using WebSockets.Otp.Redis.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 {
@@ -56,6 +58,9 @@ var builder = WebApplication.CreateBuilder(args);
 
     builder.Services.AddWsEndpoints();
 
+    //builder.Services.AddSingleton<IConnectionMultiplexer>(sp => ConnectionMultiplexer.Connect("localhost:6379"));
+    //builder.Services.AddRedisManager();
+
     builder.Services.AddOpenApi();
 }
 
@@ -80,16 +85,13 @@ var app = builder.Build();
         "/ws",
         (opt) =>
         {
-            opt.AuthorizationData = [new AuthorizeAttribute() { AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme }];
             opt.OnConnected = async (context) =>
             {
-                var userId = context.Context.User.GetUserId<long>();
-                await context.Groups.AddAsync(userId.ToString(), context.ConnectionId);
+                await context.Groups.AddAsync("general-chat", context.ConnectionId);
             };
             opt.OnDisconnected = async (context) =>
             {
-                var userId = context.Context.User.GetUserId<long>();
-                await context.Groups.RemoveAsync(userId.ToString(), context.ConnectionId);
+                await context.Groups.RemoveAsync("general-chat", context.ConnectionId);
             };
         });
 

@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
@@ -8,7 +8,6 @@ using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Logging;
 using WebSockets.Otp.Core.Models;
-using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -16,39 +15,58 @@ public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IContextFactory contextFactory, ITrieResolver<WsEndpointInfo> endpointTypeResolver,
     ILogger<DefaultMessageDispatcher> logger) : IMessageDispatcher
 {
+    private static readonly string[] fields =
+    [
+        "key",
+        "correlationId",
+        "value",
+    ];
+
     public async Task DispatchMessage(IGlobalContext context, ISerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
-        if (!serializer.TryGetFieldValueIndex(payload.Span, WsMessageFields.Key, out var keyIndex))
-        {
-            logger.MessageKeyFieldMissing();
-            return;
-        }
+        var results = ArrayPool<JsonSlice>.Shared.Rent(3);
 
-        if (!endpointTypeResolver.TryResolve(payload.Span[keyIndex..], out var endpointInfo))
+        serializer.ScanRoot(payload.Span, fields, results);
+
+        var keyResult = results[0];
+        var correlationResult = results[1];
+        var valueResult = results[2];
+
+        ArrayPool<JsonSlice>.Shared.Return(results);
+
+        if (!keyResult.Found || !endpointTypeResolver.TryResolve(payload.Span[(keyResult.Start + 1)..], out var endpointInfo))
         {
-            logger.FailToResolveFieldInfo(keyIndex, payload.Span.Length);
+            logger.FailToResolveFieldInfo(keyResult.Start, payload.Span.Length);
             return;
         }
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        EndpointAuthResult? authResult = null;
-        if (endpointInfo.AuthEndpoint is not null)
-        {
-            var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
-            authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
+        //EndpointAuthResult? authResult = null;
+        //if (endpointInfo.AuthEndpoint is not null)
+        //{
+        //    var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
+        //    authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
 
-            if (!authResult.Succeeded)
-            {
-                logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
-                return;
-            }
-        }
+        //    if (!authResult.Succeeded)
+        //    {
+        //        logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
+        //        return;
+        //    }
+        //}
 
         var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
-        var execCtx = contextFactory.Create(context, payload, serializer, authResult?.User, token);
+        var correlationId = string.Empty;
+        if (correlationResult.Found)
+        {
+            correlationId = serializer.Deserialize<string>(payload.Span[correlationResult.Start..correlationResult.End]);
+        }
+
+        var data = payload.Memory[valueResult.Start..valueResult.End];
+        var execCtx = contextFactory.Create(context, data, serializer, null, token);
+
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }
 }

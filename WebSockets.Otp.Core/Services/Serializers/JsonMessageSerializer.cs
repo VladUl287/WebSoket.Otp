@@ -45,4 +45,49 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
 
         return false;
     }
+
+    public void ScanRoot(ReadOnlySpan<byte> json, string[] fields, Span<JsonSlice> results)
+    {
+        var reader = new Utf8JsonReader(json);
+        var found = 0;
+
+        while (reader.Read())
+        {
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.PropertyName:
+                    if (reader.CurrentDepth != 1)
+                        break;
+
+                    var idx = -1;
+                    for (int i = 0; i < fields.Length; i++)
+                    {
+                        if (reader.ValueTextEquals(fields[i]))
+                        {
+                            idx = i;
+                            break;
+                        }
+                    }
+
+                    reader.Read();
+
+                    var start = reader.TokenStartIndex;
+                    reader.Skip();
+                    var end = reader.BytesConsumed;
+
+                    if (idx >= 0 && !results[idx].Found)
+                    {
+                        results[idx] = new JsonSlice((int)start, (int)end);
+                        found++;
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    public bool TryGetFieldValueRange(ReadOnlySpan<byte> data, string field, out int start, out int end)
+    {
+        throw new NotImplementedException();
+    }
 }

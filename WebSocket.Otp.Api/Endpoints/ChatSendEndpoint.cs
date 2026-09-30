@@ -12,58 +12,67 @@ namespace WebSockets.Otp.Api.Endpoints;
 
 [Authorize(Policy = "test")]
 [WsEndpoint("chat/message/send")]
-public sealed class ChatSendEndpoint(DatabaseContext dbContext) :
+public sealed class ChatSendEndpoint :
     WsEndpoint<ChatMessage>
 {
     public override async Task HandleAsync(ChatMessage request, EndpointContext ctx)
     {
-        var token = ctx.Cancellation;
-        var userId = ctx.Context.User.GetUserId<long>();
+        await ctx.Send
+           .All()
+           .SendAsync(new ChatMessage
+           {
+               Content = request.Content,
+               Timestamp = request.Timestamp,
+               ChatId = request.ChatId,
+           }, default);
 
-        var userInChat = await dbContext.ChatsUsers
-            .AnyAsync(c => c.UserId == userId && c.ChatId == request.ChatId, token);
+        //var token = ctx.Cancellation;
+        //var userId = ctx.Context.User.GetUserId<long>();
 
-        if (!userInChat)
-            return;
+        //var userInChat = await dbContext.ChatsUsers
+        //    .AnyAsync(c => c.UserId == userId && c.ChatId == request.ChatId, token);
 
-        await dbContext.Messages.AddAsync(new Message
-        {
-            Id = Guid.CreateVersion7(),
-            ChatId = request.ChatId,
-            Content = request.Content,
-            Date = request.Timestamp.UtcDateTime,
-        }, token);
+        //if (!userInChat)
+        //    return;
 
-        await dbContext.SaveChangesAsync(token);
+        //await dbContext.Messages.AddAsync(new Message
+        //{
+        //    Id = Guid.CreateVersion7(),
+        //    ChatId = request.ChatId,
+        //    Content = request.Content,
+        //    Date = request.Timestamp.UtcDateTime,
+        //}, token);
 
-        var usersIds = dbContext.ChatsUsers
-            .Where(c => c.ChatId == request.ChatId)
-            .Select(c => c.UserId)
-            .AsAsyncEnumerable();
+        //await dbContext.SaveChangesAsync(token);
 
-        var message = new ChatMessage
-        {
-            Content = request.Content,
-            Timestamp = request.Timestamp,
-            ChatId = request.ChatId,
-        };
+        //var usersIds = dbContext.ChatsUsers
+        //    .Where(c => c.ChatId == request.ChatId)
+        //    .Select(c => c.UserId)
+        //    .AsAsyncEnumerable();
 
-        const int SendThreshold = 100;
-        var counter = 0;
-        var send = ctx.Send;
-        await foreach (var chatUser in usersIds)
-        {
-            if (token.IsCancellationRequested)
-                break;
+        //var message = new ChatMessage
+        //{
+        //    Content = request.Content,
+        //    Timestamp = request.Timestamp,
+        //    ChatId = request.ChatId,
+        //};
 
-            send.Group(chatUser.ToString());
+        //const int SendThreshold = 100;
+        //var counter = 0;
+        //var send = ctx.Send;
+        //await foreach (var chatUser in usersIds)
+        //{
+        //    if (token.IsCancellationRequested)
+        //        break;
 
-            if (counter > SendThreshold)
-            {
-                await send.SendAsync(message, token);
-                send = ctx.Send;
-                counter = 0;
-            }
-        }
+        //    send.Group(chatUser.ToString());
+
+        //    if (counter > SendThreshold)
+        //    {
+        //        await send.SendAsync(message, token);
+        //        send = ctx.Send;
+        //        counter = 0;
+        //    }
+        //}
     }
 }

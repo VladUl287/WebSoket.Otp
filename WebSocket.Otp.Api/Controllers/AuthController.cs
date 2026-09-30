@@ -20,7 +20,7 @@ public class AuthController() : ControllerBase
 
         var user = new User()
         {
-            Id = 1,
+            Id = 2,
             Name = "default",
             Password = "password"
         };

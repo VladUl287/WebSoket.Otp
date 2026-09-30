@@ -23,18 +23,23 @@ public sealed class DefaultConnectionHandler(
         using var socket = await context.WebSockets.AcceptWebSocketAsync();
 
         var token = context.RequestAborted;
-        var handshakeOptions = await hanshakeService.HandleAsync(context, socket, options, token);
-        if (handshakeOptions is null)
-        {
-            logger.HandshakeOptionsNotFound(requestId);
-            return;
-        }
+        //var handshakeOptions = await hanshakeService.HandleAsync(context, socket, options, token);
+        //if (handshakeOptions is null)
+        //{
+        //    logger.HandshakeOptionsNotFound(requestId);
+        //    return;
+        //}
 
-        logger.HandshakeCompleted(handshakeOptions.Protocol, requestId);
+        //logger.HandshakeCompleted(handshakeOptions.Protocol, requestId);
 
-        if (!serializerStore.TryGet(handshakeOptions.Protocol, out var serializer))
+        //if (!serializerStore.TryGet(handshakeOptions.Protocol, out var serializer))
+        //{
+        //    logger.SerializerNotFound(handshakeOptions.Protocol, requestId);
+        //    return;
+        //}
+
+        if (!serializerStore.TryGet("json", out var serializer))
         {
-            logger.SerializerNotFound(handshakeOptions.Protocol, requestId);
             return;
         }
 

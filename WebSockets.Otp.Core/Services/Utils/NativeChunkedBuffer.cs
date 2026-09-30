@@ -52,7 +52,6 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : MemoryManager<byt
         _length += data.Length;
     }
 
-
     private void EnsureCapacity(int requiredCapacity)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

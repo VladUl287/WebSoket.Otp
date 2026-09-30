@@ -12,7 +12,7 @@ public abstract class BaseEndpointContext(
     IGlobalContext context,
     IWsConnectionManager manager,
     ISerializer serializer,
-    IMessageBuffer payload,
+    ReadOnlyMemory<byte> payload,
     ClaimsPrincipal? user,
     CancellationToken token) : IEndpointContext
 {
@@ -23,7 +23,7 @@ public abstract class BaseEndpointContext(
     public string ConnectionId => context.ConnectionId;
     public WsOptionsSnapshot Options => context.Options;
     public ISerializer Serializer => serializer;
-    public IMessageBuffer Payload => payload;
+    public ReadOnlyMemory<byte> Payload => payload;
     public CancellationToken Cancellation => token;
     public GroupManager Groups => new(ConnectionManager);
 }
