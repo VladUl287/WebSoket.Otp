@@ -44,7 +44,7 @@ public static class EndpointRouteBuilderExtensions
 
     private static WsOptionsSnapshot EnsureOptions(IEndpointRouteBuilder builder, Action<WsOptions>? configure)
     {
-        var options = builder.ServiceProvider.GetService<WsOptions>() ?? new WsOptions();
+        var options = builder.ServiceProvider.GetRequiredService<WsOptions>();
         configure?.Invoke(options);
         return new WsOptionsSnapshot(options);
     }

@@ -60,7 +60,6 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsOptions options, Assembly[] assemblies)
     {
         services.AddSingleton(options);
-        services.AddSingleton(new WsOptionsSnapshot(options));
 
         services.AddTransport();
         services.AddDefaultSerializers();
