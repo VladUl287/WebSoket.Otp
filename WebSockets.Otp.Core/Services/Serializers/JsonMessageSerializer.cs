@@ -74,6 +74,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
         writer.WritePropertyName("value");
         JsonSerializer.Serialize(writer, data, options);
         writer.WriteEndObject();
+        writer.Flush();
 
         return buffer.WrittenMemory;
     }
