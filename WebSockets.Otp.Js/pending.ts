@@ -6,7 +6,7 @@ export interface PendingRegistry {
         entry: PendingRequest
     ) => void
     readonly resolve: (id: number, value: unknown) => boolean
-    readonly remove: (id: number, entry: PendingRequest) => void
+    readonly remove: (id: number) => void
     readonly rejectAll: (reason: Error) => void
 }
 

@@ -32,7 +32,6 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
         handshakeReject = null
     }
 
-
     const performHandshake = (socket: WebSocket): Promise<void> =>
         new Promise<void>((resolve, reject) => {
             handshakeResolve = resolve
@@ -42,7 +41,8 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
     const safeClose = (socket: WebSocket, code?: number, reason?: string): void => {
         try {
-            socket.close(code, reason);
+            pending.rejectAll(new Error(reason))
+            socket.close(code, reason)
         } catch { }
     }
 
@@ -93,6 +93,8 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
             socket.onmessage = (ev: { data: unknown }): void => handleIncoming(ev.data)
 
             socket.onerror = (): void => {
+                clearHandshake()
+                ws = null
                 const error = new Error("WebSocket error")
                 if (!settled) {
                     settled = true
@@ -103,10 +105,8 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
             socket.onclose = (ev: { code: number; reason: string }): void => {
                 clearHandshake()
-                const wasConnected = state === "connected"
-                setState("disconnected");
+                setState("disconnected")
                 ws = null
-
                 if (!settled) {
                     settled = true
                     reject(new Error(`Connection closed before handshake completed (code ${ev.code})`))
@@ -172,7 +172,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
         const socket = ws
         correlationId = (correlationId + 1) >>> 0
-        const message = JSON.stringify({ key, correlationId, value: { ...payload } })
+        const message = JSON.stringify({ key, correlationId, value: payload })
 
         return new Promise<TResponse>((resolve, reject) => {
             const entry: PendingRequest = {
@@ -183,7 +183,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
                 pending.enqueue(correlationId, entry)
                 socket.send(message)
             } catch (err) {
-                pending.remove(correlationId, entry)
+                pending.remove(correlationId)
                 reject(err)
             }
         })
