@@ -20,5 +20,4 @@ export type ConnectionState =
 export interface PendingRequest {
     readonly resolve: (value: unknown) => void
     readonly reject: (reason?: unknown) => void
-    readonly timer: ReturnType<typeof setTimeout>
 }

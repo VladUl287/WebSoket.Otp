@@ -24,7 +24,6 @@ export const usePendingRegistry = (): PendingRegistry => {
         if (!q || q.length === 0) return false
         const entry = q.shift()!
         if (q.length === 0) queues.delete(key)
-        clearTimeout(entry.timer)
         entry.resolve(value)
         return true
     }
@@ -40,7 +39,6 @@ export const usePendingRegistry = (): PendingRegistry => {
     const rejectAll = (reason: Error): void => {
         for (const [, q] of queues) {
             for (const entry of q) {
-                clearTimeout(entry.timer)
                 entry.reject(reason)
             }
         }
