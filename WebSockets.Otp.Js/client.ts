@@ -95,7 +95,7 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
                     })
             }
 
-            socket.onmessage = (ev: { data: unknown }): void => handleIncoming(socket, ev.data)
+            socket.onmessage = (ev: { data: unknown }): void => handleIncoming(ev.data)
 
             socket.onerror = (): void => {
                 const error = new Error("WebSocket error")
@@ -135,7 +135,7 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
 
     const pending = usePendingRegistry()
 
-    const handleIncoming = (socket: WebSocket, data: unknown): void => {
+    const handleIncoming = (data: unknown): void => {
         const text =
             typeof data === "string"
                 ? data
