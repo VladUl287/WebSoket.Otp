@@ -17,7 +17,6 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
     let ws: WebSocket | null = null
     let state: ConnectionState = "disconnected"
-    let handshakeTimer: ReturnType<typeof setTimeout> | null = null
     let handshakeResolve: (() => void) | null = null
     let handshakeReject: ((err: Error) => void) | null = null
     let manuallyClosed = false
@@ -29,10 +28,6 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
     }
 
     const clearHandshake = (): void => {
-        if (handshakeTimer) {
-            clearTimeout(handshakeTimer)
-            handshakeTimer = null
-        }
         handshakeResolve = null
         handshakeReject = null
     }
