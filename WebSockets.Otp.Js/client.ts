@@ -132,7 +132,7 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
         setState("disconnected")
     }
 
-    const send = <TResponse = unknown>(key: string, payload: Record<string, unknown> = {}): Promise<TResponse | void> => {
+    const send = <TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse> => {
         if (state !== "connected" || !ws || ws.readyState !== 1) {
             return Promise.reject(new Error("Client is not connected"))
         }
