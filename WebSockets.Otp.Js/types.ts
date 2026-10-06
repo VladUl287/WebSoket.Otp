@@ -1,7 +1,18 @@
-export type WsMessage = {
-    key: string
+export type Protocol = "json" | (string & {})
+
+export interface HandshakeMessage {
+  protocol: Protocol
 }
 
-export type HandshakeOptions = {
-    protocol: string
+export interface EndpointMessage<T = unknown> {
+  key: string
+  correlationId?: number,
+  [field: string]: unknown
 }
+
+export type ConnectionState =
+  | "disconnected"
+  | "connecting"
+  | "handshaking"
+  | "connected"
+  | "reconnecting"
