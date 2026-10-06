@@ -16,7 +16,9 @@ public static class EndpointRouteBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder, nameof(builder));
         ArgumentNullException.ThrowIfNull(pattern, nameof(pattern));
 
-        var options = EnsureOptions(builder, configure);
+        var diOptions = builder.ServiceProvider.GetRequiredService<WsOptions>();
+        configure?.Invoke(diOptions);
+        var options = new WsOptionsSnapshot(diOptions);
 
         var app = builder.CreateApplicationBuilder();
         app.UseWebSockets(options.WebSocketOptions);
@@ -40,12 +42,5 @@ public static class EndpointRouteBuilderExtensions
         });
 
         return new WsEndpointConventionBuilder(executeBuilder);
-    }
-
-    private static WsOptionsSnapshot EnsureOptions(IEndpointRouteBuilder builder, Action<WsOptions>? configure)
-    {
-        var options = builder.ServiceProvider.GetRequiredService<WsOptions>();
-        configure?.Invoke(options);
-        return new WsOptionsSnapshot(options);
     }
 }
