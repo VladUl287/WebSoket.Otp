@@ -1,13 +1,13 @@
-﻿using System.Text.Json;
+﻿using System.Buffers;
 using System.Net.WebSockets;
+using System.Text.Json;
+using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
 public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMessageSerializer
 {
-    private readonly JsonSerializerOptions _options = options;
-
     public string Protocol => "json";
 
     public WebSocketMessageType Type => WebSocketMessageType.Text;
@@ -15,38 +15,16 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
     public ReadOnlyMemory<byte> Serialize<T>(T message)
     {
         ArgumentNullException.ThrowIfNull(message, nameof(message));
-        return JsonSerializer.SerializeToUtf8Bytes(message, _options);
+        return JsonSerializer.SerializeToUtf8Bytes(message, options);
     }
 
-    public T? Deserialize<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, _options);
+    public T? Deserialize<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, options);
 
-    public bool TryGetFieldValueIndex(ReadOnlySpan<byte> data, string field, out int index)
-    {
-        index = 0;
+    private static ReadOnlySpan<byte> Key => "key"u8;
+    private static ReadOnlySpan<byte> CorrelationId => "correlationId"u8;
+    private static ReadOnlySpan<byte> Value => "value"u8;
 
-        var reader = new Utf8JsonReader(data);
-
-        while (reader.Read())
-        {
-            if (reader.TokenType is not JsonTokenType.PropertyName)
-                continue;
-
-            if (reader.ValueTextEquals(field.AsSpan()))
-            {
-                reader.Read();
-
-                var len = reader.HasValueSequence ? (int)reader.ValueSequence.Length : reader.ValueSpan.Length;
-                index = (int)(reader.BytesConsumed - len - 1);
-                return true;
-            }
-
-            reader.Skip();
-        }
-
-        return false;
-    }
-
-    public void ScanMessage(ReadOnlySpan<byte> json, string[] fields, Span<JsonSlice> results)
+    public void ScanMessage(ReadOnlySpan<byte> json, Span<JsonSlice> results)
     {
         var reader = new Utf8JsonReader(json);
         var found = 0;
@@ -60,14 +38,9 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
                         break;
 
                     var idx = -1;
-                    for (int i = 0; i < fields.Length; i++)
-                    {
-                        if (reader.ValueTextEquals(fields[i]))
-                        {
-                            idx = i;
-                            break;
-                        }
-                    }
+                    if (reader.ValueTextEquals(Key)) { idx = 0; }
+                    else if (reader.ValueTextEquals(CorrelationId)) { idx = 1; }
+                    else if (reader.ValueTextEquals(Value)) { idx = 2; }
 
                     reader.Read();
 
@@ -86,8 +59,22 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
         }
     }
 
-    public bool TryGetFieldValueRange(ReadOnlySpan<byte> data, string field, out int start, out int end)
+    public ReadOnlyMemory<byte> SerializeToMessage<T>(EndpointHeaders headers, T data)
     {
-        throw new NotImplementedException();
+        var buffer = new ArrayBufferWriter<byte>();
+        using var writer = new Utf8JsonWriter(buffer);
+
+        writer.WriteStartObject();
+        if (!string.IsNullOrEmpty(headers.Key))
+            writer.WriteString("key", headers.Key);
+
+        if (!string.IsNullOrEmpty(headers.CorrelationId))
+            writer.WriteString("correlationId", headers.CorrelationId);
+
+        writer.WritePropertyName("value");
+        JsonSerializer.Serialize(writer, data, options);
+        writer.WriteEndObject();
+
+        return buffer.WrittenMemory;
     }
 }

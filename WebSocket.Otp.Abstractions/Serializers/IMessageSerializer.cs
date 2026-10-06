@@ -14,10 +14,6 @@ public interface IMessageSerializer
 
     ReadOnlyMemory<byte> SerializeToMessage<T>(EndpointHeaders headers, T data);
     void ScanMessage(ReadOnlySpan<byte> json, Span<JsonSlice> results);
-
-    bool TryGetFieldValueIndex(ReadOnlySpan<byte> data, string field, out int start);
-
-    bool TryGetFieldValueRange(ReadOnlySpan<byte> data, string field, out int start, out int end);
 }
 
 public readonly struct JsonSlice(int start, int end)
