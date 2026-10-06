@@ -1,4 +1,5 @@
-import { ConnectionState, Protocol } from "./types"
+import { usePendingRegistry } from "./pending"
+import { ConnectionState, PendingRequest, Protocol } from "./types"
 
 const defaultFactory = (url: string): WebSocket => {
     if (typeof WebSocket === "undefined") {
@@ -132,6 +133,8 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
         setState("disconnected")
     }
 
+    const pending = usePendingRegistry()
+
     const send = <TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse> => {
         if (state !== "connected" || !ws || ws.readyState !== 1) {
             return Promise.reject(new Error("Client is not connected"))
@@ -141,9 +144,15 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
         const message = JSON.stringify({ key, ...payload })
 
         return new Promise<TResponse>((resolve, reject) => {
+            const entry: PendingRequest = {
+                resolve: resolve as (value: unknown) => void,
+                reject
+            }
             try {
+                pending.enqueue(key, entry)
                 socket.send(message)
             } catch (err) {
+                pending.remove(key, entry)
                 reject(err)
             }
         })
