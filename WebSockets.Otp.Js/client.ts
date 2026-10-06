@@ -8,7 +8,7 @@ const defaultFactory = (url: string): WebSocket => {
     return new WebSocket(url)
 }
 
-export const useWsClient = (options: { url: string, protocol: Protocol, factory: typeof defaultFactory }) => {
+export const useWsClient = (options: { url: string, protocol?: Protocol, factory?: typeof defaultFactory }) => {
     const {
         url,
         protocol = "json",
