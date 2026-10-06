@@ -23,6 +23,7 @@ export const usePendingRegistry = (): PendingRegistry => {
         const request = queues.get(id)
         if (!request) return false
         request.resolve(value)
+        queues.delete(id)
         return true
     }
 
