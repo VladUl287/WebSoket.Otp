@@ -163,25 +163,21 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
             return
         }
 
-        if (parsed && typeof parsed === "object" && "key" in parsed) {
-            const key = parsed.key as string
-            pending.resolveNext(key, parsed)
-        }
-
         if (parsed && typeof parsed === "object" && "correlationId" in parsed) {
             const key = parsed.correlationId as number
-            pending.resolveNext(key.toString(), parsed)
+            pending.resolve(key, parsed)
         }
     }
 
-
+    let correlationId = 0
     const send = <TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse> => {
         if (state !== "connected" || !ws || ws.readyState !== 1) {
             return Promise.reject(new Error("Client is not connected"))
         }
 
         const socket = ws
-        const message = JSON.stringify({ key, ...payload })
+        correlationId = (correlationId + 1) >>> 0
+        const message = JSON.stringify({ key, correlationId, value: { ...payload } })
 
         return new Promise<TResponse>((resolve, reject) => {
             const entry: PendingRequest = {
@@ -189,10 +185,10 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
                 reject
             }
             try {
-                pending.enqueue(key, entry)
+                pending.enqueue(correlationId, entry)
                 socket.send(message)
             } catch (err) {
-                pending.remove(key, entry)
+                pending.remove(correlationId, entry)
                 reject(err)
             }
         })
