@@ -10,13 +10,13 @@ public class InMemoryConnectionManagerTests
 {
     private readonly Mock<IWsConnection> _mockConnection;
     private readonly Mock<WebSocket> _mockSocket;
-    private readonly Mock<ISerializer> _mockSerializer;
+    private readonly Mock<IMessageSerializer> _mockSerializer;
     private readonly InMemoryConnectionManager _connectionManager;
 
     public InMemoryConnectionManagerTests()
     {
         _mockSocket = new Mock<WebSocket>();
-        _mockSerializer = new Mock<ISerializer>();
+        _mockSerializer = new Mock<IMessageSerializer>();
         _mockConnection = new Mock<IWsConnection>();
 
         _mockConnection.SetupGet(c => c.Id).Returns("test-connection-1");
@@ -352,7 +352,7 @@ public class InMemoryConnectionManagerTests
     private Mock<IWsConnection> CreateMockConnection(string connectionId)
     {
         var mockSocket = new Mock<WebSocket>();
-        var mockSerializer = new Mock<ISerializer>();
+        var mockSerializer = new Mock<IMessageSerializer>();
         var mockConnection = new Mock<IWsConnection>();
 
         mockConnection.SetupGet(c => c.Id).Returns(connectionId);
@@ -373,7 +373,7 @@ public class InMemoryConnectionManagerTests
         return mockConnection;
     }
 
-    private Mock<IWsConnection> CreateMockConnection(string connectionId, Mock<WebSocket> mockSocket, Mock<ISerializer> mockSerializer)
+    private Mock<IWsConnection> CreateMockConnection(string connectionId, Mock<WebSocket> mockSocket, Mock<IMessageSerializer> mockSerializer)
     {
         var mockConnection = new Mock<IWsConnection>();
 

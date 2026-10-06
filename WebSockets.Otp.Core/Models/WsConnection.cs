@@ -4,11 +4,11 @@ using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Core.Models;
 
-public sealed class WsConnection(string connectionId, WebSocket socket, ISerializer serializer) : IWsConnection
+public sealed class WsConnection(string connectionId, WebSocket socket, IMessageSerializer serializer) : IWsConnection
 {
     public string Id => connectionId;
 
     public WebSocket Socket => socket;
 
-    public ISerializer Serializer => serializer;
+    public IMessageSerializer Serializer => serializer;
 }

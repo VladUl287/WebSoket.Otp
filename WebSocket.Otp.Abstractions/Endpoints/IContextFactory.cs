@@ -18,5 +18,5 @@ public interface IContextFactory
 
     IEndpointContext Create(
         EndpointHeaders headers, IGlobalContext global, ReadOnlyMemory<byte> payload,
-        ISerializer serializer, ClaimsPrincipal? user, CancellationToken token);
+        IMessageSerializer serializer, ClaimsPrincipal? user, CancellationToken token);
 }

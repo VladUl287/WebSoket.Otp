@@ -78,7 +78,7 @@ public class DefaultHandshakeHandlerTests
             .Returns(enumerable);
 
         _storeMock
-            .Setup(s => s.TryGet("json", out It.Ref<ISerializer?>.IsAny))
+            .Setup(s => s.TryGet("json", out It.Ref<IMessageSerializer?>.IsAny))
             .Returns(false);
 
         // Act
@@ -86,7 +86,7 @@ public class DefaultHandshakeHandlerTests
 
         // Assert
         Assert.Null(result);
-        _storeMock.Verify(s => s.TryGet("json", out It.Ref<ISerializer?>.IsAny), Times.Once);
+        _storeMock.Verify(s => s.TryGet("json", out It.Ref<IMessageSerializer?>.IsAny), Times.Once);
     }
 
     [Fact]

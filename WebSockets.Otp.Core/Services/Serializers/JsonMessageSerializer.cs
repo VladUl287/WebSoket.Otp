@@ -4,7 +4,7 @@ using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
-public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISerializer
+public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMessageSerializer
 {
     private readonly JsonSerializerOptions _options = options;
 
@@ -46,7 +46,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : ISeri
         return false;
     }
 
-    public void ScanRoot(ReadOnlySpan<byte> json, string[] fields, Span<JsonSlice> results)
+    public void ScanMessage(ReadOnlySpan<byte> json, string[] fields, Span<JsonSlice> results)
     {
         var reader = new Utf8JsonReader(json);
         var found = 0;

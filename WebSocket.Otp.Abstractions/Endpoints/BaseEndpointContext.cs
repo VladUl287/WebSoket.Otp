@@ -11,7 +11,7 @@ namespace WebSockets.Otp.Abstractions.Endpoints;
 public abstract class BaseEndpointContext(
     IGlobalContext context,
     IWsConnectionManager manager,
-    ISerializer serializer,
+    IMessageSerializer serializer,
     ReadOnlyMemory<byte> payload,
     ClaimsPrincipal? user,
     CancellationToken token) : IEndpointContext
@@ -22,7 +22,7 @@ public abstract class BaseEndpointContext(
     public WebSocket Socket => context.Socket;
     public string ConnectionId => context.ConnectionId;
     public WsOptionsSnapshot Options => context.Options;
-    public ISerializer Serializer => serializer;
+    public IMessageSerializer Serializer => serializer;
     public ReadOnlyMemory<byte> Payload => payload;
     public CancellationToken Cancellation => token;
     public GroupManager Groups => new(ConnectionManager);

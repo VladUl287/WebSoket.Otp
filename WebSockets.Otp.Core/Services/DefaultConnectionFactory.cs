@@ -8,6 +8,6 @@ namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultConnectionFactory(IIdProvider idProvider) : IWsConnectionFactory
 {
-    public IWsConnection Create(WebSocket socket, ISerializer serializer) =>
+    public IWsConnection Create(WebSocket socket, IMessageSerializer serializer) =>
         new WsConnection(idProvider.Create(), socket, serializer);
 }

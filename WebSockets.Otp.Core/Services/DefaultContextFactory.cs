@@ -16,6 +16,6 @@ public sealed class DefaultContextFactory(IWsConnectionManager manager) : IConte
 
     public IEndpointContext Create(
         EndpointHeaders headers, IGlobalContext global, ReadOnlyMemory<byte> data, 
-        ISerializer serializer, ClaimsPrincipal? user, CancellationToken token) => 
+        IMessageSerializer serializer, ClaimsPrincipal? user, CancellationToken token) => 
         new EndpointContext(headers, global, manager, serializer, data, user, token);
 }

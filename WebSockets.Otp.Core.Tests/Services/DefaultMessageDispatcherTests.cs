@@ -42,7 +42,7 @@ public class DefaultMessageDispatcherTests
         public void Dispose() { }
     }
 
-    private sealed class FakeSerializer : ISerializer
+    private sealed class FakeSerializer : IMessageSerializer
     {
         public string Protocol => "test";
         public WebSocketMessageType Type => WebSocketMessageType.Text;
@@ -103,7 +103,7 @@ public class DefaultMessageDispatcherTests
         public IEndpointContext ExecutionContext { get; set; } = null!;
         public IGlobalContext? GlobalContext { get; private set; }
         public IMessageBuffer? Payload { get; private set; }
-        public ISerializer? Serializer { get; private set; }
+        public IMessageSerializer? Serializer { get; private set; }
         public ClaimsPrincipal? User { get; private set; }
         public CancellationToken Token { get; private set; }
         public int CallCount { get; private set; }
@@ -111,7 +111,7 @@ public class DefaultMessageDispatcherTests
         public IEndpointContext Create(
             IGlobalContext context,
             IMessageBuffer payload,
-            ISerializer serializer,
+            IMessageSerializer serializer,
             ClaimsPrincipal? user,
             CancellationToken token)
         {
@@ -192,7 +192,7 @@ public class DefaultMessageDispatcherTests
     private sealed class TestEndpoint { }
     private sealed class TestExecutionContext : IEndpointContext
     {
-        public ISerializer Serializer => throw new NotImplementedException();
+        public IMessageSerializer Serializer => throw new NotImplementedException();
 
         public IMessageBuffer Payload => throw new NotImplementedException();
 

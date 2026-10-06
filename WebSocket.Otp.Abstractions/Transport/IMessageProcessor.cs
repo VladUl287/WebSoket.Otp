@@ -5,5 +5,5 @@ namespace WebSockets.Otp.Abstractions.Transport;
 
 public interface IMessageProcessor
 {
-    Task Process(IGlobalContext context, ISerializer serializer, CancellationToken token);
+    Task Process(IGlobalContext context, IMessageSerializer serializer, CancellationToken token);
 }

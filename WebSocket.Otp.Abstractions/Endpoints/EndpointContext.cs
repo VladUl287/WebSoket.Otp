@@ -8,7 +8,7 @@ public class EndpointContext(
    EndpointHeaders headers,
    IGlobalContext context,
    IWsConnectionManager manager,
-   ISerializer serializer,
+   IMessageSerializer serializer,
    ReadOnlyMemory<byte> payload,
    ClaimsPrincipal? user,
    CancellationToken token) : BaseEndpointContext(context, manager, serializer, payload, user, token)
@@ -19,7 +19,7 @@ public class EndpointContext(
 public class EndpointContext<TResponse>(
     IGlobalContext context,
     IWsConnectionManager manager,
-    ISerializer serializer,
+    IMessageSerializer serializer,
     ReadOnlyMemory<byte> payload,
     ClaimsPrincipal? user,
     CancellationToken token) : BaseEndpointContext(context, manager, serializer, payload, user, token)

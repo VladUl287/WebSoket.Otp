@@ -54,7 +54,7 @@ public static class ServiceCollectionExtensions
     {
         var jsonOptions = new JsonSerializerOptions();
         configure(jsonOptions);
-        return services.AddSingleton<ISerializer>(new JsonMessageSerializer(jsonOptions));
+        return services.AddSingleton<IMessageSerializer>(new JsonMessageSerializer(jsonOptions));
     }
 
     private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsOptions options, Assembly[] assemblies)

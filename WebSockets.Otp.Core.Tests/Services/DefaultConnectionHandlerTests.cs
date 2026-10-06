@@ -93,7 +93,7 @@ public class DefaultConnectionHandlerTests
         await _handler.HandleAsync(_httpContextMock.Object, config);
 
         // Assert
-        _connectionFactoryMock.Verify(x => x.Create(It.IsAny<WebSocket>(), It.IsAny<ISerializer>()), Times.Never);
+        _connectionFactoryMock.Verify(x => x.Create(It.IsAny<WebSocket>(), It.IsAny<IMessageSerializer>()), Times.Never);
         _connectionManagerMock.Verify(x => x.TryAdd(It.IsAny<IWsConnection>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -118,14 +118,14 @@ public class DefaultConnectionHandlerTests
         _handshakeServiceMock.Setup(x => x.HandleAsync(It.IsAny<HttpContext>(), It.IsAny<WebSocket>(), It.IsAny<WsOptionsSnapshot>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(handshakeOptions);
 
-        _serializerStoreMock.Setup(x => x.TryGet("test-protocol", out It.Ref<ISerializer>.IsAny))
+        _serializerStoreMock.Setup(x => x.TryGet("test-protocol", out It.Ref<IMessageSerializer>.IsAny))
             .Returns(false);
 
         // Act
         await _handler.HandleAsync(_httpContextMock.Object, config);
 
         // Assert
-        _connectionFactoryMock.Verify(x => x.Create(It.IsAny<WebSocket>(), It.IsAny<ISerializer>()), Times.Never);
+        _connectionFactoryMock.Verify(x => x.Create(It.IsAny<WebSocket>(), It.IsAny<IMessageSerializer>()), Times.Never);
         _connectionManagerMock.Verify(x => x.TryAdd(It.IsAny<IWsConnection>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

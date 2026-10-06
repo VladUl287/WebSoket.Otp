@@ -12,7 +12,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 {
     private readonly Mock<IWsConnection> _mockConnection;
     private readonly Mock<WebSocket> _mockSocket;
-    private readonly Mock<ISerializer> _mockSerializer;
+    private readonly Mock<IMessageSerializer> _mockSerializer;
 
     private readonly RedisFixture _fx;
 
@@ -23,7 +23,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         _fx = fx;
 
         _mockSocket = new Mock<WebSocket>();
-        _mockSerializer = new Mock<ISerializer>();
+        _mockSerializer = new Mock<IMessageSerializer>();
         _mockConnection = new Mock<IWsConnection>();
 
         _mockConnection.SetupGet(c => c.Id).Returns("test-connection-1");
@@ -61,7 +61,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     private Mock<IWsConnection> CreateConnection(string id)
     {
         var socket = new Mock<WebSocket>();
-        var serializer = new Mock<ISerializer>();
+        var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         serializer
             .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
@@ -84,7 +84,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     private sealed record ConnectionHarness(
     Mock<IWsConnection> Connection,
     Mock<WebSocket> Socket,
-    Mock<ISerializer> Serializer);
+    Mock<IMessageSerializer> Serializer);
 
     private ConnectionHarness CreateConnection1(string id, WebSocketMessageType type = WebSocketMessageType.Text)
     {
@@ -97,7 +97,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
                 It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask);
 
-        var serializer = new Mock<ISerializer>();
+        var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(type);
         serializer
             .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
@@ -476,7 +476,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         await using var sut = NewSut();
 
         var socket = new Mock<WebSocket>();
-        var serializer = new Mock<ISerializer>();
+        var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         serializer
             .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
@@ -510,7 +510,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new WebSocketException("closed"));
 
-        var serializer = new Mock<ISerializer>();
+        var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         serializer
             .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
@@ -534,13 +534,13 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var textSocket = new Mock<WebSocket>();
         var binarySocket = new Mock<WebSocket>();
 
-        var textSerializer = new Mock<ISerializer>();
+        var textSerializer = new Mock<IMessageSerializer>();
         textSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         textSerializer
             .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
             .Returns((ReadOnlyMemory<byte> m) => m.ToArray());
 
-        var binarySerializer = new Mock<ISerializer>();
+        var binarySerializer = new Mock<IMessageSerializer>();
         binarySerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Binary);
         binarySerializer
             .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))

@@ -12,7 +12,7 @@ public sealed class ParallelMessageProcessor(
     IMessageDispatcher dispatcher, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> bufferPool,
     ILogger<ParallelMessageProcessor> logger) : IMessageProcessor
 {
-    public async Task Process(IGlobalContext context, ISerializer serializer, CancellationToken token)
+    public async Task Process(IGlobalContext context, IMessageSerializer serializer, CancellationToken token)
     {
         var options = context.Options;
 

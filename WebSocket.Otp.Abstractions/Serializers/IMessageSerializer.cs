@@ -3,19 +3,17 @@ using WebSockets.Otp.Abstractions.Endpoints;
 
 namespace WebSockets.Otp.Abstractions.Serializers;
 
-public interface ISerializer
+public interface IMessageSerializer
 {
     string Protocol { get; }
 
     WebSocketMessageType Type { get; }
 
     ReadOnlyMemory<byte> Serialize<T>(T message);
-
-    ReadOnlyMemory<byte> SerializeToMessage<T>(EndpointHeaders headers, T data);
-
     T? Deserialize<T>(ReadOnlySpan<byte> data);
 
-    void ScanRoot(ReadOnlySpan<byte> json, string[] fields, Span<JsonSlice> results);
+    ReadOnlyMemory<byte> SerializeToMessage<T>(EndpointHeaders headers, T data);
+    void ScanMessage(ReadOnlySpan<byte> json, string[] fields, Span<JsonSlice> results);
 
     bool TryGetFieldValueIndex(ReadOnlySpan<byte> data, string field, out int start);
 

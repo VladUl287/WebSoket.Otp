@@ -34,7 +34,7 @@ public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
 }
 
 public sealed class SendManager(
-    EndpointHeaders headers, ISerializer serializer, IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
+    EndpointHeaders headers, IMessageSerializer serializer, IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
 {
     public async ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token = default)
         where TResponse : notnull

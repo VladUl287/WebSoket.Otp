@@ -19,7 +19,7 @@ public class ParallelMessageProcessorTests
     private readonly Mock<IAsyncObjectPool<IMessageBuffer>> _mockBufferPool;
     private readonly ParallelMessageProcessor _processor;
     private readonly Mock<IGlobalContext> _mockGlobalContext;
-    private readonly Mock<ISerializer> _mockSerializer;
+    private readonly Mock<IMessageSerializer> _mockSerializer;
     private readonly WsOptionsSnapshot _options;
 
     public ParallelMessageProcessorTests()
@@ -28,7 +28,7 @@ public class ParallelMessageProcessorTests
         _mockEnumerator = new Mock<IMessageEnumerator>();
         _mockBufferPool = new Mock<IAsyncObjectPool<IMessageBuffer>>();
         _mockGlobalContext = new Mock<IGlobalContext>();
-        _mockSerializer = new Mock<ISerializer>();
+        _mockSerializer = new Mock<IMessageSerializer>();
 
         _processor = new ParallelMessageProcessor(
             _mockDispatcher.Object,
@@ -230,7 +230,7 @@ public class ParallelMessageProcessorTests
         // Verify no dispatches were attempted
         _mockDispatcher.Verify(x => x.DispatchMessage(
             It.IsAny<IGlobalContext>(),
-            It.IsAny<ISerializer>(),
+            It.IsAny<IMessageSerializer>(),
             It.IsAny<IMessageBuffer>(),
             It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -270,7 +270,7 @@ public class ParallelMessageProcessorTests
 
         _mockDispatcher.Setup(x => x.DispatchMessage(
                 It.IsAny<IGlobalContext>(),
-                It.IsAny<ISerializer>(),
+                It.IsAny<IMessageSerializer>(),
                 It.IsAny<IMessageBuffer>(),
                 It.IsAny<CancellationToken>()))
             .Callback(() =>
@@ -388,10 +388,10 @@ public class ParallelMessageProcessorTests
         var callIndex = 0;
         _mockDispatcher.Setup(x => x.DispatchMessage(
                 It.IsAny<IGlobalContext>(),
-                It.IsAny<ISerializer>(),
+                It.IsAny<IMessageSerializer>(),
                 It.IsAny<IMessageBuffer>(),
                 It.IsAny<CancellationToken>()))
-            .Returns<IGlobalContext, ISerializer, IMessageBuffer, CancellationToken>((_, _, _, _) =>
+            .Returns<IGlobalContext, IMessageSerializer, IMessageBuffer, CancellationToken>((_, _, _, _) =>
             {
                 var currentIndex = Interlocked.Increment(ref callIndex) - 1;
                 processingOrder.Add(currentIndex);

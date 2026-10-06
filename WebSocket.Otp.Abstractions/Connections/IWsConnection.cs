@@ -7,5 +7,5 @@ public interface IWsConnection
 {
     string Id { get; }
     WebSocket Socket { get; }
-    ISerializer Serializer { get; }
+    IMessageSerializer Serializer { get; }
 }

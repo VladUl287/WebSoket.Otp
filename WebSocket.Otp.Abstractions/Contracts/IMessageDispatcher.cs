@@ -6,5 +6,5 @@ namespace WebSockets.Otp.Abstractions.Contracts;
 
 public interface IMessageDispatcher
 {
-    Task DispatchMessage(IGlobalContext context, ISerializer serializer, IMessageBuffer payload, CancellationToken token);
+    Task DispatchMessage(IGlobalContext context, IMessageSerializer serializer, IMessageBuffer payload, CancellationToken token);
 }
