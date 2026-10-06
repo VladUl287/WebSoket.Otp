@@ -9,7 +9,7 @@ namespace WebSockets.Otp.Abstractions.Endpoints;
 public sealed class EndpointHeaders
 {
     public string? Key { get; set; }
-    public string? CorrelationId { get; set; }
+    public uint? CorrelationId { get; set; }
 }
 
 public interface IContextFactory

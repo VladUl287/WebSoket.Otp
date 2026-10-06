@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -51,12 +52,12 @@ public class DefaultMessageDispatcher(
         var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
-        var correlationId = string.Empty;
+        var correlationId = 0u;
         if (correlationResult.Found)
         {
-            correlationId = serializer.Deserialize<string>(payload.Span[correlationResult.Start..correlationResult.End]);
+            correlationId = serializer.Deserialize<uint>(payload.Span[correlationResult.Start..correlationResult.End]);
         }
-
+        
         var data = payload.Memory[valueResult.Start..valueResult.End];
 
         var headers = new EndpointHeaders() { CorrelationId = correlationId };

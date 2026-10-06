@@ -68,8 +68,8 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
         if (!string.IsNullOrEmpty(headers.Key))
             writer.WriteString("key", headers.Key);
 
-        if (!string.IsNullOrEmpty(headers.CorrelationId))
-            writer.WriteString("correlationId", headers.CorrelationId);
+        if (headers.CorrelationId is not null)
+            writer.WriteNumber("correlationId", headers.CorrelationId.Value);
 
         writer.WritePropertyName("value");
         JsonSerializer.Serialize(writer, data, options);
