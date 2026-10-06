@@ -95,7 +95,7 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
                     })
             }
 
-            // socket.onmessage = (ev: { data: unknown }): void => handleIncoming(socket, ev.data)
+            socket.onmessage = (ev: { data: unknown }): void => handleIncoming(socket, ev.data)
 
             socket.onerror = (): void => {
                 const error = new Error("WebSocket error")
@@ -134,6 +134,46 @@ export const useWsClient = (options: { url: string, protocol: Protocol, factory:
     }
 
     const pending = usePendingRegistry()
+
+    const handleIncoming = (socket: WebSocket, data: unknown): void => {
+        const text =
+            typeof data === "string"
+                ? data
+                : data instanceof ArrayBuffer
+                    ? new TextDecoder().decode(data)
+                    : null
+
+        if (text === null) {
+            return
+        }
+
+        let parsed: unknown
+        try {
+            parsed = JSON.parse(text)
+        } catch {
+            return
+        }
+
+        if (state === "handshaking") {
+            if (handshakeResolve) {
+                const resolve = handshakeResolve
+                clearHandshake()
+                resolve()
+            }
+            return
+        }
+
+        if (parsed && typeof parsed === "object" && "key" in parsed) {
+            const key = parsed.key as string
+            pending.resolveNext(key, parsed)
+        }
+
+        if (parsed && typeof parsed === "object" && "correlationId" in parsed) {
+            const key = parsed.correlationId as number
+            pending.resolveNext(key.toString(), parsed)
+        }
+    }
+
 
     const send = <TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse> => {
         if (state !== "connected" || !ws || ws.readyState !== 1) {
