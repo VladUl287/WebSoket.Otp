@@ -15,18 +15,11 @@ public class DefaultMessageDispatcher(
     IServiceScopeFactory scopeFactory, IContextFactory contextFactory, ITrieResolver<WsEndpointInfo> endpointTypeResolver,
     ILogger<DefaultMessageDispatcher> logger) : IMessageDispatcher
 {
-    private static readonly string[] fields =
-    [
-        "key",
-        "correlationId",
-        "value",
-    ];
-
     public async Task DispatchMessage(IGlobalContext context, IMessageSerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
         var results = ArrayPool<JsonSlice>.Shared.Rent(3);
 
-        serializer.ScanMessage(payload.Span, fields, results);
+        serializer.ScanMessage(payload.Span, results);
 
         var keyResult = results[0];
         var correlationResult = results[1];
