@@ -42,18 +42,18 @@ public class DefaultMessageDispatcher(
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        //EndpointAuthResult? authResult = null;
-        //if (endpointInfo.AuthEndpoint is not null)
-        //{
-        //    var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
-        //    authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
+        EndpointAuthResult? authResult = null;
+        if (endpointInfo.AuthEndpoint is not null)
+        {
+            var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
+            authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
 
-        //    if (!authResult.Succeeded)
-        //    {
-        //        logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
-        //        return;
-        //    }
-        //}
+            if (!authResult.Succeeded)
+            {
+                logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
+                return;
+            }
+        }
 
         var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
@@ -65,7 +65,10 @@ public class DefaultMessageDispatcher(
         }
 
         var data = payload.Memory[valueResult.Start..valueResult.End];
-        var execCtx = contextFactory.Create(context, data, serializer, null, token);
+
+        var headers = new EndpointHeaders() { CorrelationId = correlationId };
+
+        var execCtx = contextFactory.Create(headers, context, data, serializer, null, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }

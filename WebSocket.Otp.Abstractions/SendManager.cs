@@ -1,4 +1,6 @@
 ﻿using WebSockets.Otp.Abstractions.Connections;
+using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Abstractions;
 
@@ -31,14 +33,16 @@ public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
     }
 }
 
-public sealed class SendManager(IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
+public sealed class SendManager(
+    EndpointHeaders headers, ISerializer serializer, IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
 {
     public async ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token = default)
         where TResponse : notnull
     {
         if (_targetAll)
         {
-            await _manager.SendAsync(data, token);
+            var bytes = serializer.SerializeToMessage(headers, data);
+            await _manager.SendAsync(bytes.Span, serializer.Type, token);
             return;
         }
 

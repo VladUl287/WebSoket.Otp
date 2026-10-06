@@ -3,14 +3,20 @@ using System.Net.WebSockets;
 using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
-using WebSockets.Otp.Abstractions.Transport;
 
 namespace WebSockets.Otp.Abstractions.Endpoints;
+
+public sealed class EndpointHeaders
+{
+    public string? Key { get; set; }
+    public string? CorrelationId { get; set; }
+}
 
 public interface IContextFactory
 {
     IGlobalContext CreateGlobal(HttpContext context, WebSocket socket, string connectionId, WsOptionsSnapshot options);
 
     IEndpointContext Create(
-        IGlobalContext global, ReadOnlyMemory<byte> payload, ISerializer serializer, ClaimsPrincipal? user, CancellationToken token);
+        EndpointHeaders headers, IGlobalContext global, ReadOnlyMemory<byte> payload,
+        ISerializer serializer, ClaimsPrincipal? user, CancellationToken token);
 }

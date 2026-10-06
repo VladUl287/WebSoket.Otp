@@ -1,4 +1,5 @@
 ﻿using System.Net.WebSockets;
+using WebSockets.Otp.Abstractions.Endpoints;
 
 namespace WebSockets.Otp.Abstractions.Serializers;
 
@@ -9,6 +10,8 @@ public interface ISerializer
     WebSocketMessageType Type { get; }
 
     ReadOnlyMemory<byte> Serialize<T>(T message);
+
+    ReadOnlyMemory<byte> SerializeToMessage<T>(EndpointHeaders headers, T data);
 
     T? Deserialize<T>(ReadOnlySpan<byte> data);
 

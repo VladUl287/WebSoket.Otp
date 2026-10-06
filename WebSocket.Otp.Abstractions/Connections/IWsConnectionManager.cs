@@ -1,4 +1,6 @@
-﻿namespace WebSockets.Otp.Abstractions.Connections;
+﻿using System.Net.WebSockets;
+
+namespace WebSockets.Otp.Abstractions.Connections;
 
 public interface IWsConnectionManager
 {
@@ -7,6 +9,8 @@ public interface IWsConnectionManager
 
     ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token);
     ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token);
+
+    ValueTask SendAsync(ReadOnlySpan<byte> data, WebSocketMessageType type, CancellationToken token);
 
     ValueTask SendAsync<TData>(TData data, CancellationToken token)
         where TData : notnull;
