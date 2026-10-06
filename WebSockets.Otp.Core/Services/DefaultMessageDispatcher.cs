@@ -1,7 +1,10 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.ObjectPool;
 using System.Buffers;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
@@ -36,18 +39,18 @@ public class DefaultMessageDispatcher(
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        //EndpointAuthResult? authResult = null;
-        //if (endpointInfo.AuthEndpoint is not null)
-        //{
-        //    var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
-        //    authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
+        EndpointAuthResult? authResult = null;
+        if (endpointInfo.AuthEndpoint is not null)
+        {
+            var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
+            authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
 
-        //    if (!authResult.Succeeded)
-        //    {
-        //        logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
-        //        return;
-        //    }
-        //}
+            if (!authResult.Succeeded)
+            {
+                logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
+                return;
+            }
+        }
 
         var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
@@ -57,11 +60,11 @@ public class DefaultMessageDispatcher(
         {
             correlationId = serializer.Deserialize<uint>(payload.Span[correlationResult.Start..correlationResult.End]);
         }
-        
+
+
         var data = payload.Memory[valueResult.Start..valueResult.End];
 
         var headers = new EndpointHeaders() { CorrelationId = correlationId };
-
         var execCtx = contextFactory.Create(headers, context, data, serializer, null, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
