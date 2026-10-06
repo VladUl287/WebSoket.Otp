@@ -42,7 +42,7 @@ public sealed class SendManager(
         if (_targetAll)
         {
             var bytes = serializer.SerializeToMessage(headers, data);
-            await _manager.SendAsync(bytes.Span, serializer.Type, token);
+            await _manager.SendAsync(bytes, serializer.Type, token);
             return;
         }
 

@@ -10,7 +10,7 @@ public interface IWsConnectionManager
     ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token);
     ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token);
 
-    ValueTask SendAsync(ReadOnlySpan<byte> data, WebSocketMessageType type, CancellationToken token);
+    ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token);
 
     ValueTask SendAsync<TData>(TData data, CancellationToken token)
         where TData : notnull;

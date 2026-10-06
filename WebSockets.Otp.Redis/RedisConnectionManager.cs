@@ -2,6 +2,7 @@
 using StackExchange.Redis;
 using System.Collections.Concurrent;
 using WebSockets.Otp.Abstractions.Connections;
+using System.Net.WebSockets;
 
 namespace WebSockets.Otp.Redis;
 
@@ -284,5 +285,15 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         }
         catch
         { }
+    }
+
+    public ValueTask SendAsync(ReadOnlySpan<byte> data, WebSocketMessageType type, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    {
+        throw new NotImplementedException();
     }
 }

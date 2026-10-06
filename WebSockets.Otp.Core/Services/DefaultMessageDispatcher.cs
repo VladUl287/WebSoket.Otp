@@ -35,18 +35,18 @@ public class DefaultMessageDispatcher(
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        EndpointAuthResult? authResult = null;
-        if (endpointInfo.AuthEndpoint is not null)
-        {
-            var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
-            authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
+        //EndpointAuthResult? authResult = null;
+        //if (endpointInfo.AuthEndpoint is not null)
+        //{
+        //    var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
+        //    authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
 
-            if (!authResult.Succeeded)
-            {
-                logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
-                return;
-            }
-        }
+        //    if (!authResult.Succeeded)
+        //    {
+        //        logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
+        //        return;
+        //    }
+        //}
 
         var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);

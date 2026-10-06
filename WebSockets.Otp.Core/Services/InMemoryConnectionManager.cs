@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Core.Services;
@@ -80,6 +81,14 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
                 var message = serializer.Serialize(data);
                 await socket.SendAsync(message, serializer.Type, true, token);
             }
+        }
+    }
+
+    public async ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    {
+        foreach (var connection in _store.Values)
+        {
+            await connection.Socket.SendAsync(data, type, true, token);
         }
     }
 }
