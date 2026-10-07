@@ -1,5 +1,6 @@
 import { usePendingRegistry } from "./pending"
-import { ConnectionState, PendingRequest, Protocol } from "./types"
+import { jsonSerializer } from "./serializers"
+import { ConnectionState, PendingRequest, Serializer } from "./types"
 
 const defaultFactory = (url: string): WebSocket => {
     if (typeof WebSocket === "undefined") {
@@ -21,10 +22,18 @@ export type WsClient = {
     receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void)
 }
 
-export const useWsClient = (options: { url: string, protocol?: Protocol, factory?: typeof defaultFactory }): WsClient => {
+export type WsClientOptions = {
+    url: string,
+    serializer?: Serializer,
+    factory?: typeof defaultFactory,
+}
+
+export const useWsClient = (options: WsClientOptions): WsClient => {
+    const jsSerializer = jsonSerializer()
+
     const {
         url,
-        protocol = "json",
+        serializer = jsSerializer,
         factory = defaultFactory
     } = options
 
@@ -49,7 +58,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
         new Promise<void>((resolve, reject) => {
             handshakeResolve = resolve
             handshakeReject = reject
-            socket.send(JSON.stringify({ protocol }))
+            socket.send(jsSerializer.serialize({ protocol: jsSerializer.protocol }))
         })
 
     const safeClose = (socket: WebSocket, code?: number, reason?: string): void => {
@@ -103,7 +112,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
                     })
             }
 
-            socket.onmessage = (ev: { data: unknown }): void => handleIncoming(ev.data)
+            socket.onmessage = (ev: { data: unknown }) => handleIncoming(ev.data as string | BufferSource | Blob)
 
             socket.onerror = (): void => {
                 clearHandshake()
@@ -145,31 +154,30 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
     const handlers = new Map<string, Set<Handler<unknown>>>()
 
-    const handleIncoming = (data: unknown): void => {
-        const text =
-            typeof data === "string"
-                ? data
-                : data instanceof ArrayBuffer
-                    ? new TextDecoder().decode(data)
-                    : null
-
-        if (text === null) {
-            return
-        }
-
-        let parsed: unknown
-        try {
-            parsed = JSON.parse(text)
-        } catch {
+    const handleIncoming = async (data: string | BufferSource | Blob): Promise<void> => {
+        if (data === null) {
             return
         }
 
         if (state === "handshaking") {
+            try {
+                await jsSerializer.deserialize(data)
+            } catch {
+                return
+            }
+
             if (handshakeResolve) {
                 const resolve = handshakeResolve
                 clearHandshake()
                 resolve()
             }
+            return
+        }
+
+        let parsed: unknown
+        try {
+            parsed = await serializer.deserialize(data)
+        } catch {
             return
         }
 
@@ -195,7 +203,6 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
     }
 
     let correlationId = 0
-
     const send = <TRequest, TResponse>(key: string, payload?: TRequest): Promise<TResponse> => {
         if (state !== "connected" || !ws || ws.readyState !== 1) {
             return Promise.reject(new Error("Client is not connected"))
@@ -203,7 +210,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
         const socket = ws
         correlationId = (correlationId + 1) >>> 0
-        const message = JSON.stringify({ key, correlationId, value: payload })
+        const message = serializer.serialize({ key, correlationId, value: payload })
 
         return new Promise<TResponse>((resolve, reject) => {
             const entry: PendingRequest = {
