@@ -16,15 +16,31 @@
   },
   "files": [
     "src/",
-    "LICENSE.txt",
-    "README.md"
+    "LICENSE.txt"
   ],
   "license": "MIT",
   "exports": {
-    "./client": "./src/client.ts",
-    "./pending": "./src/pending.ts",
-    "./serializers": "./src/serializers.ts",
-    "./types": "./src/types.ts"
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
+    },
+    "./pending": {
+      "types": "./dist/pending.d.ts",
+      "import": "./dist/pending.js",
+      "default": "./dist/pending.js"
+    },
+    "./serializers": {
+      "types": "./dist/serializers.d.ts",
+      "import": "./dist/serializers.js",
+      "default": "./dist/serializers.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "default": "./dist/types.js"
+    },
+    "./package.json": "./package.json"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
