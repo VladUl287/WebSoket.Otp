@@ -1,6 +1,6 @@
-import { Protocol, Serializer } from "./types"
+import { Serializer } from "./types"
 
-const asBytes = async (data: BufferSource | Blob): Promise<ArrayBuffer | ArrayBufferView> => {
+export const asBytes = async (data: BufferSource | Blob): Promise<ArrayBuffer | ArrayBufferView> => {
     if (data instanceof ArrayBuffer) return data
     if (ArrayBuffer.isView(data)) return data
     return new Uint8Array(await data.arrayBuffer())
