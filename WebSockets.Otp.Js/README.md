@@ -85,33 +85,13 @@ const off = client.receive<Message>('chat/message/receive', (msg) => {
 })
 
 const result = await client.send<Request, Message>(
-    'chat/message/send',
+    'chat/message',
     {
         "username": "user1",
         "message": "test",
     })
 
 console.log(result) // { "chatId": "d5f30dff-b9a7-4292-96e0-61c84e5227ce", "content": "test", "timestamp": "2026-09-16T14:30:00.1234567+03:00" }
-```
-
-Server -> Client
-
-```{}```
-
-If the first message is not a valid handshake, the server will close the connection. This ensures protocol compatibility and allows for future protocol negotiation.
-
-All sequential messages must have ```key``` field to identify endpoint they meant to.
-
-```cs
-[WsEndpoint("chat/send-message")]
-```
-
-```json
-{
-    "key":"chat/send-message",
-    "username":"user",
-    "message":"test"
-}
 ```
 
 ## Endpoint Types
