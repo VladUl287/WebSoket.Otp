@@ -1,5 +1,11 @@
 export type Protocol = "json" | (string & {})
 
+export type Serializer = {
+    readonly protocol: Protocol,
+    readonly serialize: (data: unknown) => string | BufferSource | Blob
+    readonly deserialize: (data: string | BufferSource | Blob) => unknown | Promise<unknown>
+}
+
 export interface HandshakeMessage {
     protocol: Protocol
 }
