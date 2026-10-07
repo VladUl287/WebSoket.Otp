@@ -18,7 +18,7 @@ export type WsClient = {
     close: (code?: number, reason?: string) => void
     send<TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse>
     send<TResponse>(key: string): Promise<TResponse>
-    notify<TRequest>(key: string, payload?: TRequest): void
+    notify(key: string): void
     receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void)
 }
 
@@ -115,11 +115,14 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
 
             socket.onerror = (): void => {
                 clearHandshake()
-                ws = null
+                setState("disconnected")
+
                 const error = new Error("WebSocket error")
+                pending.rejectAll(error)
+
+                ws = null
                 if (!settled) {
                     settled = true
-                    setState("disconnected")
                     reject(error)
                 }
             }
@@ -127,11 +130,14 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             socket.onclose = (ev: { code: number; reason: string }): void => {
                 clearHandshake()
                 setState("disconnected")
+
+                const error = new Error(`Connection closed before handshake completed (code ${ev.code})`)
+                pending.rejectAll(error)
+
                 ws = null
                 if (!settled) {
                     settled = true
-                    reject(new Error(`Connection closed before handshake completed (code ${ev.code})`))
-                    return
+                    reject(error)
                 }
             }
         })
