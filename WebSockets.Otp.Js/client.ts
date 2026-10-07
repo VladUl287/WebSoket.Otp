@@ -220,29 +220,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
         })
     }
 
-    const notify = (key: string): Promise<void> => {
-        if (state !== "connected" || !ws || ws.readyState !== 1) {
-            return Promise.reject(new Error("Client is not connected"))
-        }
-
-        const socket = ws
-        correlationId = (correlationId + 1) >>> 0
-        const message = JSON.stringify({ key, correlationId })
-
-        return new Promise((resolve, reject) => {
-            const entry: PendingRequest = {
-                resolve: resolve as (value: unknown) => void,
-                reject
-            }
-            try {
-                pending.enqueue(correlationId, entry)
-                socket.send(message)
-            } catch (err) {
-                pending.remove(correlationId)
-                reject(err)
-            }
-        })
-    }
+    const notify = (key: string): Promise<void> => send(key)
 
     const receive = <TValue>(key: string, callback: Handler<TValue>): (() => void) => {
         const cb = callback as Handler<unknown>
