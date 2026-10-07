@@ -1,33 +1,33 @@
 import type { PendingRequest } from "./types.js"
 
-export interface PendingRegistry {
+export interface PendingRegistry<TKey> {
     readonly enqueue: (
-        id: number,
+        key: TKey,
         entry: PendingRequest
     ) => void
-    readonly resolve: (id: number, value: unknown) => boolean
-    readonly remove: (id: number) => void
+    readonly resolve: (key: TKey, value: unknown) => boolean
+    readonly remove: (key: TKey) => void
     readonly rejectAll: (reason: Error) => void
 }
 
-export const usePendingRegistry = (): PendingRegistry => {
-    const queues = new Map<number, PendingRequest>()
+export const usePendingRegistry = <TKey>(): PendingRegistry<TKey> => {
+    const queues = new Map<TKey, PendingRequest>()
 
-    const enqueue = (id: number, entry: PendingRequest): void => {
-        const request = queues.get(id)
+    const enqueue = (key: TKey, entry: PendingRequest): void => {
+        const request = queues.get(key)
         if (request) return
-        else queues.set(id, entry)
+        else queues.set(key, entry)
     }
 
-    const resolve = (id: number, value: unknown): boolean => {
-        const request = queues.get(id)
+    const resolve = (key: TKey, value: unknown): boolean => {
+        const request = queues.get(key)
         if (!request) return false
         request.resolve(value)
-        queues.delete(id)
+        queues.delete(key)
         return true
     }
 
-    const remove = (key: number): void => {
+    const remove = (key: TKey): void => {
         queues.delete(key)
     }
 

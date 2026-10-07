@@ -41,7 +41,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
     const safeClose = (socket: WebSocket, code?: number, reason?: string): void => {
         try {
-            pending.rejectAll(new Error(reason))
+            correlationPending.rejectAll(new Error(reason))
             socket.close(code, reason)
         } catch { }
     }
@@ -128,7 +128,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
         setState("disconnected")
     }
 
-    const pending = usePendingRegistry()
+    const correlationPending = usePendingRegistry<number>()
 
     const handleIncoming = (data: unknown): void => {
         const text =
@@ -160,7 +160,12 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
         if (parsed && typeof parsed === "object" && "correlationId" in parsed) {
             const key = parsed.correlationId as number
-            pending.resolve(key, parsed)
+            correlationPending.resolve(key, parsed)
+            return
+        }
+
+        if (parsed && typeof parsed === "object" && "key" in parsed) {
+            const key = parsed.key as string
         }
     }
 
@@ -180,10 +185,10 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
                 reject
             }
             try {
-                pending.enqueue(correlationId, entry)
+                correlationPending.enqueue(correlationId, entry)
                 socket.send(message)
             } catch (err) {
-                pending.remove(correlationId)
+                correlationPending.remove(correlationId)
                 reject(err)
             }
         })
