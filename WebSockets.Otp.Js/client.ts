@@ -130,6 +130,9 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
     const pending = usePendingRegistry<number>()
 
+    type Handler<T> = (value: T) => void
+
+    const handlers = new Map<string, Set<Handler<unknown>>>()
 
     const handleIncoming = (data: unknown): void => {
         const text =
@@ -159,14 +162,24 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
             return
         }
 
-        if (parsed && typeof parsed === "object" && "correlationId" in parsed) {
-            const key = parsed.correlationId as number
-            correlationPending.resolve(key, parsed)
-            return
-        }
+        if (parsed && typeof parsed === "object" && 'value' in parsed) {
+            const obj = parsed as Record<string, unknown>
 
-        if (parsed && typeof parsed === "object" && "key" in parsed) {
-            const key = parsed.key as string
+            if (typeof obj.correlationId === "number") {
+                const key = obj.correlationId
+                pending.resolve(key, parsed.value)
+            }
+            else if (typeof obj.key === "string") {
+                const key = obj.key
+                const set = handlers.get(key)
+                if (!set) return
+                for (const handler of set) {
+                    try {
+                        handler(parsed.value)
+                    }
+                    catch (err) { }
+                }
+            }
         }
     }
 
@@ -195,11 +208,31 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
         })
     }
 
+    const receive = <TValue>(key: string, callback: Handler<TValue>): (() => void) => {
+        const cb = callback as Handler<unknown>
+
+        let store = handlers.get(key)
+        if (!store) {
+            handlers.set(key, (store = new Set()))
+        }
+        store.add(cb)
+
+        return () => {
+            const store = handlers.get(key)
+            if (!store) { return }
+            store.delete(cb)
+            if (store.size === 0) {
+                handlers.delete(key)
+            }
+        }
+    }
+
     return {
         state: () => state,
         isConnected: () => state === "connected" && ws?.readyState === 1,
         connect,
         close,
         send,
+        receive,
     }
 }
