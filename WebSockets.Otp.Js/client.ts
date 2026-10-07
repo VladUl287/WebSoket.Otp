@@ -180,20 +180,22 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             return
         }
 
-        if (parsed && typeof parsed === "object" && 'value' in parsed) {
+        if (parsed && typeof parsed === "object") {
             const obj = parsed as Record<string, unknown>
 
             if (typeof obj.correlationId === "number") {
                 const key = obj.correlationId
-                pending.resolve(key, parsed.value)
+                pending.resolve(key, obj.value)
+                return
             }
-            else if (typeof obj.key === "string") {
+
+            if (typeof obj.key === "string") {
                 const key = obj.key
                 const set = handlers.get(key)
                 if (!set) return
                 for (const handler of set) {
                     try {
-                        handler(parsed.value)
+                        handler(obj.value)
                     }
                     catch (err) { }
                 }
