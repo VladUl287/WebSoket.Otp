@@ -7,8 +7,8 @@ const asBytes = async (data: BufferSource | Blob): Promise<ArrayBuffer | ArrayBu
 }
 
 const decoder = new TextDecoder()
-export const jsonSerializer = (protocol: Protocol = "json"): Serializer => ({
-    protocol,
+export const jsonSerializer = (): Serializer => ({
+    protocol: 'json',
     serialize: (data) => JSON.stringify(data),
     deserialize: async (data) => JSON.parse(typeof data === "string" ? data : decoder.decode(await asBytes(data)))
 })
