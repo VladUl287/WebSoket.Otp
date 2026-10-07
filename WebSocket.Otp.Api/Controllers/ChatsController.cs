@@ -2,15 +2,16 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebSockets.Otp.Abstractions.Connections;
+using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Endpoints;
 using WebSockets.Otp.Api.Models;
 
 namespace WebSockets.Otp.Api.Controllers;
 
-[Authorize]
+//[Authorize]
 [Route("[controller]/[action]")]
-public class ChatsController(DatabaseContext dbContext) : ControllerBase
+public class ChatsController(DatabaseContext dbContext, IWsConnectionManager manager, IMessageSerializer serializer) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> GetAll()
@@ -37,5 +38,20 @@ public class ChatsController(DatabaseContext dbContext) : ControllerBase
             }))
             .ToArrayAsync();
         return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> SendMessage()
+    {
+        var message = new
+        {
+            message = "test message text"
+        };
+
+        var payload = serializer.SerializeToMessage(new Abstractions.Endpoints.EndpointHeaders() { Key = "test" }, message);
+
+        await manager.SendAsync(payload, serializer.Type, default);
+
+        return Ok();
     }
 }

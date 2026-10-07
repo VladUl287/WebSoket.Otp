@@ -10,7 +10,7 @@ using WebSockets.Otp.Api.Models;
 
 namespace WebSockets.Otp.Api.Endpoints;
 
-[Authorize(Policy = "test")]
+//[Authorize(Policy = "test")]
 [WsEndpoint("chat/message/send")]
 public sealed class ChatSendEndpoint :
     WsEndpoint<ChatMessage>
