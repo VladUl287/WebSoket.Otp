@@ -62,13 +62,37 @@ app.MapEndpoints(
     });
 ```
 
-## Handshake
+## Client(JS)
 
-The first message sent over a WebSocket connection must be a handshake message. This is required before any endpoint can be invoked.
+Install js library.
 
-Client -> Server
+```npm i websockets.otp.js```
 
-```{"protocol":"json"}```
+Use the client
+
+```js
+const client = useWsClient({
+    url: "ws://localhost:5096/ws"
+})
+
+await client.connect()
+
+type Request = { username: string, message: string }
+type Message = { chatId: string, content: string, timestamp: string }
+
+const off = client.receive<Message>('chat/message/receive', (msg) => {
+    console.log(msg) // { "chatId": "d5f30dff-b9a7-4292-96e0-61c84e5227ce", "content": "test", "timestamp": "2026-09-16T14:30:00.1234567+03:00" }
+})
+
+const result = await client.send<Request, Message>(
+    'chat/message/send',
+    {
+        "username": "user1",
+        "message": "test",
+    })
+
+console.log(result) // { "chatId": "d5f30dff-b9a7-4292-96e0-61c84e5227ce", "content": "test", "timestamp": "2026-09-16T14:30:00.1234567+03:00" }
+```
 
 Server -> Client
 
