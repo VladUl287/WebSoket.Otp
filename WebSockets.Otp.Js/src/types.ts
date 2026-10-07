@@ -10,7 +10,7 @@ export interface HandshakeMessage {
     protocol: Protocol
 }
 
-export interface EndpointMessage<T = unknown> {
+export interface EndpointMessage {
     key: string
     correlationId?: number,
     [field: string]: unknown

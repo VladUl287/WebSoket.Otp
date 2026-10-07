@@ -1,4 +1,4 @@
-import { Serializer } from "./types"
+import type { Serializer } from "./types"
 
 export const asBytes = async (data: BufferSource | Blob): Promise<ArrayBuffer | ArrayBufferView> => {
     if (data instanceof ArrayBuffer) return data

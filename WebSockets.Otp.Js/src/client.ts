@@ -1,6 +1,6 @@
 import { usePendingRegistry } from "./pending"
 import { jsonSerializer } from "./serializers"
-import { ConnectionState, PendingRequest, Serializer } from "./types"
+import type { ConnectionState, PendingRequest, Serializer } from "./types"
 
 const defaultFactory = (url: string): WebSocket => {
     if (typeof WebSocket === "undefined") {
