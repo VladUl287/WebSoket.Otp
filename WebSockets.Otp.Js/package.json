@@ -16,7 +16,8 @@
   },
   "files": [
     "src/",
-    "LICENSE.txt"
+    "LICENSE.txt",
+    "README.md"
   ],
   "license": "MIT",
   "exports": {
