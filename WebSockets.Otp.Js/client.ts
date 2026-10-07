@@ -8,7 +8,20 @@ const defaultFactory = (url: string): WebSocket => {
     return new WebSocket(url)
 }
 
-export const useWsClient = (options: { url: string, protocol?: Protocol, factory?: typeof defaultFactory }) => {
+type Handler<T> = (value: T) => void
+
+export type WsClient = {
+    state: () => ConnectionState
+    isConnected: () => boolean
+    connect: () => Promise<void>
+    close: (code?: number, reason?: string) => void
+    send<TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse>
+    send<TResponse>(key: string): Promise<TResponse>
+    notify<TRequest>(key: string, payload?: TRequest): void
+    receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void)
+}
+
+export const useWsClient = (options: { url: string, protocol?: Protocol, factory?: typeof defaultFactory }): WsClient => {
     const {
         url,
         protocol = "json",
@@ -130,8 +143,6 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
 
     const pending = usePendingRegistry<number>()
 
-    type Handler<T> = (value: T) => void
-
     const handlers = new Map<string, Set<Handler<unknown>>>()
 
     const handleIncoming = (data: unknown): void => {
@@ -184,7 +195,8 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
     }
 
     let correlationId = 0
-    const send = <TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse> => {
+
+    const send = <TRequest, TResponse>(key: string, payload?: TRequest): Promise<TResponse> => {
         if (state !== "connected" || !ws || ws.readyState !== 1) {
             return Promise.reject(new Error("Client is not connected"))
         }
@@ -194,6 +206,30 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
         const message = JSON.stringify({ key, correlationId, value: payload })
 
         return new Promise<TResponse>((resolve, reject) => {
+            const entry: PendingRequest = {
+                resolve: resolve as (value: unknown) => void,
+                reject
+            }
+            try {
+                pending.enqueue(correlationId, entry)
+                socket.send(message)
+            } catch (err) {
+                pending.remove(correlationId)
+                reject(err)
+            }
+        })
+    }
+
+    const notify = (key: string): Promise<void> => {
+        if (state !== "connected" || !ws || ws.readyState !== 1) {
+            return Promise.reject(new Error("Client is not connected"))
+        }
+
+        const socket = ws
+        correlationId = (correlationId + 1) >>> 0
+        const message = JSON.stringify({ key, correlationId })
+
+        return new Promise((resolve, reject) => {
             const entry: PendingRequest = {
                 resolve: resolve as (value: unknown) => void,
                 reject
@@ -233,6 +269,7 @@ export const useWsClient = (options: { url: string, protocol?: Protocol, factory
         connect,
         close,
         send,
+        notify,
         receive,
     }
 }
