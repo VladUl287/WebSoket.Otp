@@ -1,11 +1,31 @@
 {
   "name": "websockets.otp.js",
   "version": "1.0.0",
-  "description": "",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
+  "description": "Tiny, dependency-free WebSocket client",
+  "keywords": [
+    "websocket",
+    "websockets",
+    "repr",
+    "real-time",
+    "realtime",
+    "ws"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VladUl287/WebSoket.Otp/tree/main/WebSockets.Otp.Js"
+  },
+  "files": [
+    "src/",
+    "LICENSE.txt",
+    "README.md"
+  ],
+  "license": "MIT",
+  "exports": {
+    "./client": "./src/client.ts",
+    "./pending": "./src/pending.ts",
+    "./serializers": "./src/serializers.ts",
+    "./types": "./src/types.ts"
+  },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "jest": "^30.5.2",

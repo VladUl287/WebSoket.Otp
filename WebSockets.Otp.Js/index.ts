@@ -1,4 +1,4 @@
-import { useWsClient } from "./client"
+import { useWsClient } from "./src/client"
 
 main()
 

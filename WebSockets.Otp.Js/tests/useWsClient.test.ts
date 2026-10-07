@@ -1,6 +1,6 @@
 import { FakeWebSocket } from "./fakes/fakeWebSocket"
 import { makeFakeSerializer } from "./fakes/fakeSerializer"
-import { useWsClient } from "../client"
+import { useWsClient } from "../src/client"
 
 function setup(opts?: {
     protocol?: string
