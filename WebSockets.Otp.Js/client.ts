@@ -43,7 +43,6 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     let handshakeReject: ((err: Error) => void) | null = null
     let manuallyClosed = false
 
-
     const setState = (next: ConnectionState): void => {
         if (state === next) return
         state = next
@@ -87,8 +86,8 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             try {
                 socket = factory(url)
             } catch (err) {
-                setState("disconnected");
-                reject(err instanceof Error ? err : new Error(String(err)));
+                setState("disconnected")
+                reject(err instanceof Error ? err : new Error(String(err)))
                 return
             }
 
@@ -108,7 +107,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                         if (settled) return
                         settled = true
                         setState("disconnected")
-                        reject(err instanceof Error ? err : new Error(String(err)));
+                        reject(err instanceof Error ? err : new Error(String(err)))
                     })
             }
 
