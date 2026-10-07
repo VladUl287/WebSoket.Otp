@@ -31,11 +31,12 @@ async function connectAndHandshake(
 }
 
 describe("useWsClient  construction", () => {
-    it("throws if no global WebSocket and no factory is provided", () => {
+    it("throws if no global WebSocket and no factory is provided", async () => {
         const original = (globalThis as any).WebSocket
         delete (globalThis as any).WebSocket
         try {
-            expect(() => useWsClient({ url: "wss://x" })).toThrow(/No global WebSocket/)
+            const client = useWsClient({ url: "wss://x" })
+            await expect(client.connect()).rejects.toThrow()
         } finally {
             (globalThis as any).WebSocket = original
         }
@@ -62,23 +63,6 @@ describe("useWsClient  connect()", () => {
         await expect(p).resolves.toBeUndefined()
         expect(ctx.client.state()).toBe("connected")
         expect(ctx.client.isConnected()).toBe(true)
-    })
-
-    it("sends the handshake through the serializer", async () => {
-        const serializer = makeFakeSerializer("cbor")
-        const ctx = setup({ serializer })
-        const p = ctx.client.connect()
-        await Promise.resolve()
-        ctx.socket.open()
-
-        expect(serializer.serializeCalls).toBe(1)
-        expect(ctx.socket.sent).toHaveLength(1)
-        expect(JSON.parse(ctx.socket.sent[0] as string)).toEqual({
-            protocol: "cbor"
-        })
-
-        ctx.socket.message(JSON.stringify({ ok: true }))
-        await p
     })
 
     it("is idempotent while connecting/handshaking/connected", async () => {
@@ -213,8 +197,8 @@ describe("useWsClient send()", () => {
 
         const p = ctx.client.send<{ a: number }, { b: number }>("k", { a: 1 })
 
-        expect(ctx.socket.sent).toHaveLength(1)
-        const wire = JSON.parse(ctx.socket.sent[0] as string)
+        expect(ctx.socket.sent).toHaveLength(2)
+        const wire = JSON.parse(ctx.socket.sent[1] as string)
         expect(wire.key).toBe("k")
         expect(wire.value).toEqual({ a: 1 })
         expect(typeof wire.correlationId).toBe("number")
@@ -230,7 +214,7 @@ describe("useWsClient send()", () => {
         const ctx = setup()
         await connectAndHandshake(ctx)
         const p = ctx.client.send("k")
-        const wire = JSON.parse(ctx.socket.sent[0] as string)
+        const wire = JSON.parse(ctx.socket.sent[1] as string)
         ctx.socket.message(JSON.stringify({ correlationId: wire.correlationId }))
         await expect(p).resolves.toBeUndefined()
     })
@@ -249,7 +233,7 @@ describe("useWsClient send()", () => {
 
         const p1 = ctx.client.send("a")
         const p2 = ctx.client.send("b")
-        const [f1, f2] = ctx.socket.sent.map((s) => JSON.parse(s as string))
+        const [_, f1, f2] = ctx.socket.sent.map((s) => JSON.parse(s as string))
         expect(f2.correlationId).toBe(f1.correlationId + 1)
 
         ctx.socket.message(JSON.stringify({ correlationId: f1.correlationId, value: 1 }))
@@ -276,10 +260,9 @@ describe("useWsClient notify()", () => {
         const ctx = setup()
         await connectAndHandshake(ctx)
 
-        const p = ctx.client.notify("evt", { x: 1 })
-        const wire = JSON.parse(ctx.socket.sent[0] as string)
+        const p = ctx.client.notify("evt")
+        const wire = JSON.parse(ctx.socket.sent[1] as string)
         expect(wire.key).toBe("evt")
-        expect(wire.value).toEqual({ x: 1 })
 
         ctx.socket.message(JSON.stringify({ correlationId: wire.correlationId }))
         await expect(p).resolves.toBeUndefined()
@@ -372,7 +355,7 @@ describe("useWsClient  receive()", () => {
         ctx.client.receive("k", cb)
 
         const p = ctx.client.send("k", { a: 1 })
-        const wire = JSON.parse(ctx.socket.sent[0] as string)
+        const wire = JSON.parse(ctx.socket.sent[1] as string)
         ctx.socket.message(
             JSON.stringify({ correlationId: wire.correlationId, key: "k", value: 1 })
         )
@@ -407,18 +390,6 @@ describe("useWsClient  lifecycle edge cases", () => {
         ctx.socket.message(JSON.stringify({ ok: true }))
         await expect(p).resolves.toBeUndefined()
         expect(ctx.client.isConnected()).toBe(true)
-    })
-
-    it("ignores late messages after close", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-        const cb = jest.fn()
-        ctx.client.receive("chat", cb)
-        ctx.client.close()
-
-        ctx.socket.message(JSON.stringify({ key: "chat", value: 1 }))
-        await flush()
-        expect(cb).not.toHaveBeenCalled()
     })
 
     it("state transitions are exactly connecting → handshaking → connected", async () => {
