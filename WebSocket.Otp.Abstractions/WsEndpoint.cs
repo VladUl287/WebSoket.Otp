@@ -25,5 +25,5 @@ public abstract class WsEndpoint<TRequest> : BaseWsEndpoint
 public abstract class WsEndpoint<TRequest, TResponse> : BaseWsEndpoint
     where TResponse : notnull
 {
-    public abstract Task HandleAsync(TRequest request, EndpointContext<TResponse> context);
+    public abstract Task<TResponse> HandleAsync(TRequest request, EndpointContext context);
 }

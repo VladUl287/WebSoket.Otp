@@ -16,7 +16,7 @@ public abstract class BaseEndpointContext(
     ClaimsPrincipal? user,
     CancellationToken token) : IEndpointContext
 {
-    protected IWsConnectionManager ConnectionManager => manager;
+    public IWsConnectionManager ConnectionManager => manager;
     public HttpContext Context => context.Context;
     public ClaimsPrincipal? User => user ?? context.Context.User;
     public WebSocket Socket => context.Socket;

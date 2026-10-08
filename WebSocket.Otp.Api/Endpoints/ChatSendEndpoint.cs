@@ -17,6 +17,27 @@ public sealed class ChatSendEndpoint :
 {
     public override async Task HandleAsync(ChatMessage request, EndpointContext ctx)
     {
+        //await ctx.Send.Response(new ChatMessage
+        //{
+        //    Content = request.Content,
+        //    Timestamp = request.Timestamp,
+        //    ChatId = request.ChatId,
+        //});
+
+        //await ctx.Response.Send(new ChatMessage
+        //{
+        //    Content = request.Content,
+        //    Timestamp = request.Timestamp,
+        //    ChatId = request.ChatId,
+        //});
+
+        //await ctx.SendResponse(new ChatMessage
+        //{
+        //    Content = request.Content,
+        //    Timestamp = request.Timestamp,
+        //    ChatId = request.ChatId,
+        //});
+
         await ctx.Send
            .All()
            .SendAsync(new ChatMessage

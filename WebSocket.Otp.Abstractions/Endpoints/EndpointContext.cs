@@ -13,6 +13,7 @@ public class EndpointContext(
    ClaimsPrincipal? user,
    CancellationToken token) : BaseEndpointContext(context, manager, serializer, payload, user, token)
 {
+    public EndpointHeaders Headers { get; init; }
     public SendManager Send => new(headers, Serializer, ConnectionManager);
 }
 

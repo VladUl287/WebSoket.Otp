@@ -7,14 +7,18 @@ namespace WebSockets.Otp.Core.Services.Endpoints;
 public sealed class RequestResponseEndpointInvoker<TRequest, TResponse> : IEndpointInvoker
     where TResponse : notnull
 {
-    public Task Invoke(object endpoint, IEndpointContext context)
+    public async Task Invoke(object endpoint, IEndpointContext context)
     {
         var typedEndpoint = Unsafe.As<WsEndpoint<TRequest, TResponse>>(endpoint);
-        var typedContext = Unsafe.As<EndpointContext<TResponse>>(context);
+        var typedContext = Unsafe.As<EndpointContext>(context);
 
         var request = typedContext.Serializer.Deserialize<TRequest>(typedContext.Payload.Span) ??
             throw new NullReferenceException($"Fail to deserialize message for endpoint '{endpoint.GetType()}'");
 
-        return typedEndpoint.HandleAsync(request, typedContext);
+        var response = await typedEndpoint.HandleAsync(request, typedContext);
+
+        var message = typedContext.Serializer.SerializeToMessage(typedContext.Headers, response);
+
+        await typedContext.ConnectionManager.SendAsync(context.ConnectionId, message, context.Cancellation);
     }
 }
