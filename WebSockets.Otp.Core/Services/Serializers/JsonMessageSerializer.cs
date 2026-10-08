@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Serializers;
 
