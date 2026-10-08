@@ -5,6 +5,7 @@ namespace WebSockets.Otp.Core.Models;
 
 public sealed class WsEndpointInfo
 {
+    public required string Key { get; init; }
     public required Type EndpointType { get; init; }
     public required IEndpointInvoker Invoker { get; init; }
     public Endpoint? AuthEndpoint { get; init; }
