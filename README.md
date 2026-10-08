@@ -11,19 +11,14 @@ A minimal WebSocket library for ASP.NET Core inspired by REPR principles. Provid
 #### 1. Define your endpoint
 
 ```cs
-[WsEndpoint("chat/message")]
-public class ChatEndpoint : WsEndpoint<ChatMessage, ChatResponse>
+[WsEndpoint("chat/message/send")]
+public class ChatEndpoint : WsEndpoint<ChatMessage>
 {
-    public override async Task HandleAsync(ChatMessage request, EndpointContext<ChatResponse> context)
+    public override async Task HandleAsync(ChatMessage message, EndpointContext context)
     {
         await context.Send
             .Group("general-chat")
-            .SendAsync(new ChatResponse
-            {
-                Username = request.Username,
-                Message = request.Message,
-                Timestamp = DateTime.UtcNow
-            }, default);
+            .SendAsync("chat/message/receive", message, default);
     }
 }
 
@@ -31,13 +26,6 @@ public class ChatMessage
 {
     public string Username { get; set; }
     public string Message { get; set; }
-}
-
-public class ChatResponse
-{
-    public string Username { get; set; }
-    public string Message { get; set; }
-    public DateTime Timestamp { get; set; }
 }
 ```
 
@@ -62,11 +50,13 @@ app.MapEndpoints(
     });
 ```
 
-## Client(JS)
+## Client
 
-Install js library.
+Install js client.
 
-```npm i websockets.otp.js```
+```sh
+npm i websockets.otp.js
+```
 
 Use the client
 
@@ -77,21 +67,18 @@ const client = useWsClient({
 
 await client.connect()
 
-type Request = { username: string, message: string }
-type Message = { chatId: string, content: string, timestamp: string }
+type Message = { username: string, message: string }
 
 const off = client.receive<Message>('chat/message/receive', (msg) => {
-    console.log(msg) // { "chatId": "d5f30dff-b9a7-4292-96e0-61c84e5227ce", "content": "test", "timestamp": "2026-09-16T14:30:00.1234567+03:00" }
+    console.log(msg.message) // test message
 })
 
-const result = await client.send<Request, Message>(
-    'chat/message',
+await client.send<Message>(
+    'chat/message/send',
     {
-        "username": "user1",
-        "message": "test",
+        username: "user1",
+        message: "test message",
     })
-
-console.log(result) // { "chatId": "d5f30dff-b9a7-4292-96e0-61c84e5227ce", "content": "test", "timestamp": "2026-09-16T14:30:00.1234567+03:00" }
 ```
 
 ## Endpoint Types
@@ -113,7 +100,7 @@ public class SystemStatusEndpoint : WsEndpoint
 }
 ```
 
-#### 2. Request-only Endpoint (Any type response)
+#### 2. Request-only Endpoint
 
 ```cs
 [WsEndpoint("notifications/subscribe")]
@@ -125,7 +112,7 @@ public class SubscribeEndpoint : WsEndpoint<SubscribeRequest>
         await connection.Send
             .SendAsync(new
             {
-                Data = "response"
+                Data = "notification"
             }, default);
     }
 }
@@ -137,16 +124,13 @@ public class SubscribeEndpoint : WsEndpoint<SubscribeRequest>
 [WsEndpoint("calculator/add")]
 public class AddEndpoint : WsEndpoint<AddRequest, AddResponse>
 {
-    public override async Task HandleAsync(AddRequest request, EndpointContext<AddResponse> context)
+    public override async Task<AddResponse> HandleAsync(AddRequest request, EndpointContext context)
     {
-        var result = request.A + request.B;
-        await context.Send
-            .Client(context.ConnectionId)
-            .SendAsync(new AddResponse
-            {
-                Result = result,
-                Operation = "addition"
-            }, default);
+        return new AddResponse
+        {
+            Result = request.A + request.B,
+            Operation = "addition"
+        };
     }
 }
 ```
@@ -168,9 +152,10 @@ public class AuthEndpoint : WsEndpoint<AuthRequest, AuthResponse>
         _logger = logger;
     }
 
-    public override async Task HandleAsync(AuthRequest request, EndpointContext<AuthResponse> context)
+    public override async Task<AuthResponse> HandleAsync(AuthRequest request, EndpointContext context)
     {
         var isValid = await _authService.ValidateAsync(request.Token);
+        return new AuthResponse { Success = isValid };
     }
 }
 ```
