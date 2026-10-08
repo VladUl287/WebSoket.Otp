@@ -4,71 +4,49 @@ using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Abstractions;
 
-public abstract class SendManagerBase<TDerived>(IWsConnectionManager manager)
-    where TDerived : SendManagerBase<TDerived>
+public sealed class SendManager(
+    EndpointHeaders headers, IMessageSerializer serializer, IWsConnectionManager manager)
 {
-    protected readonly IWsConnectionManager _manager = manager;
-    protected readonly HashSet<string> _connectionIds = [];
-    protected readonly HashSet<string> _groups = [];
-    protected bool _targetAll = false;
+    public readonly IWsConnectionManager _manager = manager;
+    public readonly HashSet<string> _connectionIds = [];
+    public readonly HashSet<string> _groups = [];
+    public bool _targetAll = false;
 
-    public TDerived Client(string connectionId)
+    public SendManager Client(string connectionId)
     {
-        if (_targetAll) return (TDerived)this;
+        if (_targetAll) return this;
         _connectionIds.Add(connectionId);
-        return (TDerived)this;
+        return this;
     }
 
-    public TDerived Group(string groupName)
+    public SendManager Group(string groupName)
     {
-        if (_targetAll) return (TDerived)this;
+        if (_targetAll) return this;
         _groups.Add(groupName);
-        return (TDerived)this;
+        return this;
     }
 
-    public TDerived All()
+    public SendManager All()
     {
         _targetAll = true;
-        return (TDerived)this;
+        return this;
     }
-}
 
-public sealed class SendManager(
-    EndpointHeaders headers, IMessageSerializer serializer, IWsConnectionManager manager) : SendManagerBase<SendManager>(manager)
-{
     public async ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token = default)
         where TResponse : notnull
     {
+        var messageBytes = serializer.SerializeToMessage(headers, data);
+
         if (_targetAll)
         {
-            var bytes = serializer.SerializeToMessage(headers, data);
-            await _manager.SendAsync(bytes, serializer.Type, token);
+            await _manager.SendAsync(messageBytes, serializer.Type, token);
             return;
         }
 
         if (_connectionIds.Count > 0)
-            await _manager.SendAsync(_connectionIds, data, token);
+            await _manager.SendAsync(_connectionIds, messageBytes, token);
 
         if (_groups.Count > 0)
-            await _manager.SendAsync(_groups, data, token);
-    }
-}
-
-public sealed class SendManager<TResponse>(IWsConnectionManager manager) : SendManagerBase<SendManager<TResponse>>(manager)
-    where TResponse : notnull
-{
-    public async ValueTask SendAsync(TResponse data, CancellationToken token = default)
-    {
-        if (_targetAll)
-        {
-            await _manager.SendAsync(data, token);
-            return;
-        }
-
-        if (_connectionIds.Count > 0)
-            await _manager.SendAsync(_connectionIds, data, token);
-
-        if (_groups.Count > 0)
-            await _manager.SendAsync(_groups, data, token);
+            await _manager.SendAsync(_groups, messageBytes, token);
     }
 }

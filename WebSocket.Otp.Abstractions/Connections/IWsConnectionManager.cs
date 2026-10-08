@@ -11,16 +11,9 @@ public interface IWsConnectionManager
     ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token);
 
     ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token);
+    ValueTask SendAsync(string connectionId, ReadOnlyMemory<byte> data, CancellationToken token);
+    ValueTask SendAsync(IEnumerable<string> connections, ReadOnlyMemory<byte> data, CancellationToken token);
 
-    ValueTask SendAsync<TData>(TData data, CancellationToken token)
-        where TData : notnull;
-    ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token)
-        where TData : notnull;
-    ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
-        where TData : notnull;
-
-    ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token)
-        where TData : notnull;
-    ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, TData data, CancellationToken token)
-        where TData : notnull;
+    ValueTask SendToGroupAsync(string group, ReadOnlyMemory<byte> data, CancellationToken token);
+    ValueTask SendToGroupAsync(IEnumerable<string> groups, ReadOnlyMemory<byte> data, CancellationToken token);
 }
