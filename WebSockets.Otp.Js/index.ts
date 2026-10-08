@@ -9,6 +9,11 @@ async function main() {
 
     await client.connect()
 
+    const off = client.receive<{ message: string }>('notify/message/receive', (v) => {
+        console.log(v)
+        off()
+    })
+
     const result = await client.send<any, { message: string }>(
         'chat/message/send',
         {
@@ -16,11 +21,6 @@ async function main() {
             "content": "test",
             "timestamp": "2026-09-16T14:30:00.1234567+03:00"
         })
-
-    const off = client.receive<{ message: string }>('test', (v) => {
-        console.log(v)
-        off()
-    })
 
     console.log(result)
 
