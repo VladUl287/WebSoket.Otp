@@ -28,45 +28,31 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(removed);
     }
 
-    public ValueTask SendAsync<TData>(TData data, CancellationToken token) where TData : notnull =>
-        SendAsync(_store.Values.Select(c => c.Id), data, token);
+    public ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token) =>
+        SendAsync(_store.Values.Select(c => c.Id), data, type, token);
 
-    public ValueTask SendAsync<TData>(string connectionId, TData data, CancellationToken token)
-        where TData : notnull
+    public ValueTask SendAsync(string connectionId, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
     {
-        var connection = _store[connectionId];
-        var socket = connection.Socket;
-        var serializer = connection.Serializer;
-        var message = serializer.Serialize(data);
-        return socket.SendAsync(message, serializer.Type, true, token);
+        return _store[connectionId].Socket.SendAsync(data, type, true, token);
     }
 
-    public async ValueTask SendAsync<TData>(IEnumerable<string> connections, TData data, CancellationToken token)
-        where TData : notnull
+    public async ValueTask SendAsync(IEnumerable<string> connections, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
     {
         foreach (var connection in _store.Where(c => connections.Contains(c.Key)))
         {
-            var socket = connection.Value.Socket;
-            var serializer = connection.Value.Serializer;
-            var message = serializer.Serialize(data);
-            await socket.SendAsync(message, serializer.Type, true, token);
+            await connection.Value.Socket.SendAsync(data, type, true, token);
         }
     }
 
-    public async ValueTask SendToGroupAsync<TData>(string group, TData data, CancellationToken token)
-        where TData : notnull
+    public async ValueTask SendToGroupAsync(string group, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
     {
         foreach (var connection in _groups[group].Values)
         {
-            var socket = connection.Socket;
-            var serializer = connection.Serializer;
-            var message = serializer.Serialize(data);
-            await socket.SendAsync(message, serializer.Type, true, token);
+            await connection.Socket.SendAsync(data, type, true, token);
         }
     }
 
-    public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, TData data, CancellationToken token)
-        where TData : notnull
+    public async ValueTask SendToGroupAsync(IEnumerable<string> groups, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
     {
         var groupsStores = _groups
             .Where(group => groups.Contains(group.Key))
@@ -76,19 +62,8 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         {
             foreach (var connection in groupStore.Values)
             {
-                var socket = connection.Socket;
-                var serializer = connection.Serializer;
-                var message = serializer.Serialize(data);
-                await socket.SendAsync(message, serializer.Type, true, token);
+                await connection.Socket.SendAsync(data, type, true, token);
             }
-        }
-    }
-
-    public async ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
-    {
-        foreach (var connection in _store.Values)
-        {
-            await connection.Socket.SendAsync(data, type, true, token);
         }
     }
 }
