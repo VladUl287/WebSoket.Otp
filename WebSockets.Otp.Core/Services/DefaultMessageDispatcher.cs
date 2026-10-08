@@ -33,7 +33,7 @@ public class DefaultMessageDispatcher(
         }
         finally
         {
-            ArrayPool<JsonSlice>.Shared.Return(results);
+            ArrayPool<JsonSlice>.Shared.Return(results, true);
         }
 
         if (!keySlice.Found || !endpointTypeResolver.TryResolve(payload.Span[(keySlice.Start + 1)..], out var endpointInfo))
