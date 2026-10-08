@@ -3,9 +3,7 @@
 namespace WebSockets.Otp.Abstractions;
 
 public interface IWsEndpoint
-{
-
-}
+{ }
 
 public abstract class WsEndpoint : IWsEndpoint
 {
