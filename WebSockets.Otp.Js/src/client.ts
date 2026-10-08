@@ -17,7 +17,7 @@ export type WsClient = {
     connect: () => Promise<void>
     close: (code?: number, reason?: string) => void
     send<TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse>
-    send<TResponse>(key: string): Promise<TResponse>
+    notify<TRequest>(key: string, payload: TRequest): void
     notify(key: string): void
     receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void)
 }
@@ -234,7 +234,19 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         })
     }
 
-    const notify = (key: string): Promise<void> => send(key)
+    const notify = <TRequest>(key: string, payload?: TRequest): void => {
+        if (state !== "connected" || !ws || ws.readyState !== 1) {
+            throw new Error("Client is not connected")
+        }
+
+        const socket = ws
+        const request: Record<string, any> = { key, correlationId }
+        if (payload) {
+            request.value = payload
+        }
+        const message = serializer.serialize(request)
+        socket.send(message)
+    }
 
     const receive = <TValue>(key: string, callback: Handler<TValue>): (() => void) => {
         const cb = callback as Handler<unknown>
