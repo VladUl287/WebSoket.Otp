@@ -11,9 +11,12 @@
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<PackageProjectUrl>https://github.com/VladUl287/WebSoket.Otp</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/VladUl287/WebSoket.Otp</RepositoryUrl>
+
+		<PackageIcon>icon.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
+		<None Include="icon.png" Pack="true" PackagePath="\" />
 		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0" />
 	</ItemGroup>
 
