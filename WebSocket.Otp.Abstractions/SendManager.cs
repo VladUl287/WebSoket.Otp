@@ -4,8 +4,7 @@ using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Abstractions;
 
-public sealed class SendManager(
-    EndpointHeaders headers, IMessageSerializer serializer, IWsConnectionManager manager)
+public sealed class SendManager(IMessageSerializer serializer, IWsConnectionManager manager)
 {
     public readonly IWsConnectionManager _manager = manager;
     public readonly HashSet<string> _connectionIds = [];
@@ -32,10 +31,10 @@ public sealed class SendManager(
         return this;
     }
 
-    public async ValueTask SendAsync<TResponse>(TResponse data, CancellationToken token = default)
+    public async ValueTask SendAsync<TResponse>(string key, TResponse data, CancellationToken token = default)
         where TResponse : notnull
     {
-        var messageBytes = serializer.SerializeToMessage(headers, data);
+        var messageBytes = serializer.SerializeToMessage(new EndpointHeaders { Key = key }, data);
 
         if (_targetAll)
         {

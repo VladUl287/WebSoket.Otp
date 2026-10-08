@@ -40,7 +40,7 @@ public sealed class ChatSendEndpoint :
 
         await ctx.Send
            .All()
-           .SendAsync(new ChatMessage
+           .SendAsync("chat/message/receive", new ChatMessage
            {
                Content = request.Content,
                Timestamp = request.Timestamp,
