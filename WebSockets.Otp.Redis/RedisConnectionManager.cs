@@ -296,4 +296,24 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     {
         throw new NotImplementedException();
     }
+
+    public ValueTask SendAsync(string connectionId, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask SendAsync(IEnumerable<string> connections, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask SendToGroupAsync(string group, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask SendToGroupAsync(IEnumerable<string> groups, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    {
+        throw new NotImplementedException();
+    }
 }
