@@ -79,4 +79,6 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
 
         return buffer.WrittenMemory;
     }
+
+    public uint ParseUInt(ReadOnlySpan<byte> data) => uint.Parse(data);
 }

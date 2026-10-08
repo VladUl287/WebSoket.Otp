@@ -61,7 +61,7 @@ public class DefaultMessageDispatcher(
         var correlationId = 0u;
         if (correlationSlice.Found)
         {
-            correlationId = serializer.Deserialize<uint>(payload.Span[correlationSlice.Start..correlationSlice.End]);
+            correlationId = serializer.ParseUInt(payload.Span[correlationSlice.Start..correlationSlice.End]);
         }
 
         var data = payload.Memory[valueSlice.Start..valueSlice.End];

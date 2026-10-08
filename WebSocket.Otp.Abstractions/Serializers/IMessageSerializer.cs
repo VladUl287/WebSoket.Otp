@@ -13,6 +13,7 @@ public interface IMessageSerializer
     ReadOnlyMemory<byte> Serialize<T>(T message);
     T? Deserialize<T>(ReadOnlySpan<byte> data);
 
+    uint ParseUInt(ReadOnlySpan<byte> data);
     ReadOnlyMemory<byte> SerializeToMessage<T>(EndpointHeaders headers, T data);
     void ScanMessage(ReadOnlySpan<byte> json, Span<JsonSlice> results);
 }
