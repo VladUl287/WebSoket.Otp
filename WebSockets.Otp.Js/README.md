@@ -246,10 +246,6 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
 builder.Services.AddRedisManager();
 ```
 
-#### 5. Custom Serializers
-
-By default, the library uses JSON for message serialization. For custom types or alternative formats (e.g. MessagePack, Protobuf, XML), implement the ```ISerializer``` interface from ```WebSockets.Otp.Abstractions.Serializers``` and register it as a singleton.
-
 ## Roadmap
 
 - Performance & memory optimization
