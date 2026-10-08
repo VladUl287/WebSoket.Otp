@@ -12,16 +12,14 @@ using WebSockets.Otp.Core.Models;
 namespace WebSockets.Otp.Core.Services;
 
 public class DefaultMessageDispatcher(
-    IServiceScopeFactory scopeFactory, IContextFactory contextFactory, ITrieResolver<WsEndpointInfo> endpointTypeResolver,
+    IServiceScopeFactory scopeFactory, IContextFactory contextFactory, ITrieResolver<WsEndpointInfo> endpointResolver,
     ILogger<DefaultMessageDispatcher> logger) : IMessageDispatcher
 {
     public async Task DispatchMessage(IGlobalContext context, IMessageSerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
         var results = ArrayPool<JsonSlice>.Shared.Rent(16);
 
-        JsonSlice keySlice;
-        JsonSlice correlationSlice;
-        JsonSlice valueSlice;
+        JsonSlice keySlice, correlationSlice, valueSlice;
 
         try
         {
@@ -36,7 +34,7 @@ public class DefaultMessageDispatcher(
             ArrayPool<JsonSlice>.Shared.Return(results, true);
         }
 
-        if (!keySlice.Found || !endpointTypeResolver.TryResolve(payload.Span[(keySlice.Start + 1)..], out var endpointInfo))
+        if (!keySlice.Found || !endpointResolver.TryResolve(payload.Span[(keySlice.Start + 1)..], out var endpointInfo))
         {
             logger.FailToResolveFieldInfo(keySlice.Start, payload.Span.Length);
             return;
