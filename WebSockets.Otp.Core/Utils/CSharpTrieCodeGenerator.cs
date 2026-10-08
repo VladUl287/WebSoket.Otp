@@ -21,7 +21,7 @@ public static class CSharpTrieCodeGenerator
         body.Append("return -1;");
 
         var sb = new StringBuilder();
-        sb.Append("public static class GeneratedTrie{public static int Resolve(byte[] a, int i){");
+        sb.Append("public static class GeneratedTrie{public static int Resolve(System.ReadOnlyMemory<byte> b, int i){var a=b.Span;");
         sb.Append(body);
         sb.Append("}}");
         return sb.ToString();

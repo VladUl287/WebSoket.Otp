@@ -34,7 +34,7 @@ public class DefaultMessageDispatcher(
             ArrayPool<JsonSlice>.Shared.Return(results, true);
         }
 
-        if (!keySlice.Found || !endpointResolver.TryResolve(payload.Span[(keySlice.Start + 1)..], out var endpointInfo))
+        if (!keySlice.Found || !endpointResolver.TryResolve(payload.Memory[(keySlice.Start + 1)..], out var endpointInfo))
         {
             logger.FailToResolveFieldInfo(keySlice.Start, payload.Span.Length);
             return;

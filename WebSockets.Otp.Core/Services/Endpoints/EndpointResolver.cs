@@ -9,12 +9,11 @@ namespace WebSockets.Otp.Core.Services.Endpoints;
 public unsafe sealed class EndpointResolver : ITrieResolver<WsEndpointInfo>
 {
     private readonly WsEndpointInfo[] _types;
-    private readonly Func<byte[], int, int> _resolve;
+    private readonly Func<ReadOnlyMemory<byte>, int, int> _resolve;
 
     public EndpointResolver(byte[][] values, WsEndpointInfo[] types)
     {
         _types = types;
-
         //var references = AppDomain.CurrentDomain.GetAssemblies()
         //    .Where(a => !a.IsDynamic && !string.IsNullOrEmpty(a.Location))
         //    .Select(a => MetadataReference.CreateFromFile(a.Location))
@@ -31,14 +30,14 @@ public unsafe sealed class EndpointResolver : ITrieResolver<WsEndpointInfo>
         var type = assembly.GetType("GeneratedTrie") ?? throw new NullReferenceException();
         var method = type.GetMethod("Resolve") ?? throw new NullReferenceException();
 
-        _resolve = method.CreateDelegate<Func<byte[], int, int>>();
+        _resolve = method.CreateDelegate<Func<ReadOnlyMemory<byte>, int, int>>();
     }
 
-    public bool TryResolve(ReadOnlySpan<byte> sequence, [NotNullWhen(true)] out WsEndpointInfo? value)
+    public bool TryResolve(ReadOnlyMemory<byte> sequence, [NotNullWhen(true)] out WsEndpointInfo? value)
     {
         value = null;
 
-        var index = _resolve(sequence.ToArray(), 0);
+        var index = _resolve(sequence, 0);
 
         if (index == -1)
             return false;
