@@ -69,7 +69,7 @@ public class DefaultMessageDispatcher(
         var data = payload.Memory[valueSlice.Start..valueSlice.End];
 
         var headers = new EndpointHeaders() { Key = endpointInfo.Key, CorrelationId = correlationId };
-        var execCtx = contextFactory.Create(headers, context, data, serializer, authResult.User, token);
+        var execCtx = contextFactory.Create(headers, context, data, serializer, authResult?.User, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }
