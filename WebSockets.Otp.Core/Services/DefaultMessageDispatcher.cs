@@ -17,19 +17,28 @@ public class DefaultMessageDispatcher(
 {
     public async Task DispatchMessage(IGlobalContext context, IMessageSerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
-        var results = ArrayPool<JsonSlice>.Shared.Rent(3);
+        var results = ArrayPool<JsonSlice>.Shared.Rent(16);
 
-        serializer.ScanMessage(payload.Span, results);
+        JsonSlice keySlice;
+        JsonSlice correlationSlice;
+        JsonSlice valueSlice;
 
-        var keyResult = results[0];
-        var correlationResult = results[1];
-        var valueResult = results[2];
-
-        ArrayPool<JsonSlice>.Shared.Return(results);
-
-        if (!keyResult.Found || !endpointTypeResolver.TryResolve(payload.Span[(keyResult.Start + 1)..], out var endpointInfo))
+        try
         {
-            logger.FailToResolveFieldInfo(keyResult.Start, payload.Span.Length);
+            serializer.ScanMessage(payload.Span, results);
+
+            keySlice = results[0];
+            correlationSlice = results[1];
+            valueSlice = results[2];
+        }
+        finally
+        {
+            ArrayPool<JsonSlice>.Shared.Return(results);
+        }
+
+        if (!keySlice.Found || !endpointTypeResolver.TryResolve(payload.Span[(keySlice.Start + 1)..], out var endpointInfo))
+        {
+            logger.FailToResolveFieldInfo(keySlice.Start, payload.Span.Length);
             return;
         }
 
@@ -52,12 +61,12 @@ public class DefaultMessageDispatcher(
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
         var correlationId = 0u;
-        if (correlationResult.Found)
+        if (correlationSlice.Found)
         {
-            correlationId = serializer.Deserialize<uint>(payload.Span[correlationResult.Start..correlationResult.End]);
+            correlationId = serializer.Deserialize<uint>(payload.Span[correlationSlice.Start..correlationSlice.End]);
         }
 
-        var data = payload.Memory[valueResult.Start..valueResult.End];
+        var data = payload.Memory[valueSlice.Start..valueSlice.End];
 
         var headers = new EndpointHeaders() { Key = endpointInfo.Key, CorrelationId = correlationId };
         var execCtx = contextFactory.Create(headers, context, data, serializer, authResult.User, token);
