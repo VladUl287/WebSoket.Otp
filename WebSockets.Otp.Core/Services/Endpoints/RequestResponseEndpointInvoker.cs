@@ -19,6 +19,6 @@ public sealed class RequestResponseEndpointInvoker<TRequest, TResponse> : IEndpo
 
         var message = typedContext.Serializer.SerializeToMessage(typedContext.Headers, response);
 
-        await typedContext.ConnectionManager.SendAsync(context.ConnectionId, message, context.Cancellation);
+        await typedContext.Manager.SendAsync(context.ConnectionId, message, context.Cancellation);
     }
 }
