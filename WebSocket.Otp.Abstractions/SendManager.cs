@@ -43,9 +43,9 @@ public sealed class SendManager(IMessageSerializer serializer, IWsConnectionMana
         }
 
         if (_connectionIds.Count > 0)
-            await _manager.SendAsync(_connectionIds, messageBytes, token);
+            await _manager.SendAsync(_connectionIds, messageBytes, serializer.Type, token);
 
         if (_groups.Count > 0)
-            await _manager.SendAsync(_groups, messageBytes, token);
+            await _manager.SendAsync(_groups, messageBytes, serializer.Type, token);
     }
 }
