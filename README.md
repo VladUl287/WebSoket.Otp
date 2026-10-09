@@ -73,7 +73,7 @@ const off = client.receive<Message>('chat/message/receive', (msg) => {
     console.log(msg.message) // test message
 })
 
-await client.send<Message>(
+await client.notify<Message>(
     'chat/message/send',
     {
         username: "user1",
