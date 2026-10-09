@@ -49,9 +49,9 @@ public class MessageDispatcherBenchmark
 
         _dispatcher = _provider.GetRequiredService<IMessageDispatcher>();
         var contextFactory = _provider.GetRequiredService<IContextFactory>();
-        var options = _provider.GetRequiredService<WsOptionsSnapshot>();
+        var options = _provider.GetRequiredService<WsOptions>();
         var ctx = Create(_provider);
-        _globalContext = contextFactory.CreateGlobal(ctx, await ctx.WebSockets.AcceptWebSocketAsync(), "test", options);
+        _globalContext = contextFactory.CreateGlobal(ctx, await ctx.WebSockets.AcceptWebSocketAsync(), "test", new WsOptionsSnapshot(options));
         var store = _provider.GetRequiredService<ISerializerStore>();
         store.TryGet("json", out _serializer);
 
