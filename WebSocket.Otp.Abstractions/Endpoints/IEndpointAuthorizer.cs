@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Abstractions.Endpoints;
 
@@ -7,5 +8,5 @@ public sealed record EndpointAuthResult(bool Succeeded, ClaimsPrincipal? User, s
 
 public interface IEndpointAuthorizer
 {
-    Task<EndpointAuthResult> AuthorizeAsync(HttpContext context, Endpoint endpoint, CancellationToken token);
+    Task<Result<ClaimsPrincipal, string>> AuthorizeAsync(HttpContext context, Endpoint endpoint, CancellationToken token);
 }

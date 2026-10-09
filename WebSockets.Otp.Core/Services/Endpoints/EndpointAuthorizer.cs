@@ -6,12 +6,13 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services.Endpoints;
 
 public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEndpointAuthorizer
 {
-    public async Task<EndpointAuthResult> AuthorizeAsync(
+    public async Task<Result<ClaimsPrincipal, string>> AuthorizeAsync(
         HttpContext sourceCtx,
         Endpoint endpoint,
         CancellationToken cancellationToken)
@@ -20,7 +21,7 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
 
         if (authorizeData.Count == 0)
         {
-            return new EndpointAuthResult(true, sourceCtx.User, null, []);
+            return sourceCtx.User;
         }
 
         var ctx = CopyContext(sourceCtx, cancellationToken);
@@ -28,7 +29,6 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
 
         var services = ctx.RequestServices;
         var authService = services.GetRequiredService<IAuthenticationService>();
-        var authzService = services.GetRequiredService<IAuthorizationService>();
         var policyProvider = services.GetRequiredService<IAuthorizationPolicyProvider>();
         var authOptions = services.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
 
@@ -36,7 +36,7 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
 
         if (policy is null)
         {
-            return new EndpointAuthResult(true, sourceCtx.User, null, []);
+            return sourceCtx.User;
         }
 
         var schemes = policy.AuthenticationSchemes.Count > 0
@@ -65,7 +65,7 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
             {
                 var reason = result?.Failure?.Message ?? "no scheme produced a principal";
                 logger.LogDebug("WS endpoint auth failed: no scheme succeeded. Schemes={Schemes}, Reason={Reason}", string.Join(",", schemes), reason);
-                return new EndpointAuthResult(false, sourceCtx.User, reason, []);
+                return reason;
             }
         }
         else
@@ -86,9 +86,10 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
         if (principal?.Identity?.IsAuthenticated != true)
         {
             logger.LogDebug("WS endpoint auth failed: principal not authenticated.");
-            return new EndpointAuthResult(false, principal, "principal not authenticated", Array.Empty<string>());
+            return "principal not authenticated";
         }
 
+        var authzService = services.GetRequiredService<IAuthorizationService>();
         var authzResult = await authzService.AuthorizeAsync(principal, resource: null, policy);
 
         if (!authzResult.Succeeded)
@@ -98,10 +99,10 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
                 .ToArray() ?? [];
 
             logger.LogDebug("WS endpoint authorization failed. User={User}, Failed={Failed}", principal.Identity?.Name ?? "(anonymous)", string.Join(", ", failed));
-            return new EndpointAuthResult(false, principal, "authorization failed", failed);
+            return "authorization failed";
         }
 
-        return new EndpointAuthResult(true, principal, null, []);
+        return principal;
     }
 
     private static DefaultHttpContext CopyContext(HttpContext source, CancellationToken token)
