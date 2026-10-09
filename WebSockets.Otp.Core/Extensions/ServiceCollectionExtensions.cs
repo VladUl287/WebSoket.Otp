@@ -165,8 +165,8 @@ public static class ServiceCollectionExtensions
         var endpoints = endpointsTypes
             .Select((t) =>
             {
-                var attribute = t.GetCustomAttribute<AuthorizeAttribute>();
-                var endpointAttr = t.GetCustomAttribute<WebSockets.Otp.Abstractions.Attributes.WsEndpointAttribute>();
+                var authAttrs = t.GetCustomAttributes<AuthorizeAttribute>();
+                var endpointAttr = t.GetCustomAttribute<WsEndpointAttribute>();
 
                 var baseType = t.GetBaseEndpointType() ??
                     throw new NotSupportedException($"Type {t} does not inherit from WsEndpoint");
@@ -192,15 +192,13 @@ public static class ServiceCollectionExtensions
 
                 return new WsEndpointInfo
                 {
-                    Key = endpointAttr.Key,
+                    Key = endpointAttr!.Key,
                     EndpointType = t,
                     Invoker = invoker,
-                    AuthEndpoint = attribute is not null ?
-                        new Endpoint(
-                            requestDelegate: null,
-                            metadata: new EndpointMetadataCollection(attribute),
-                            displayName: "ws-auth") :
-                        null
+                    AuthEndpoint = authAttrs?.Count() is > 0 ? new Endpoint(
+                        requestDelegate: null,
+                        metadata: new EndpointMetadataCollection(authAttrs),
+                        displayName: "ws-auth") : null
                 };
             });
 
