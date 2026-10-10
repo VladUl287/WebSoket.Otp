@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.Net.WebSockets;
 using System.Security.Claims;
@@ -25,6 +26,7 @@ namespace WebSockets.Otp.Benchmark;
 public class MessageDispatcherBenchmark
 {
     private ServiceProvider _provider = null!;
+    private IServiceScope _scope = null!;
     private IMessageDispatcher _dispatcher = null!;
     private IGlobalContext _globalContext = null!;
     private IMessageSerializer _serializer = null!;
@@ -78,12 +80,15 @@ public class MessageDispatcherBenchmark
             ValidateScopes = true,
         });
 
-        _dispatcher = _provider.GetRequiredService<IMessageDispatcher>();
-        var contextFactory = _provider.GetRequiredService<IContextFactory>();
-        var options = _provider.GetRequiredService<WsOptions>();
-        var ctx = Create(_provider);
+        _scope = _provider.CreateScope();
+        var scopedProvider = _scope.ServiceProvider;
+
+        _dispatcher = scopedProvider.GetRequiredService<IMessageDispatcher>();
+        var contextFactory = scopedProvider.GetRequiredService<IContextFactory>();
+        var options = scopedProvider.GetRequiredService<WsOptions>();
+        var ctx = Create(scopedProvider);
         _globalContext = contextFactory.CreateGlobal(ctx, await ctx.WebSockets.AcceptWebSocketAsync(), "test", new WsOptionsSnapshot(options));
-        var store = _provider.GetRequiredService<ISerializerStore>();
+        var store = scopedProvider.GetRequiredService<ISerializerStore>();
         store.TryGet("json", out _serializer);
 
         _buffer = new NativeChunkedBuffer(Frame.Length);
@@ -93,6 +98,7 @@ public class MessageDispatcherBenchmark
     [GlobalCleanup]
     public void Cleanup()
     {
+        _scope.Dispose();
         _provider.Dispose();
         _buffer.Dispose();
     }
