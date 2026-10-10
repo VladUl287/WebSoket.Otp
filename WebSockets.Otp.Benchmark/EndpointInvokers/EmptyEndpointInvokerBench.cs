@@ -17,7 +17,7 @@ public class EmptyEndpointInvokerBench
 
     public EmptyEndpointInvokerBench()
     {
-        EndpointContext = new EndpointContext(new WsGlobalContext(default!, default!, default!, default!, default!), default!, default!, default!, default, default);
+        //EndpointContext = new EndpointContext(new WsGlobalContext(default!, default!, default!, default!, default!), default!, default!, default!, default, default);
     }
 
     [Benchmark]
