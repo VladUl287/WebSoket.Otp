@@ -42,7 +42,6 @@ public class DefaultMessageDispatcher(
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        ClaimsPrincipal? user = null;
         if (endpointInfo.Endpoint is not null)
         {
             var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
@@ -53,8 +52,6 @@ public class DefaultMessageDispatcher(
                 logger.AuthFailed(result.Error);
                 return;
             }
-
-            user = result.Value;
         }
 
         var endpointType = endpointInfo.EndpointType;
@@ -69,7 +66,7 @@ public class DefaultMessageDispatcher(
         var data = payload.Memory[valueSlice.Start..valueSlice.End];
 
         var headers = new EndpointHeaders() { Key = endpointInfo.Key, CorrelationId = correlationId };
-        var execCtx = contextFactory.Create(headers, context, data, serializer, user, token);
+        var execCtx = contextFactory.Create(headers, context, data, serializer, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }
