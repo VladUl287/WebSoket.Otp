@@ -1,8 +1,11 @@
 ﻿using BenchmarkDotNet.Attributes;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using System.Net.WebSockets;
 using System.Security.Claims;
 using System.Text;
@@ -40,6 +43,34 @@ public class MessageDispatcherBenchmark
             builder.SetMinimumLevel(LogLevel.None);
         });
         services.AddWsEndpoints();
+
+        services.AddRouting();
+        services.AddAuthorization();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("secretsecretsecretsecretsecretsecretsecretsecretsecret")),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    RoleClaimType = ClaimTypes.Role
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+
+                        var path = context.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.Equals("/ws"))
+                            context.Token = accessToken;
+
+                        return Task.CompletedTask;
+                    }
+                };
+            });
 
         _provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -83,17 +114,19 @@ public class MessageDispatcherBenchmark
         ctx.Request.Path = path;
         ctx.Request.Scheme = "http";
         ctx.Request.Host = new HostString("localhost", 5000);
+        ctx.Request.QueryString = new QueryString("?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJkZWZhdWx0Iiwicm9sZSI6IlVzZXIiLCJzY29wZSI6IndzLmNoYXQiLCJuYmYiOjE3OTA1ODA0MzQsImV4cCI6MTc5MTQ0NDQzNCwiaWF0IjoxNzkwNTgwNDM0fQ.0xc2gLPD1XXWFjRNnVWdhe3S0xlyxgIndBQgRDeWA64");
 
-        ctx.User = new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
+        ctx.User = new ClaimsPrincipal(new ClaimsIdentity(
+        [
             new Claim(ClaimTypes.NameIdentifier, "test-user")
-        }, "Test"));
+        ], "Test"));
 
         ctx.Features.Set<IHttpWebSocketFeature>(new FakeWebSocketFeature(new InMemoryWebSocket()));
         return ctx;
     }
 }
 
+[Authorize]
 [WsEndpoint("echo")]
 public class EndpointTest : WsEndpoint<object>
 {
