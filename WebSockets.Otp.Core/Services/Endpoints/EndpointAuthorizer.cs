@@ -14,34 +14,41 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
 {
     public async Task<Result<ClaimsPrincipal, string>> AuthorizeAsync(
         HttpContext sourceCtx,
-        Endpoint endpoint,
+        WsEndpointInfo endpointInfo,
         CancellationToken cancellationToken)
     {
-        var authorizeData = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>();
+        var endpoint = endpointInfo.Endpoint;
 
-        if (authorizeData.Count == 0)
-        {
+        if (endpoint is null)
             return sourceCtx.User;
-        }
 
         var ctx = CopyContext(sourceCtx, cancellationToken);
         ctx.SetEndpoint(endpoint);
 
         var services = ctx.RequestServices;
-        var authService = services.GetRequiredService<IAuthenticationService>();
-        var policyProvider = services.GetRequiredService<IAuthorizationPolicyProvider>();
-        var authOptions = services.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
 
-        var policy = await AuthorizationPolicy.CombineAsync(policyProvider, authorizeData, []);
+        var policy = await endpointInfo.GetOrComputePolicy((info, sp) =>
+        {
+            var endpoint = info.Endpoint;
+
+            if (endpoint is null)
+                return Task.FromResult<AuthorizationPolicy?>(null);
+
+            var authorizeData = endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>();
+            if (authorizeData.Count == 0)
+                return Task.FromResult<AuthorizationPolicy?>(null);
+
+            var policyProvider = sp.GetRequiredService<IAuthorizationPolicyProvider>();
+            return AuthorizationPolicy.CombineAsync(policyProvider, authorizeData, []);
+        }, services);
 
         if (policy is null)
-        {
             return sourceCtx.User;
-        }
 
+        var authService = services.GetRequiredService<IAuthenticationService>();
         var schemes = policy.AuthenticationSchemes.Count > 0
             ? policy.AuthenticationSchemes
-            : [.. authorizeData
+            : [.. endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>()
                 .SelectMany(d => (d.AuthenticationSchemes ?? string.Empty)
                     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 .Distinct(StringComparer.Ordinal)];
@@ -70,6 +77,7 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
         }
         else
         {
+            var authOptions = services.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
             var defaultScheme = authOptions.DefaultAuthenticateScheme ?? authOptions.DefaultScheme;
             if (defaultScheme is not null)
             {

@@ -8,5 +8,5 @@ public sealed record EndpointAuthResult(bool Succeeded, ClaimsPrincipal? User, s
 
 public interface IEndpointAuthorizer
 {
-    Task<Result<ClaimsPrincipal, string>> AuthorizeAsync(HttpContext context, Endpoint endpoint, CancellationToken token);
+    Task<Result<ClaimsPrincipal, string>> AuthorizeAsync(HttpContext context, WsEndpointInfo endpoint, CancellationToken token);
 }

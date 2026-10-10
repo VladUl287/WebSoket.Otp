@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using System.Diagnostics.CodeAnalysis;
+using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Utils;
-using WebSockets.Otp.Core.Models;
 using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Services.Endpoints;

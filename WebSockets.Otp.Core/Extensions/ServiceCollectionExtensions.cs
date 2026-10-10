@@ -15,7 +15,6 @@ using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
-using WebSockets.Otp.Core.Models;
 using WebSockets.Otp.Core.Processors;
 using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Core.Services.Endpoints;
@@ -195,7 +194,7 @@ public static class ServiceCollectionExtensions
                     Key = endpointAttr!.Key,
                     EndpointType = t,
                     Invoker = invoker,
-                    AuthEndpoint = authAttrs?.Count() is > 0 ? new Endpoint(
+                    Endpoint = authAttrs?.Count() is > 0 ? new Endpoint(
                         requestDelegate: null,
                         metadata: new EndpointMetadataCollection(authAttrs),
                         displayName: "ws-auth") : null

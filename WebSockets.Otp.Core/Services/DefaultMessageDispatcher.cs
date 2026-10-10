@@ -1,13 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
+using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
 using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Logging;
-using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -42,17 +42,19 @@ public class DefaultMessageDispatcher(
 
         await using var scope = scopeFactory.CreateAsyncScope();
 
-        EndpointAuthResult? authResult = null;
-        if (endpointInfo.AuthEndpoint is not null)
+        ClaimsPrincipal? user = null;
+        if (endpointInfo.Endpoint is not null)
         {
             var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
-            authResult = await authorizer.AuthorizeAsync(context.Context, endpointInfo.AuthEndpoint, token);
+            var result = await authorizer.AuthorizeAsync(context.Context, endpointInfo, token);
 
-            if (!authResult.Succeeded)
+            if (result.IsError)
             {
-                logger.AuthFailed(authResult.FailureReason ?? "authorization failed");
+                logger.AuthFailed(result.Error);
                 return;
             }
+
+            user = result.Value;
         }
 
         var endpointType = endpointInfo.EndpointType;
@@ -67,7 +69,7 @@ public class DefaultMessageDispatcher(
         var data = payload.Memory[valueSlice.Start..valueSlice.End];
 
         var headers = new EndpointHeaders() { Key = endpointInfo.Key, CorrelationId = correlationId };
-        var execCtx = contextFactory.Create(headers, context, data, serializer, authResult?.User, token);
+        var execCtx = contextFactory.Create(headers, context, data, serializer, user, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, execCtx);
     }
