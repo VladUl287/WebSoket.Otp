@@ -1,9 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Utils;
@@ -13,17 +11,18 @@ namespace WebSockets.Otp.Core.Services.Endpoints;
 public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEndpointAuthorizer
 {
     public async Task<Result<ClaimsPrincipal, string>> AuthorizeAsync(
-        HttpContext sourceCtx,
+        HttpContext ctx,
         WsEndpointInfo endpointInfo,
         CancellationToken cancellationToken)
     {
+        var principal = ctx.User;
+        if (principal is null)
+            return ctx.User;
+
         var endpoint = endpointInfo.Endpoint;
 
         if (endpoint is null)
-            return sourceCtx.User;
-
-        var ctx = CopyContext(sourceCtx, cancellationToken);
-        ctx.SetEndpoint(endpoint);
+            return ctx.User;
 
         var services = ctx.RequestServices;
 
@@ -43,59 +42,7 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
         }, services);
 
         if (policy is null)
-            return sourceCtx.User;
-
-        var authService = services.GetRequiredService<IAuthenticationService>();
-        var schemes = policy.AuthenticationSchemes.Count > 0
-            ? policy.AuthenticationSchemes
-            : [.. endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>()
-                .SelectMany(d => (d.AuthenticationSchemes ?? string.Empty)
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                .Distinct(StringComparer.Ordinal)];
-
-        ClaimsPrincipal? principal = null;
-        if (schemes.Count > 0)
-        {
-            AuthenticateResult? result = null;
-
-            foreach (var scheme in schemes)
-            {
-                result = await authService.AuthenticateAsync(ctx, scheme);
-                if (result.Succeeded)
-                {
-                    principal = result.Principal;
-                    break;
-                }
-            }
-
-            if (principal is null)
-            {
-                var reason = result?.Failure?.Message ?? "no scheme produced a principal";
-                logger.LogDebug("WS endpoint auth failed: no scheme succeeded. Schemes={Schemes}, Reason={Reason}", string.Join(",", schemes), reason);
-                return reason;
-            }
-        }
-        else
-        {
-            var authOptions = services.GetRequiredService<IOptions<AuthenticationOptions>>().Value;
-            var defaultScheme = authOptions.DefaultAuthenticateScheme ?? authOptions.DefaultScheme;
-            if (defaultScheme is not null)
-            {
-                var result = await authService.AuthenticateAsync(ctx, defaultScheme);
-                if (result.Succeeded)
-                {
-                    principal = result.Principal;
-                }
-            }
-
-            principal ??= sourceCtx.User;
-        }
-
-        if (principal?.Identity?.IsAuthenticated != true)
-        {
-            logger.LogDebug("WS endpoint auth failed: principal not authenticated.");
-            return "principal not authenticated";
-        }
+            return ctx.User;
 
         var authzService = services.GetRequiredService<IAuthorizationService>();
         var authzResult = await authzService.AuthorizeAsync(principal, resource: null, policy);
@@ -111,45 +58,5 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
         }
 
         return principal;
-    }
-
-    private static DefaultHttpContext CopyContext(HttpContext source, CancellationToken token)
-    {
-        var ctx = new DefaultHttpContext
-        {
-            RequestServices = source.RequestServices,
-            RequestAborted = token,
-            TraceIdentifier = source.TraceIdentifier,
-        };
-
-        var srcReq = source.Request;
-        var dstReq = ctx.Request;
-
-        dstReq.Method = srcReq.Method;
-        dstReq.Scheme = srcReq.Scheme;
-        dstReq.Host = srcReq.Host;
-        dstReq.Path = srcReq.Path;
-        dstReq.PathBase = srcReq.PathBase;
-        dstReq.QueryString = srcReq.QueryString;
-        dstReq.Protocol = srcReq.Protocol;
-        dstReq.ContentType = srcReq.ContentType;
-        dstReq.ContentLength = srcReq.ContentLength;
-
-        foreach (var h in srcReq.Headers)
-        {
-            dstReq.Headers[h.Key] = h.Value;
-        }
-
-        var srcConn = source.Connection;
-        var dstConn = ctx.Connection;
-        dstConn.RemoteIpAddress = srcConn.RemoteIpAddress;
-        dstConn.RemotePort = srcConn.RemotePort;
-        dstConn.LocalIpAddress = srcConn.LocalIpAddress;
-        dstConn.LocalPort = srcConn.LocalPort;
-        dstConn.Id = srcConn.Id;
-
-        ctx.User = source.User;
-
-        return ctx;
     }
 }
