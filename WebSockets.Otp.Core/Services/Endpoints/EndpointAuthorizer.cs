@@ -17,7 +17,7 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
     {
         var principal = ctx.User;
         if (principal is null)
-            return ctx.User;
+            return "authorization failed. user not authenticated";
 
         var endpoint = endpointInfo.Endpoint;
 
