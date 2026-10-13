@@ -28,10 +28,11 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(removed);
     }
 
-    public ValueTask SendAsync<TData>(EndpointHeaders headers, TData data, CancellationToken token) =>
+    public ValueTask SendAsync<TData>(EndpointHeaders headers, TData data, CancellationToken token) where TData : notnull =>
         SendAsync(_store.Values.Select(c => c.Id), headers, data, token);
 
-    public ValueTask SendAsync<TData>(string connectionId, EndpointHeaders headers, TData data, CancellationToken token)
+    public ValueTask SendAsync<TData>(string connectionId, EndpointHeaders headers, TData data, CancellationToken token) 
+        where TData : notnull
     {
         var connection = _store[connectionId];
         var serializer = connection.Serializer;
@@ -40,6 +41,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     }
 
     public async ValueTask SendAsync<TData>(IEnumerable<string> connections, EndpointHeaders headers, TData data, CancellationToken token)
+        where TData : notnull
     {
         var grouped = _store.Values.GroupBy(c => c.Serializer);
 
@@ -56,6 +58,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     }
 
     public async ValueTask SendToGroupAsync<TData>(string group, EndpointHeaders headers, TData data, CancellationToken token)
+        where TData : notnull
     {
         var grouped = _groups[group].Values.GroupBy(c => c.Serializer);
 
@@ -72,6 +75,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     }
 
     public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, EndpointHeaders headers, TData data, CancellationToken token)
+        where TData : notnull
     {
         var grouped = _groups
             .Where(c => groups.Contains(c.Key))
