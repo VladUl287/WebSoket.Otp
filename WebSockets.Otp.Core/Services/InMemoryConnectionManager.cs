@@ -43,7 +43,9 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     public async ValueTask SendAsync<TData>(IEnumerable<string> connections, EndpointHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
-        var grouped = _store.Values.GroupBy(c => c.Serializer);
+        var grouped = _store.Values
+            .Where(c => connections.Contains(c.Id))
+            .GroupBy(c => c.Serializer);
 
         foreach (var group in grouped)
         {
