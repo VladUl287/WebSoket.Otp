@@ -1,4 +1,4 @@
-﻿using System.Net.WebSockets;
+﻿using WebSockets.Otp.Abstractions.Endpoints;
 
 namespace WebSockets.Otp.Abstractions.Connections;
 
@@ -10,10 +10,10 @@ public interface IWsConnectionManager
     ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token);
     ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token);
 
-    ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token);
-    ValueTask SendAsync(string connectionId, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token);
-    ValueTask SendAsync(IEnumerable<string> connections, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token);
+    ValueTask SendAsync<TData>(EndpointHeaders headers, TData data, CancellationToken token);
+    ValueTask SendAsync<TData>(string connectionId, EndpointHeaders headers, TData data, CancellationToken token);
+    ValueTask SendAsync<TData>(IEnumerable<string> connections, EndpointHeaders headers, TData data, CancellationToken token);
 
-    ValueTask SendToGroupAsync(string group, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token);
-    ValueTask SendToGroupAsync(IEnumerable<string> groups, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token);
+    ValueTask SendToGroupAsync<TData>(string group, EndpointHeaders headers, TData data, CancellationToken token);
+    ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, EndpointHeaders headers, TData data, CancellationToken token);
 }

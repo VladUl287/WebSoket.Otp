@@ -24,5 +24,5 @@ public class EndpointContext(
     public CancellationToken Cancellation => token;
     public EndpointHeaders Headers => headers;
     public GroupManager Groups => new(Manager);
-    public SendManager Send => new(Serializer, Manager);
+    public SendManager Send => new(Manager);
 }

@@ -1,10 +1,9 @@
 ﻿using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Abstractions;
 
-public sealed class SendManager(IMessageSerializer serializer, IWsConnectionManager manager)
+public sealed class SendManager(IWsConnectionManager manager)
 {
     public readonly IWsConnectionManager _manager = manager;
     public readonly HashSet<string> _connectionIds = [];
@@ -34,18 +33,18 @@ public sealed class SendManager(IMessageSerializer serializer, IWsConnectionMana
     public async ValueTask SendAsync<TResponse>(string key, TResponse data, CancellationToken token = default)
         where TResponse : notnull
     {
-        var messageBytes = serializer.SerializeToMessage(new EndpointHeaders { Key = key }, data);
+        var headers = new EndpointHeaders { Key = key };
 
         if (_targetAll)
         {
-            await _manager.SendAsync(messageBytes, serializer.Type, token);
+            await _manager.SendAsync(headers, data, token);
             return;
         }
 
         if (_connectionIds.Count > 0)
-            await _manager.SendAsync(_connectionIds, messageBytes, serializer.Type, token);
+            await _manager.SendAsync(_connectionIds, headers, data, token);
 
         if (_groups.Count > 0)
-            await _manager.SendAsync(_groups, messageBytes, serializer.Type, token);
+            await _manager.SendToGroupAsync(_groups, headers, data, token);
     }
 }

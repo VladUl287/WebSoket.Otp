@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
-using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Connections;
+using WebSockets.Otp.Abstractions.Endpoints;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -28,41 +28,64 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(removed);
     }
 
-    public ValueTask SendAsync(ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token) =>
-        SendAsync(_store.Values.Select(c => c.Id), data, type, token);
+    public ValueTask SendAsync<TData>(EndpointHeaders headers, TData data, CancellationToken token) =>
+        SendAsync(_store.Values.Select(c => c.Id), headers, data, token);
 
-    public ValueTask SendAsync(string connectionId, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    public ValueTask SendAsync<TData>(string connectionId, EndpointHeaders headers, TData data, CancellationToken token)
     {
-        return _store[connectionId].Socket.SendAsync(data, type, true, token);
+        var connection = _store[connectionId];
+        var serializer = connection.Serializer;
+        var message = serializer.SerializeToMessage(headers, data);
+        return connection.Socket.SendAsync(message, serializer.Type, true, token);
     }
 
-    public async ValueTask SendAsync(IEnumerable<string> connections, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
+    public async ValueTask SendAsync<TData>(IEnumerable<string> connections, EndpointHeaders headers, TData data, CancellationToken token)
     {
-        foreach (var connection in _store.Where(c => connections.Contains(c.Key)))
-        {
-            await connection.Value.Socket.SendAsync(data, type, true, token);
-        }
-    }
+        var grouped = _store.Values.GroupBy(c => c.Serializer);
 
-    public async ValueTask SendToGroupAsync(string group, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
-    {
-        foreach (var connection in _groups[group].Values)
+        foreach (var group in grouped)
         {
-            await connection.Socket.SendAsync(data, type, true, token);
-        }
-    }
+            var serializer = group.Key;
+            var message = serializer.SerializeToMessage(headers, data);
 
-    public async ValueTask SendToGroupAsync(IEnumerable<string> groups, ReadOnlyMemory<byte> data, WebSocketMessageType type, CancellationToken token)
-    {
-        var groupsStores = _groups
-            .Where(group => groups.Contains(group.Key))
-            .Select(store => store.Value);
-
-        foreach (var groupStore in groupsStores)
-        {
-            foreach (var connection in groupStore.Values)
+            foreach (var connection in group)
             {
-                await connection.Socket.SendAsync(data, type, true, token);
+                await connection.Socket.SendAsync(message, serializer.Type, true, token);
+            }
+        }
+    }
+
+    public async ValueTask SendToGroupAsync<TData>(string group, EndpointHeaders headers, TData data, CancellationToken token)
+    {
+        var grouped = _groups[group].Values.GroupBy(c => c.Serializer);
+
+        foreach (var connections in grouped)
+        {
+            var serializer = connections.Key;
+            var message = serializer.SerializeToMessage(headers, data);
+
+            foreach (var connection in connections)
+            {
+                await connection.Socket.SendAsync(message, serializer.Type, true, token);
+            }
+        }
+    }
+
+    public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, EndpointHeaders headers, TData data, CancellationToken token)
+    {
+        var grouped = _groups
+            .Where(c => groups.Contains(c.Key))
+            .SelectMany(c => c.Value.Select(c => c.Value))
+            .GroupBy(c => c.Serializer);
+
+        foreach (var group in grouped)
+        {
+            var serializer = group.Key;
+            var message = serializer.SerializeToMessage(headers, data);
+
+            foreach (var connection in group)
+            {
+                await connection.Socket.SendAsync(message, serializer.Type, true, token);
             }
         }
     }
