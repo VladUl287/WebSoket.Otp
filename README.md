@@ -8,7 +8,13 @@ A minimal WebSocket library for ASP.NET Core inspired by REPR principles. Provid
 
 ## Quick Start
 
-#### 1. Define your endpoint
+#### 1. Install
+
+```sh
+dotnet add package WebSockets.Otp.Core
+```
+
+#### 2. Define your endpoint
 
 ```cs
 [WsEndpoint("chat/message/send")]
@@ -29,7 +35,7 @@ public class ChatMessage
 }
 ```
 
-#### 2. Configure services
+#### 3. Configure services
 
 ```cs
 // Program.cs
@@ -50,15 +56,13 @@ app.MapEndpoints(
     });
 ```
 
-## Client
-
-Install js client.
+#### 4. Install client
 
 ```sh
 npm i websockets.otp.js
 ```
 
-Use the client
+#### 5. Configure client
 
 ```js
 const client = useWsClient({
