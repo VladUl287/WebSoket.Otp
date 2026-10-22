@@ -249,10 +249,3 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
     _ => ConnectionMultiplexer.Connect("localhost:6379"));
 builder.Services.AddRedisManager();
 ```
-
-## Roadmap
-
-- Performance & memory optimization
-- Pre/Post processors
-- Rate limiting
-- Versioning
