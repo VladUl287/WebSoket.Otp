@@ -188,8 +188,8 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         if (parsed && typeof parsed === "object") {
             const obj = parsed as Record<string, unknown>
 
-            if (typeof obj.correlationId === "number") {
-                const key = obj.correlationId
+            if (typeof obj.id === "number") {
+                const key = obj.id
                 pending.resolve(key, obj.value)
                 return
             }
