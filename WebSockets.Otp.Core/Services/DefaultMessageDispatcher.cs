@@ -44,7 +44,7 @@ public class DefaultMessageDispatcher(
         if (endpointInfo.Endpoint is not null)
         {
             var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
-            var result = await authorizer.AuthorizeAsync(context.Context, endpointInfo, token);
+            var result = await authorizer.AuthorizeAsync(context.Context, endpointInfo);
 
             if (result.IsError)
             {

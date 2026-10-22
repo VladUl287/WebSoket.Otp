@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Utils;
 
@@ -10,23 +9,20 @@ namespace WebSockets.Otp.Core.Services.Endpoints;
 
 public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEndpointAuthorizer
 {
-    public async Task<Result<ClaimsPrincipal, string>> AuthorizeAsync(
-        HttpContext ctx,
-        WsEndpointInfo endpointInfo,
-        CancellationToken cancellationToken)
+    public async Task<Result<Success, string>> AuthorizeAsync(HttpContext context, WsEndpointInfo info)
     {
-        var principal = ctx.User;
+        var principal = context.User;
         if (principal is null)
             return "authorization failed. user not authenticated";
 
-        var endpoint = endpointInfo.Endpoint;
+        var endpoint = info.Endpoint;
 
         if (endpoint is null)
-            return ctx.User;
+            return new Success();
 
-        var services = ctx.RequestServices;
+        var services = context.RequestServices;
 
-        var policy = await endpointInfo.GetOrComputePolicy((info, sp) =>
+        var policy = await info.GetOrComputePolicy((info, sp) =>
         {
             var endpoint = info.Endpoint;
 
@@ -42,7 +38,7 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
         }, services);
 
         if (policy is null)
-            return ctx.User;
+            return new Success();
 
         var authzService = services.GetRequiredService<IAuthorizationService>();
         var authzResult = await authzService.AuthorizeAsync(principal, resource: null, policy);
@@ -57,6 +53,6 @@ public sealed class EndpointAuthorizer(ILogger<EndpointAuthorizer> logger) : IEn
             return "authorization failed";
         }
 
-        return principal;
+        return new Success();
     }
 }
