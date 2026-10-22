@@ -38,16 +38,25 @@ public sealed class SendManager(IWsConnectionManager manager)
             Key = key
         };
 
-        if (_targetAll)
+        try
         {
-            await _manager.SendAsync(headers, data, token);
-            return;
+            if (_targetAll)
+            {
+                await _manager.SendAsync(headers, data, token);
+                return;
+            }
+
+            if (_connectionIds.Count > 0)
+                await _manager.SendAsync(_connectionIds, headers, data, token);
+
+            if (_groups.Count > 0)
+                await _manager.SendToGroupAsync(_groups, headers, data, token);
         }
-
-        if (_connectionIds.Count > 0)
-            await _manager.SendAsync(_connectionIds, headers, data, token);
-
-        if (_groups.Count > 0)
-            await _manager.SendToGroupAsync(_groups, headers, data, token);
+        finally
+        {
+            _connectionIds.Clear();
+            _groups.Clear();
+            _targetAll = false;
+        }
     }
 }
