@@ -16,13 +16,15 @@ public class DefaultMessageDispatcher(
 {
     public async Task DispatchMessage(IGlobalContext context, IMessageSerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
+        var payloadMem = payload.Memory;
+
         var results = ArrayPool<Segment>.Shared.Rent(16);
 
         Segment keySlice, correlationSlice, valueSlice;
 
         try
         {
-            serializer.ScanMessage(payload.Span, results);
+            serializer.ScanMessage(payloadMem, results);
 
             keySlice = results[0];
             correlationSlice = results[1];
@@ -59,9 +61,9 @@ public class DefaultMessageDispatcher(
         uint? correlationId = null;
         if (correlationSlice.Found)
         {
-            correlationId = serializer.ParseUInt(payload.Span[correlationSlice.Start..correlationSlice.End]);
+            correlationId = serializer.ParseUInt(payloadMem[correlationSlice.Start..correlationSlice.End]);
         }
-        var data = payload.Memory[valueSlice.Start..valueSlice.End];
+        var data = payloadMem[valueSlice.Start..valueSlice.End];
         var endpointContext = contextFactory.Create(correlationId, context, data, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, endpointContext);
