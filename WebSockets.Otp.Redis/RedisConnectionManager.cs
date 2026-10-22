@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using WebSockets.Otp.Abstractions.Connections;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Models;
 
 namespace WebSockets.Otp.Redis;
 
@@ -16,7 +17,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     private const string GroupSetPrefix = "ws:group:";
     private const string ConnGroupsPrefix = "ws:conn_groups:";
 
-    private sealed record Envelope(string Kind, EndpointHeaders Headers, string[] Targets, string Data, string TypeName);
+    private sealed record Envelope(string Kind, MessageHeaders Headers, string[] Targets, string Data, string TypeName);
 
     private readonly IConnectionMultiplexer _redis;
     private readonly IDatabase _db;
@@ -138,10 +139,10 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return ok;
     }
 
-    public ValueTask SendAsync<TData>(EndpointHeaders headers, TData data, CancellationToken token) where TData : notnull =>
+    public ValueTask SendAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) where TData : notnull =>
         BroadcastAsync(headers, data, token);
 
-    public ValueTask SendAsync<TData>(string connectionId, EndpointHeaders headers, TData data, CancellationToken token)
+    public ValueTask SendAsync<TData>(string connectionId, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         if (string.IsNullOrEmpty(connectionId))
@@ -150,7 +151,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return PublishAsync("direct", headers, [connectionId], data);
     }
 
-    public ValueTask SendAsync<TData>(IEnumerable<string> connections, EndpointHeaders headers, TData data, CancellationToken token)
+    public ValueTask SendAsync<TData>(IEnumerable<string> connections, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         var targets = connections?.Where(c => !string.IsNullOrEmpty(c)).Distinct().ToArray() ?? [];
@@ -160,7 +161,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return PublishAsync("direct", headers, targets, data);
     }
 
-    public ValueTask SendToGroupAsync<TData>(string group, EndpointHeaders headers, TData data, CancellationToken token)
+    public ValueTask SendToGroupAsync<TData>(string group, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         if (string.IsNullOrEmpty(group))
@@ -169,7 +170,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return PublishAsync("group", headers, [group], data);
     }
 
-    public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, EndpointHeaders headers, TData data, CancellationToken token)
+    public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         var targets = groups?.Where(g => !string.IsNullOrEmpty(g)).Distinct().ToArray() ?? [];
@@ -179,7 +180,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return PublishAsync("group", headers, targets, data);
     }
 
-    private async ValueTask BroadcastAsync<TData>(EndpointHeaders headers, TData data, CancellationToken token) where TData : notnull
+    private async ValueTask BroadcastAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) where TData : notnull
     {
         var ids = await _db.SetMembersAsync(ConnectionsSetKey);
         if (ids.Length == 0) return;
@@ -189,7 +190,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         await PublishAsync("direct", headers, targets, data);
     }
 
-    private async ValueTask PublishAsync<TData>(string kind, EndpointHeaders headers, string[] targets, TData data) where TData : notnull
+    private async ValueTask PublishAsync<TData>(string kind, MessageHeaders headers, string[] targets, TData data) where TData : notnull
     {
         var payload = JsonSerializer.Serialize(data, _jsonOptions);
 
@@ -248,7 +249,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
                 var serializer = group.First().Serializer;
                 try
                 {
-                    bytes = serializer.Serialize(data);
+                    bytes = serializer.SerializeToMessage(env.Headers, data);
                 }
                 catch
                 {
