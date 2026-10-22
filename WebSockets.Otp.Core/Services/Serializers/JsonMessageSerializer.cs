@@ -1,7 +1,7 @@
 ﻿using System.Buffers;
-using System.Net.WebSockets;
 using System.Text.Json;
-using WebSockets.Otp.Abstractions.Endpoints;
+using System.Net.WebSockets;
+using WebSockets.Otp.Abstractions.Models;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Utils;
 
@@ -10,25 +10,18 @@ namespace WebSockets.Otp.Core.Services.Serializers;
 public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMessageSerializer
 {
     public string Protocol => "json";
-
     public WebSocketMessageType Type => WebSocketMessageType.Text;
-
-    public ReadOnlyMemory<byte> Serialize<T>(T message)
-    {
-        ArgumentNullException.ThrowIfNull(message, nameof(message));
-        return JsonSerializer.SerializeToUtf8Bytes(message, options);
-    }
 
     public T? Deserialize<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, options);
 
     private static ReadOnlySpan<byte> Key => "key"u8;
-    private static ReadOnlySpan<byte> CorrelationId => "correlationId"u8;
+    private static ReadOnlySpan<byte> Id => "id"u8;
     private static ReadOnlySpan<byte> Value => "value"u8;
+    private static ReadOnlySpan<byte> Error => "error"u8;
 
-    public void ScanMessage(ReadOnlySpan<byte> json, Span<JsonSlice> results)
+    public void ScanMessage(ReadOnlySpan<byte> data, Span<Segment> results)
     {
-        var reader = new Utf8JsonReader(json);
-        var found = 0;
+        var reader = new Utf8JsonReader(data);
 
         while (reader.Read())
         {
@@ -40,7 +33,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
 
                     var idx = -1;
                     if (reader.ValueTextEquals(Key)) { idx = 0; }
-                    else if (reader.ValueTextEquals(CorrelationId)) { idx = 1; }
+                    else if (reader.ValueTextEquals(Id)) { idx = 1; }
                     else if (reader.ValueTextEquals(Value)) { idx = 2; }
 
                     reader.Read();
@@ -50,29 +43,35 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
                     var end = reader.BytesConsumed;
 
                     if (idx >= 0 && !results[idx].Found)
-                    {
-                        results[idx] = new JsonSlice((int)start, (int)end);
-                        found++;
-                    }
+                        results[idx] = new Segment((int)start, (int)end);
 
                     break;
             }
         }
     }
 
-    public ReadOnlyMemory<byte> SerializeToMessage<T>(EndpointHeaders headers, T data)
+    public ReadOnlyMemory<byte> SerializeToMessage<T>(MessageHeaders headers, T data)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using var writer = new Utf8JsonWriter(buffer);
 
         writer.WriteStartObject();
         if (!string.IsNullOrEmpty(headers.Key))
-            writer.WriteString("key", headers.Key);
+            writer.WriteString(nameof(Key), headers.Key);
 
         if (headers.CorrelationId is not null)
-            writer.WriteNumber("correlationId", headers.CorrelationId.Value);
+            writer.WriteNumber(nameof(Id), headers.CorrelationId.Value);
 
-        writer.WritePropertyName("value");
+        switch (headers.Type)
+        {
+            case MessageType.Error:
+                writer.WritePropertyName(nameof(Error));
+                break;
+            default:
+                writer.WritePropertyName(nameof(Value));
+                break;
+        }
+
         JsonSerializer.Serialize(writer, data, options);
         writer.WriteEndObject();
         writer.Flush();

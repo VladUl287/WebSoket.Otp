@@ -3,16 +3,14 @@ using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core.Models;
 
-public sealed class WsGlobalContext(
+public sealed class GlobalContext(
     HttpContext httpContext,
     WebSocket socket,
-    string connectionId,
-    IWsConnectionManager manager,
-    WsOptionsSnapshot options) : IGlobalContext
+    IWsConnection connection,
+    IWsConnectionManager manager) : IGlobalContext
 {
     private readonly IWsConnectionManager _connectionManager = manager;
 
@@ -20,10 +18,7 @@ public sealed class WsGlobalContext(
 
     public WebSocket Socket { get; init; } = socket;
 
-    public WsOptionsSnapshot Options => options;
-
-    public string ConnectionId { get; init; } = connectionId;
+    public IWsConnection Connection => connection;
 
     public GroupManager Groups => new(_connectionManager);
-
 }

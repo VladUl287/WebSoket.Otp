@@ -1,10 +1,12 @@
-﻿using WebSockets.Otp.Abstractions.Serializers;
+﻿using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Abstractions.Endpoints;
 
 public interface IEndpointContext : IGlobalContext
 {
-    IMessageSerializer Serializer { get; }
+    uint? CorrelationId { get; }
+    IWsConnectionManager Manager { get; }
     ReadOnlyMemory<byte> Payload { get; }
     CancellationToken Cancellation { get; }
+    SendManager Send { get; }
 }

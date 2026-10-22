@@ -1,5 +1,5 @@
 ﻿using WebSockets.Otp.Abstractions.Connections;
-using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Models;
 
 namespace WebSockets.Otp.Abstractions;
 
@@ -33,7 +33,10 @@ public sealed class SendManager(IWsConnectionManager manager)
     public async ValueTask SendAsync<TResponse>(string key, TResponse data, CancellationToken token = default)
         where TResponse : notnull
     {
-        var headers = new EndpointHeaders { Key = key };
+        var headers = new MessageHeaders
+        {
+            Key = key
+        };
 
         if (_targetAll)
         {

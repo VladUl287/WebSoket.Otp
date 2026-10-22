@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Contracts;
@@ -48,11 +49,11 @@ public sealed class DefaultConnectionHandler(
 
         logger.ConnectionEstablished(connection.Id, requestId);
 
-        var globalContext = contextFactory.CreateGlobal(context, socket, connection.Id, options);
+        var globalContext = contextFactory.CreateGlobal(connection, context, socket);
         try
         {
             options.OnConnected?.Invoke(globalContext);
-            await messageProcessor.Process(globalContext, serializer, token);
+            await messageProcessor.Process(globalContext, serializer, options, token);
         }
         finally
         {

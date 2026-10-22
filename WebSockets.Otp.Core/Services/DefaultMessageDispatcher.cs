@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Buffers;
-using System.Security.Claims;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
@@ -17,9 +16,9 @@ public class DefaultMessageDispatcher(
 {
     public async Task DispatchMessage(IGlobalContext context, IMessageSerializer serializer, IMessageBuffer payload, CancellationToken token)
     {
-        var results = ArrayPool<JsonSlice>.Shared.Rent(16);
+        var results = ArrayPool<Segment>.Shared.Rent(16);
 
-        JsonSlice keySlice, correlationSlice, valueSlice;
+        Segment keySlice, correlationSlice, valueSlice;
 
         try
         {
@@ -31,7 +30,7 @@ public class DefaultMessageDispatcher(
         }
         finally
         {
-            ArrayPool<JsonSlice>.Shared.Return(results, true);
+            ArrayPool<Segment>.Shared.Return(results, true);
         }
 
         if (!keySlice.Found || !endpointResolver.TryResolve(payload.Memory[(keySlice.Start + 1)..], out var endpointInfo))
@@ -57,17 +56,14 @@ public class DefaultMessageDispatcher(
         var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
-        var correlationId = 0u;
+        uint? correlationId = null;
         if (correlationSlice.Found)
         {
             correlationId = serializer.ParseUInt(payload.Span[correlationSlice.Start..correlationSlice.End]);
         }
-
         var data = payload.Memory[valueSlice.Start..valueSlice.End];
+        var endpointContext = contextFactory.Create(correlationId, context, data, token);
 
-        var headers = new EndpointHeaders() { CorrelationId = correlationId };
-        var execCtx = contextFactory.Create(headers, context, data, serializer, token);
-
-        await endpointInfo.Invoker.Invoke(endpoint, execCtx);
+        await endpointInfo.Invoker.Invoke(endpoint, endpointContext);
     }
 }

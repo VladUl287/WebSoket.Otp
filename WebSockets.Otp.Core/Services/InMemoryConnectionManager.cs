@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using WebSockets.Otp.Abstractions.Connections;
-using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -28,10 +28,10 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(removed);
     }
 
-    public ValueTask SendAsync<TData>(EndpointHeaders headers, TData data, CancellationToken token) where TData : notnull =>
+    public ValueTask SendAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) where TData : notnull =>
         SendAsync(_store.Values.Select(c => c.Id), headers, data, token);
 
-    public ValueTask SendAsync<TData>(string connectionId, EndpointHeaders headers, TData data, CancellationToken token) 
+    public ValueTask SendAsync<TData>(string connectionId, MessageHeaders headers, TData data, CancellationToken token) 
         where TData : notnull
     {
         var connection = _store[connectionId];
@@ -40,7 +40,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return connection.Socket.SendAsync(message, serializer.Type, true, token);
     }
 
-    public async ValueTask SendAsync<TData>(IEnumerable<string> connections, EndpointHeaders headers, TData data, CancellationToken token)
+    public async ValueTask SendAsync<TData>(IEnumerable<string> connections, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         var grouped = _store.Values
@@ -59,7 +59,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         }
     }
 
-    public async ValueTask SendToGroupAsync<TData>(string group, EndpointHeaders headers, TData data, CancellationToken token)
+    public async ValueTask SendToGroupAsync<TData>(string group, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         var grouped = _groups[group].Values.GroupBy(c => c.Serializer);
@@ -76,7 +76,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         }
     }
 
-    public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, EndpointHeaders headers, TData data, CancellationToken token)
+    public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         var grouped = _groups

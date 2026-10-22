@@ -2,18 +2,15 @@
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultContextFactory(IWsConnectionManager manager) : IContextFactory
 {
-    public IGlobalContext CreateGlobal(HttpContext context, WebSocket socket, string connectionId, WsOptionsSnapshot options) =>
-        new WsGlobalContext(context, socket, connectionId, manager, options);
+    public IGlobalContext CreateGlobal(IWsConnection connection, HttpContext context, WebSocket socket) => 
+        new GlobalContext(context, socket, connection, manager);
 
-    public IEndpointContext Create(
-        EndpointHeaders headers, IGlobalContext global, ReadOnlyMemory<byte> data, IMessageSerializer serializer, CancellationToken token) => 
-        new EndpointContext(headers, global, manager, serializer, data, token);
+    public IEndpointContext Create(uint? correlationId, IGlobalContext global, ReadOnlyMemory<byte> data, CancellationToken token) => 
+        new EndpointContext(correlationId, global, manager, data, token);
 }

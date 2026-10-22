@@ -1,20 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
-using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Options;
-using WebSockets.Otp.Abstractions.Serializers;
+﻿using System.Net.WebSockets;
+using Microsoft.AspNetCore.Http;
+using WebSockets.Otp.Abstractions.Connections;
 
 namespace WebSockets.Otp.Abstractions.Endpoints;
 
-public sealed class EndpointHeaders
-{
-    public string? Key { get; set; }
-    public uint? CorrelationId { get; set; }
-}
-
 public interface IContextFactory
 {
-    IGlobalContext CreateGlobal(HttpContext context, WebSocket socket, string connectionId, WsOptionsSnapshot options);
+    IGlobalContext CreateGlobal(IWsConnection connection, HttpContext context, WebSocket socket);
 
-    IEndpointContext Create(
-        EndpointHeaders headers, IGlobalContext global, ReadOnlyMemory<byte> payload, IMessageSerializer serializer, CancellationToken token);
+    IEndpointContext Create(uint? correlationId, IGlobalContext global, ReadOnlyMemory<byte> data, CancellationToken token);
 }
