@@ -13,18 +13,59 @@ type Handler<T> = (value: T) => void
 
 export type WsClient = {
     state: () => ConnectionState
-    isConnected: () => boolean
     connect: () => Promise<void>
     close: (code?: number, reason?: string) => void
     send<TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse>
     notify<TRequest>(key: string, payload: TRequest): void
-    receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void)
+    receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void),
+}
+
+export type WsReconnectOptions = {
+    minDelay?: number,
+    maxDelay?: number,
+    factor?: number,
+    jitter?: number,
+    maxRetries?: number,
+    connectTimeout?: number
+}
+
+type ScheduleReconnect = (callback: () => any) => void
+
+const buildSchedule = (options: WsReconnectOptions): ScheduleReconnect => {
+    let retries = 0
+    let timer: number | null = null
+
+    let {
+        minDelay = 1000,
+        maxDelay = 30000,
+        maxRetries = Infinity,
+        factor = 2,
+        jitter = 0.3
+    } = options
+
+    return (callback) => {
+        if (retries >= maxRetries) {
+            return
+        }
+
+        const base = Math.min(maxDelay, minDelay * Math.pow(factor, retries))
+        const base_jitter = base * jitter * (Math.random() * 2 - 1)
+        const delay = Math.max(0, Math.round(base + base_jitter))
+
+        retries += 1
+
+        timer = setTimeout(async () => {
+            timer = null
+            callback()
+        }, delay)
+    }
 }
 
 export type WsClientOptions = {
     url: string,
     serializer?: Serializer,
     factory?: typeof defaultFactory,
+    scheduleReconnect?: (connect: WsClient['connect']) => void
 }
 
 export const useWsClient = (options: WsClientOptions): WsClient => {
@@ -127,6 +168,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             }
 
             socket.onclose = (ev: { code: number; reason: string }): void => {
+                if (!manuallyClosed) {
+                    //reconnect
+                    return
+                }
+
                 clearHandshake()
                 setState("disconnected")
 
@@ -264,11 +310,10 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
 
     return {
         state: () => state,
-        isConnected: () => state === "connected" && ws?.readyState === 1,
         connect,
         close,
         send,
         notify,
-        receive,
+        receive
     }
 }
