@@ -216,7 +216,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
 
         const socket = ws
         correlationId = (correlationId + 1) >>> 0
-        const message = serializer.serialize({ key, correlationId, value })
+        const message = serializer.serialize({ key, id: correlationId, value })
 
         return new Promise<TResponse>((resolve, reject) => {
             const entry: PendingRequest = {
@@ -238,7 +238,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             throw new Error("Client is not connected")
         }
 
-        const request: Record<string, any> = { key, correlationId, value }
+        const request: Record<string, any> = { key, value }
         const message = serializer.serialize(request)
         ws.send(message)
     }
