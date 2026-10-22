@@ -12,16 +12,16 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
     public string Protocol => "json";
     public WebSocketMessageType Type => WebSocketMessageType.Text;
 
-    public T? Deserialize<T>(ReadOnlySpan<byte> data) => JsonSerializer.Deserialize<T>(data, options);
+    public T? Deserialize<T>(ReadOnlyMemory<byte> data) => JsonSerializer.Deserialize<T>(data.Span, options);
 
     private static ReadOnlySpan<byte> Key => "key"u8;
     private static ReadOnlySpan<byte> Id => "id"u8;
     private static ReadOnlySpan<byte> Value => "value"u8;
     private static ReadOnlySpan<byte> Error => "error"u8;
 
-    public void ScanMessage(ReadOnlySpan<byte> data, Span<Segment> results)
+    public void ScanMessage(ReadOnlyMemory<byte> data, Span<Segment> results)
     {
-        var reader = new Utf8JsonReader(data);
+        var reader = new Utf8JsonReader(data.Span);
 
         while (reader.Read())
         {
@@ -79,5 +79,5 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
         return buffer.WrittenMemory;
     }
 
-    public uint ParseUInt(ReadOnlySpan<byte> data) => uint.Parse(data);
+    public uint ParseUInt(ReadOnlyMemory<byte> data) => uint.Parse(data.Span);
 }

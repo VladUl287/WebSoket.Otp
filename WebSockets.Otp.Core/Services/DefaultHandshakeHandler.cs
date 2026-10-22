@@ -41,7 +41,7 @@ public sealed class DefaultHandshakeHandler(
             return null;
         }
 
-        var handshakeOptions = serializer.Deserialize<HandshakeOptions>(handshakeBuffer.Span);
+        var handshakeOptions = serializer.Deserialize<HandshakeOptions>(handshakeBuffer.Memory);
         if (handshakeOptions is null)
         {
             logger.HandshakeDeserializeFailed(requestId);

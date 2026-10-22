@@ -9,9 +9,9 @@ public interface IMessageSerializer
     string Protocol { get; }
     WebSocketMessageType Type { get; }
 
-    T? Deserialize<T>(ReadOnlySpan<byte> data);
+    T? Deserialize<T>(ReadOnlyMemory<byte> data);
 
-    uint ParseUInt(ReadOnlySpan<byte> data);
-    void ScanMessage(ReadOnlySpan<byte> data, Span<Segment> slices);
+    uint ParseUInt(ReadOnlyMemory<byte> data);
+    void ScanMessage(ReadOnlyMemory<byte> data, Span<Segment> segments);
     ReadOnlyMemory<byte> SerializeToMessage<T>(MessageHeaders headers, T data);
 }

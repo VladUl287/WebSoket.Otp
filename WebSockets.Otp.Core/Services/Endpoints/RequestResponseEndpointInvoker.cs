@@ -17,7 +17,7 @@ public sealed class RequestResponseEndpointInvoker<TRequest, TResponse> : IEndpo
         var serializer = connection.Serializer;
         var payload = context.Payload;
 
-        var request = serializer.Deserialize<TRequest>(payload.Span) ??
+        var request = serializer.Deserialize<TRequest>(payload) ??
             throw new NullReferenceException(
                 $"Deserialization returned null for {typeof(TRequest).Name} at endpoint {endpoint.GetType().Name}.");
 
