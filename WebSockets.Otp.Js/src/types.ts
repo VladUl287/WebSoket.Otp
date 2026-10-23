@@ -19,7 +19,6 @@ export interface EndpointMessage {
 export type ConnectionState =
     | "disconnected"
     | "connecting"
-    | "handshaking"
     | "connected"
     | "reconnecting"
 

@@ -25,13 +25,12 @@ export type WsReconnectOptions = {
     maxDelay?: number,
     factor?: number,
     jitter?: number,
-    maxRetries?: number,
-    connectTimeout?: number
+    maxRetries?: number
 }
 
 type ScheduleReconnect = (callback: () => any) => void
 
-const buildSchedule = (options: WsReconnectOptions): ScheduleReconnect => {
+const buildSchedule = (options?: WsReconnectOptions) => (): ScheduleReconnect => {
     let retries = 0
     let timer: number | null = null
 
@@ -41,7 +40,7 @@ const buildSchedule = (options: WsReconnectOptions): ScheduleReconnect => {
         maxRetries = Infinity,
         factor = 2,
         jitter = 0.3
-    } = options
+    } = options ?? {}
 
     return (callback) => {
         if (retries >= maxRetries) {
@@ -63,42 +62,26 @@ const buildSchedule = (options: WsReconnectOptions): ScheduleReconnect => {
 
 export type WsClientOptions = {
     url: string,
+    defaultSerializer?: Serializer,
     serializer?: Serializer,
-    factory?: typeof defaultFactory,
-    scheduleReconnect?: (connect: WsClient['connect']) => void
+    socketFactory?: typeof defaultFactory,
+    scheduleFactory?: ReturnType<typeof buildSchedule>,
 }
 
 export const useWsClient = (options: WsClientOptions): WsClient => {
-    const jsSerializer = jsonSerializer()
-
     const {
         url,
-        serializer = jsSerializer,
-        factory = defaultFactory
+        defaultSerializer = jsonSerializer(),
+        serializer = defaultSerializer,
+        socketFactory = defaultFactory,
+        scheduleFactory = buildSchedule
     } = options
 
     let ws: WebSocket | null = null
     let state: ConnectionState = "disconnected"
-    let handshakeResolve: (() => void) | null = null
-    let handshakeReject: ((err: Error) => void) | null = null
     let manuallyClosed = false
 
-    const setState = (next: ConnectionState): void => {
-        if (state === next) return
-        state = next
-    }
-
-    const clearHandshake = (): void => {
-        handshakeResolve = null
-        handshakeReject = null
-    }
-
-    const performHandshake = (socket: WebSocket): Promise<void> =>
-        new Promise<void>((resolve, reject) => {
-            handshakeResolve = resolve
-            handshakeReject = reject
-            socket.send(jsSerializer.serialize({ protocol: jsSerializer.protocol }))
-        })
+    const setState = (next: ConnectionState): void => { state = next }
 
     const safeClose = (socket: WebSocket, code?: number, reason?: string): void => {
         try {
@@ -108,11 +91,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     }
 
     const connect = (): Promise<void> => {
-        if (
-            state === "connected" ||
-            state === "connecting" ||
-            state === "handshaking"
-        ) {
+        if (state === "connected" || state === "connecting") {
             return Promise.resolve()
         }
 
@@ -120,77 +99,56 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         setState("connecting")
 
         return new Promise<void>((resolve, reject) => {
-            let settled = false
             let socket: WebSocket
 
             try {
-                socket = factory(url)
+                socket = socketFactory(url)
             } catch (err) {
                 setState("disconnected")
-                reject(err instanceof Error ? err : new Error(String(err)))
+                reject(err)
                 return
             }
 
             ws = socket
 
             socket.onopen = (): void => {
-                setState("handshaking")
-
-                performHandshake(socket)
+                sendHandshake(socket)
                     .then(() => {
-                        if (settled) return
-                        settled = true
+                        socket.onmessage = (ev) => handleIncoming(ev.data as string | BufferSource | Blob)
                         setState("connected")
                         resolve()
                     })
                     .catch((err: unknown) => {
-                        if (settled) return
-                        settled = true
-                        setState("disconnected")
-                        reject(err instanceof Error ? err : new Error(String(err)))
+                        reject(err)
                     })
             }
 
-            socket.onmessage = (ev: { data: unknown }) => handleIncoming(ev.data as string | BufferSource | Blob)
+            socket.onmessage = (ev) => handleHandshake(ev.data as string | BufferSource | Blob)
 
             socket.onerror = (): void => {
-                clearHandshake()
                 setState("disconnected")
 
                 const error = new Error("WebSocket error")
                 pending.rejectAll(error)
 
                 ws = null
-                if (!settled) {
-                    settled = true
-                    reject(error)
-                }
+                reject(error)
             }
 
             socket.onclose = (ev: { code: number; reason: string }): void => {
-                if (!manuallyClosed) {
-                    //reconnect
-                    return
-                }
-
-                clearHandshake()
                 setState("disconnected")
 
-                const error = new Error(`Connection closed before handshake completed (code ${ev.code})`)
+                const error = new Error(`Connection closed (code ${ev.code})`)
                 pending.rejectAll(error)
 
                 ws = null
-                if (!settled) {
-                    settled = true
-                    reject(error)
-                }
+                reject(error)
             }
         })
     }
 
     const close = (code?: number, reason?: string): void => {
         manuallyClosed = true
-        clearHandshake()
 
         if (ws) {
             safeClose(ws, code, reason)
@@ -202,56 +160,48 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
 
     const pending = usePendingRegistry<number>()
 
-    const handlers = new Map<string, Set<Handler<unknown>>>()
+    const handshakeId = 0
+    const sendHandshake = (socket: WebSocket): Promise<{}> => {
+        return new Promise<{}>((resolve, reject) => {
+            if (state !== "connected" || !ws || ws.readyState !== 1) {
+                return Promise.reject(new Error("Client is not connected"))
+            }
 
-    const handleIncoming = async (data: string | BufferSource | Blob): Promise<void> => {
-        if (data === null) {
-            return
-        }
-
-        if (state === "handshaking") {
+            const message = defaultSerializer.serialize({ protocol: defaultSerializer.protocol })
+            const entry: PendingRequest = {
+                resolve: resolve as (value: unknown) => void,
+                reject
+            }
             try {
-                await jsSerializer.deserialize(data)
-            } catch {
-                return
+                pending.enqueue(handshakeId, entry)
+                socket.send(message)
+            } catch (err) {
+                pending.remove(handshakeId)
+                reject(err)
             }
+        })
+    }
 
-            if (handshakeResolve) {
-                const resolve = handshakeResolve
-                clearHandshake()
-                resolve()
-            }
+    const handleHandshake = async (data: string | BufferSource | Blob): Promise<void> => {
+        if (data === null) {
+            pending.rejectAll(new Error('Handshake response is empty'))
             return
         }
 
-        let parsed: unknown
+        let value: unknown
         try {
-            parsed = await serializer.deserialize(data)
-        } catch {
+            value = await defaultSerializer.deserialize(data)
+        } catch (error) {
+            pending.rejectAll(error instanceof Error ? error : new Error('Unable to deserializer handshake repsonse message'))
             return
         }
 
-        if (parsed && typeof parsed === "object") {
-            const obj = parsed as Record<string, unknown>
-
-            if (typeof obj.id === "number") {
-                const key = obj.id
-                pending.resolve(key, obj.value)
-                return
-            }
-
-            if (typeof obj.key === "string") {
-                const key = obj.key
-                const set = handlers.get(key)
-                if (!set) return
-                for (const handler of set) {
-                    try {
-                        handler(obj.value)
-                    }
-                    catch (err) { }
-                }
-            }
+        if (value && typeof value === "object" && Object.keys(value).length === 0) {
+            pending.resolve(0, value)
+            return
         }
+
+        pending.rejectAll(new Error('Handshake response has invalid format'))
     }
 
     let correlationId = 0
@@ -289,6 +239,8 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         ws.send(message)
     }
 
+    const handlers = new Map<string, Set<Handler<unknown>>>()
+
     const receive = <TValue>(key: string, callback: Handler<TValue>): (() => void) => {
         const cb = callback as Handler<unknown>
 
@@ -304,6 +256,41 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             store.delete(cb)
             if (store.size === 0) {
                 handlers.delete(key)
+            }
+        }
+    }
+
+    const handleIncoming = async (data: string | BufferSource | Blob): Promise<void> => {
+        if (data === null) {
+            return
+        }
+
+        let parsed: unknown
+        try {
+            parsed = await serializer.deserialize(data)
+        } catch {
+            return
+        }
+
+        if (parsed && typeof parsed === "object") {
+            const obj = parsed as Record<string, unknown>
+
+            if (typeof obj.id === "number") {
+                const key = obj.id
+                pending.resolve(key, obj.value)
+                return
+            }
+
+            if (typeof obj.key === "string") {
+                const key = obj.key
+                const set = handlers.get(key)
+                if (!set) return
+                for (const handler of set) {
+                    try {
+                        handler(obj.value)
+                    }
+                    catch (err) { }
+                }
             }
         }
     }
