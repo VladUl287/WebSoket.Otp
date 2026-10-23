@@ -20,7 +20,6 @@ export type ConnectionState =
     | "disconnected"
     | "connecting"
     | "connected"
-    | "reconnecting"
 
 export interface PendingRequest {
     readonly resolve: (value: unknown) => void
