@@ -114,6 +114,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                         socket.onmessage = (ev) => handleIncoming(ev.data as string | BufferSource | Blob)
                         setState("connected")
                         resolve()
+                        flushQueue()
                     })
                     .catch((err: unknown) => {
                         close(400, 'handshake failed')
@@ -135,7 +136,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                     schedule(connect).then(resolve, reject)
                     return
                 }
-                
+
                 reject(error)
             }
 
@@ -203,21 +204,58 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         }
 
         if (value && typeof value === "object" && Object.keys(value).length === 0) {
-            pending.resolve(0, value)
+            pending.resolve(handshakeId, value)
             return
         }
 
         pending.rejectAll(new Error('Handshake response has invalid format'))
     }
 
-    let correlationId = 0
-    const send = <TRequest, TResponse>(key: string, value: TRequest): Promise<TResponse> => {
+    const queue: {
+        key: string,
+        correlationId: number
+        value: any
+        resolve: (value: any | PromiseLike<any>) => void
+        reject: (reason?: any) => void
+    }[] = []
+
+    const flushQueue = () => {
         if (state !== "connected" || !ws || ws.readyState !== 1) {
-            return Promise.reject(new Error("Client is not connected"))
+            return
         }
 
         const socket = ws
+        queue.forEach((item) => {
+            const { key, correlationId, value, resolve, reject } = item
+
+            const message = serializer.serialize({ key, id: correlationId, value })
+            try {
+                pending.enqueue(correlationId, { resolve, reject })
+                socket.send(message)
+            } catch (err) {
+                pending.remove(correlationId)
+                reject(err)
+            }
+        })
+    }
+
+    let correlationId = 0
+    const send = <TRequest, TResponse>(key: string, value: TRequest): Promise<TResponse> => {
         correlationId = (correlationId + 1) >>> 0
+
+        if (state !== "connected" || !ws || ws.readyState !== 1) {
+            return new Promise<TResponse>((resolve, reject) => {
+                queue.push({
+                    key,
+                    correlationId,
+                    value,
+                    resolve,
+                    reject
+                })
+            })
+        }
+
+        const socket = ws
         const message = serializer.serialize({ key, id: correlationId, value })
 
         return new Promise<TResponse>((resolve, reject) => {
