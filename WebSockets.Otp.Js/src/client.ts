@@ -14,6 +14,7 @@ type Handler<T> = (value: T) => void
 export type WsClient = {
     state: () => ConnectionState
     connect: () => Promise<void>
+    reconnect: () => Promise<void>
     close: (code?: number, reason?: string) => void
     send<TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse>
     notify<TRequest>(key: string, payload: TRequest): void
@@ -82,6 +83,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     const setState = (next: ConnectionState): void => { state = next }
 
     let schedule = scheduleFactory?.()
+
+    const reconnect = (): Promise<void> => {
+        close(0, 'reconnect')
+        return connect()
+    }
 
     const connect = (): Promise<void> => {
         if (state === "connected" || state === "connecting") {
@@ -347,6 +353,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     return {
         state: () => state,
         connect,
+        reconnect,
         close,
         send,
         notify,
