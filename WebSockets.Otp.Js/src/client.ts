@@ -28,11 +28,10 @@ export type WsReconnectOptions = {
     maxRetries?: number
 }
 
-type ScheduleReconnect = (callback: () => any) => void
+type ScheduleReconnect = (callback: () => Promise<any>) => Promise<void>
 
-const buildSchedule = (options?: WsReconnectOptions) => (): ScheduleReconnect => {
+const buildScheduleFactory = (options?: WsReconnectOptions) => (): ScheduleReconnect => {
     let retries = 0
-    let timer: number | null = null
 
     let {
         minDelay = 1000,
@@ -44,7 +43,7 @@ const buildSchedule = (options?: WsReconnectOptions) => (): ScheduleReconnect =>
 
     return (callback) => {
         if (retries >= maxRetries) {
-            return
+            return Promise.reject()
         }
 
         const base = Math.min(maxDelay, minDelay * Math.pow(factor, retries))
@@ -53,10 +52,9 @@ const buildSchedule = (options?: WsReconnectOptions) => (): ScheduleReconnect =>
 
         retries += 1
 
-        timer = setTimeout(async () => {
-            timer = null
-            callback()
-        }, delay)
+        return new Promise((resolve, reject) => {
+            setTimeout(() => callback().then(resolve, reject), delay)
+        })
     }
 }
 
@@ -65,7 +63,7 @@ export type WsClientOptions = {
     defaultSerializer?: Serializer,
     serializer?: Serializer,
     socketFactory?: typeof defaultFactory,
-    scheduleFactory?: ReturnType<typeof buildSchedule>,
+    scheduleFactory?: ReturnType<typeof buildScheduleFactory>,
 }
 
 export const useWsClient = (options: WsClientOptions): WsClient => {
@@ -74,7 +72,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         defaultSerializer = jsonSerializer(),
         serializer = defaultSerializer,
         socketFactory = defaultFactory,
-        scheduleFactory = buildSchedule
+        scheduleFactory = buildScheduleFactory()
     } = options
 
     let ws: WebSocket | null = null
@@ -82,13 +80,6 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     let manuallyClosed = false
 
     const setState = (next: ConnectionState): void => { state = next }
-
-    const safeClose = (socket: WebSocket, code?: number, reason?: string): void => {
-        try {
-            pending.rejectAll(new Error(reason))
-            socket.close(code, reason)
-        } catch { }
-    }
 
     let schedule = scheduleFactory?.()
 
@@ -106,11 +97,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             try {
                 socket = socketFactory(url)
             } catch (err) {
+                setState("disconnected")
                 if (schedule) {
-                    schedule(connect)
+                    schedule(connect).then(resolve, reject)
                     return
                 }
-                setState("disconnected")
                 reject(err)
                 return
             }
@@ -125,6 +116,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                         resolve()
                     })
                     .catch((err: unknown) => {
+                        close(400, 'handshake failed')
                         reject(err)
                     })
             }
@@ -132,46 +124,44 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             socket.onmessage = (ev) => handleHandshake(ev.data as string | BufferSource | Blob)
 
             socket.onerror = (): void => {
-                if (schedule) {
-                    schedule(connect)
-                    return
-                }
-
                 setState("disconnected")
 
                 const error = new Error("WebSocket error")
                 pending.rejectAll(error)
 
                 ws = null
+
+                if (schedule) {
+                    schedule(connect).then(resolve, reject)
+                    return
+                }
+                
                 reject(error)
             }
 
             socket.onclose = (ev: { code: number; reason: string }): void => {
-                if (!manuallyClosed && schedule) {
-                    schedule(connect)
-                    return
-                }
-
                 setState("disconnected")
 
                 const error = new Error(`Connection closed (code ${ev.code})`)
                 pending.rejectAll(error)
 
                 ws = null
+
+                if (!manuallyClosed && schedule) {
+                    schedule(connect).then(resolve, reject)
+                    return
+                }
+
                 reject(error)
             }
         })
     }
 
     const close = (code?: number, reason?: string): void => {
-        manuallyClosed = true
-
-        if (ws) {
-            safeClose(ws, code, reason)
-            ws = null
-        }
-
-        setState("disconnected")
+        try {
+            manuallyClosed = true
+            ws?.close(code, reason)
+        } catch { }
     }
 
     const pending = usePendingRegistry<number>()
