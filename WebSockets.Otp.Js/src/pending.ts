@@ -6,6 +6,7 @@ export interface PendingRegistry<TKey> {
         entry: PendingRequest
     ) => void
     readonly resolve: (key: TKey, value: unknown) => boolean
+    readonly reject: (key: TKey, error: unknown) => boolean
     readonly remove: (key: TKey) => void
     readonly rejectAll: (reason: Error) => void
 }
@@ -27,6 +28,14 @@ export const usePendingRegistry = <TKey>(): PendingRegistry<TKey> => {
         return true
     }
 
+    const reject = (key: TKey, error: unknown): boolean => {
+        const request = queues.get(key)
+        if (!request) return false
+        request.reject(error)
+        queues.delete(key)
+        return true
+    }
+
     const remove = (key: TKey): void => {
         queues.delete(key)
     }
@@ -38,5 +47,5 @@ export const usePendingRegistry = <TKey>(): PendingRegistry<TKey> => {
         queues.clear()
     }
 
-    return { enqueue, resolve, remove, rejectAll }
+    return { enqueue, resolve, remove, rejectAll, reject }
 }

@@ -321,7 +321,12 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
 
             if (typeof obj.id === "number") {
                 const key = obj.id
-                pending.resolve(key, obj.value)
+                if (obj.error) {
+                    pending.reject(key, obj.error)
+                }
+                if (obj.value) {
+                    pending.resolve(key, obj.value)
+                }
                 return
             }
 
