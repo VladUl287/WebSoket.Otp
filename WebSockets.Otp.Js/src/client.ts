@@ -16,7 +16,7 @@ export type WsClientOptions = {
     readonly defaultSerializer?: Serializer,
     readonly serializer?: Serializer,
     readonly socketFactory?: typeof defaultFactory,
-    readonly scheduleFactory?: ReturnType<typeof buildScheduleFactory>,
+    readonly scheduleFactory?: ReturnType<typeof buildSchedule>,
 }
 
 export type WsClient = {
@@ -39,7 +39,7 @@ export type WsReconnectOptions = {
 
 type ScheduleReconnect = (callback: () => Promise<any>) => Promise<void>
 
-const buildScheduleFactory = (options?: WsReconnectOptions) => (): ScheduleReconnect => {
+const buildSchedule = (options?: WsReconnectOptions) => (): ScheduleReconnect => {
     let retries = 0
 
     let {
@@ -73,57 +73,48 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         defaultSerializer = jsonSerializer(),
         serializer = defaultSerializer,
         socketFactory = defaultFactory,
-        scheduleFactory = buildScheduleFactory()
+        scheduleFactory = buildSchedule()
     } = options
 
     let ws: WebSocket | null = null
     let state: ConnectionState = "disconnected"
     let manuallyClosed = false
 
-    const setState = (next: ConnectionState): void => { state = next }
-
     let schedule = scheduleFactory?.()
-
-    const reconnect = (): Promise<void> => {
-        close(0, 'reconnect')
-        return connect()
-    }
 
     const connect = (): Promise<void> => {
         if (state === "connected" || state === "connecting") {
             return Promise.resolve()
         }
 
+        ws = null
+        state = "connecting"
         manuallyClosed = false
-        setState("connecting")
 
         return new Promise<void>((resolve, reject) => {
             let socket: WebSocket
 
             try {
-                socket = socketFactory(typeof url === 'string' ? url : url())
+                const URL = typeof url === 'string' ? url : url()
+                ws = socket = socketFactory(URL)
             } catch (err) {
-                setState("disconnected")
+                state = "disconnected"
                 if (schedule) {
                     schedule(connect).then(resolve, reject)
                     return
                 }
-                reject(err)
-                return
+                return reject(err)
             }
-
-            ws = socket
 
             socket.onopen = (): void => {
                 sendHandshake(socket)
                     .then(() => {
+                        state = "connected"
                         socket.onmessage = (ev) => handleIncoming(ev.data as string | BufferSource | Blob)
-                        setState("connected")
                         resolve()
                         flushQueue()
                     })
                     .catch((err: unknown) => {
-                        close(400, 'handshake failed')
                         reject(err)
                     })
             }
@@ -131,11 +122,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             socket.onmessage = (ev) => handleHandshake(ev.data as string | BufferSource | Blob)
 
             socket.onerror = (): void => {
-                setState("disconnected")
+                state = "disconnected"
 
                 const error = new Error("WebSocket error")
                 pending.rejectAll(error)
-
+                
                 ws = null
 
                 if (schedule) {
@@ -147,7 +138,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             }
 
             socket.onclose = (ev: { code: number; reason: string }): void => {
-                setState("disconnected")
+                state = "disconnected"
 
                 const error = new Error(`Connection closed (code ${ev.code})`)
                 pending.rejectAll(error)
@@ -162,6 +153,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                 reject(error)
             }
         })
+    }
+
+    const reconnect = (): Promise<void> => {
+        close(0, 'reconnect')
+        return connect()
     }
 
     const close = (code?: number, reason?: string): void => {
