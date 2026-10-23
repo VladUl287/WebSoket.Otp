@@ -90,6 +90,8 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         } catch { }
     }
 
+    let schedule = scheduleFactory?.()
+
     const connect = (): Promise<void> => {
         if (state === "connected" || state === "connecting") {
             return Promise.resolve()
@@ -104,6 +106,10 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             try {
                 socket = socketFactory(url)
             } catch (err) {
+                if (schedule) {
+                    schedule(connect)
+                    return
+                }
                 setState("disconnected")
                 reject(err)
                 return
@@ -126,6 +132,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             socket.onmessage = (ev) => handleHandshake(ev.data as string | BufferSource | Blob)
 
             socket.onerror = (): void => {
+                if (schedule) {
+                    schedule(connect)
+                    return
+                }
+
                 setState("disconnected")
 
                 const error = new Error("WebSocket error")
@@ -136,6 +147,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             }
 
             socket.onclose = (ev: { code: number; reason: string }): void => {
+                if (!manuallyClosed && schedule) {
+                    schedule(connect)
+                    return
+                }
+
                 setState("disconnected")
 
                 const error = new Error(`Connection closed (code ${ev.code})`)
