@@ -11,22 +11,30 @@ const defaultFactory = (url: string): WebSocket => {
 
 type Handler<T> = (value: T) => void
 
+export type WsClientOptions = {
+    readonly url: string | (() => string),
+    readonly defaultSerializer?: Serializer,
+    readonly serializer?: Serializer,
+    readonly socketFactory?: typeof defaultFactory,
+    readonly scheduleFactory?: ReturnType<typeof buildScheduleFactory>,
+}
+
 export type WsClient = {
-    state: () => ConnectionState
-    connect: () => Promise<void>
-    reconnect: () => Promise<void>
-    close: (code?: number, reason?: string) => void
-    send<TRequest, TResponse>(key: string, payload: TRequest): Promise<TResponse>
-    notify<TRequest>(key: string, payload: TRequest): void
-    receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void),
+    readonly state: () => ConnectionState
+    readonly connect: () => Promise<void>
+    readonly reconnect: () => Promise<void>
+    readonly close: (code?: number, reason?: string) => void
+    readonly send: <TRequest, TResponse>(key: string, payload: TRequest) => Promise<TResponse>
+    readonly notify: <TRequest>(key: string, payload: TRequest) => void
+    readonly receive: <TValue>(key: string, callback: Handler<TValue>) => (() => void)
 }
 
 export type WsReconnectOptions = {
-    minDelay?: number,
-    maxDelay?: number,
-    factor?: number,
-    jitter?: number,
-    maxRetries?: number
+    readonly minDelay?: number,
+    readonly maxDelay?: number,
+    readonly factor?: number,
+    readonly jitter?: number,
+    readonly maxRetries?: number
 }
 
 type ScheduleReconnect = (callback: () => Promise<any>) => Promise<void>
@@ -57,14 +65,6 @@ const buildScheduleFactory = (options?: WsReconnectOptions) => (): ScheduleRecon
             setTimeout(() => callback().then(resolve, reject), delay)
         })
     }
-}
-
-export type WsClientOptions = {
-    url: string | (() => string),
-    defaultSerializer?: Serializer,
-    serializer?: Serializer,
-    socketFactory?: typeof defaultFactory,
-    scheduleFactory?: ReturnType<typeof buildScheduleFactory>,
 }
 
 export const useWsClient = (options: WsClientOptions): WsClient => {
