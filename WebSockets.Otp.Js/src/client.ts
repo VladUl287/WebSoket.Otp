@@ -60,7 +60,7 @@ const buildScheduleFactory = (options?: WsReconnectOptions) => (): ScheduleRecon
 }
 
 export type WsClientOptions = {
-    url: string,
+    url: string | (() => string),
     defaultSerializer?: Serializer,
     serializer?: Serializer,
     socketFactory?: typeof defaultFactory,
@@ -101,7 +101,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
             let socket: WebSocket
 
             try {
-                socket = socketFactory(url)
+                socket = socketFactory(typeof url === 'string' ? url : url())
             } catch (err) {
                 setState("disconnected")
                 if (schedule) {
