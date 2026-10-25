@@ -22,6 +22,6 @@ export type ConnectionState =
     | "connected"
 
 export interface PendingRequest {
-    readonly resolve: (value: unknown) => void
+    readonly resolve: (value: any) => void
     readonly reject: (reason?: unknown) => void
 }
