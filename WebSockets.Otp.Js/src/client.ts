@@ -37,7 +37,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         defaultSerializer = jsonSerializer(),
         serializer = defaultSerializer,
         socketFactory = defaultFactory,
-        scheduleFactory = buildSchedule(),
+        scheduleFactory,
         pendingFactory = usePendingRegistry,
         handshakeTimeout = 30_000,
     } = options
@@ -46,49 +46,42 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     let state: ConnectionState = "disconnected"
     let manuallyClosed = false
 
-    let schedule = scheduleFactory()
+    let schedule = scheduleFactory?.()
 
     const connect = (): Promise<void> => {
         if (state === "connected" || state === "connecting") {
             return Promise.resolve()
         }
 
-        ws = null
         state = "connecting"
+        ws = null
         manuallyClosed = false
-
-        let connectSettled = false
 
         return new Promise<void>((resolve, reject) => {
             let socket: WebSocket
 
-            const resolveConnect = (): void => {
-                if (connectSettled) return
-                connectSettled = true
-                resolve()
-            }
+            const onConnectError = (): void => {
+                state = "disconnected"
 
-            const rejectConnect = (error: unknown): void => {
-                if (connectSettled) return
-                connectSettled = true
+                if (schedule) {
+                    schedule.run(connect).then(resolve, reject)
+                    return
+                }
+
+                const error = new Error("WebSocket error")
                 reject(error)
             }
 
-            const scheduleReconnect = (error: Error): void => {
-                if (manuallyClosed) {
-                    rejectConnect(error)
+            const onRuntimeError = (): void => {
+                state = "disconnected"
+
+                if (schedule) {
+                    schedule.run(connect)
                     return
                 }
-                schedule.run(connect)
-                    .then(
-                        resolveConnect,
-                        (retryErr) => {
-                            const finalError = retryErr instanceof Error ? retryErr : error
-                            pending.rejectAll(finalError)
-                            rejectQueue(finalError)
-                            rejectConnect(finalError)
-                        }
-                    )
+
+                const error = new Error("WebSocket error")
+                pending.rejectAll(error)
             }
 
             try {
@@ -96,7 +89,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                 ws = socket = socketFactory(URL)
             } catch (err) {
                 state = "disconnected"
-                scheduleReconnect(err instanceof Error ? err : new Error("Unable to create socket"))
+                schedule?.run(connect).then(resolve, reject)
                 return
             }
 
@@ -104,37 +97,28 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                 sendHandshake(socket)
                     .then(() => {
                         state = "connected"
-                        schedule.reset()
 
-                        socket.onmessage = (ev) => handleIncoming(ev.data as string | BufferSource | Blob)
+                        schedule?.reset()
 
-                        resolveConnect()
+                        socket.onerror = onRuntimeError
+                        socket.onopen = null
+                        socket.onmessage = (ev) => handleMessage(ev.data as string | BufferSource | Blob)
+
+                        resolve()
+
                         resolveQueue(socket)
                     })
                     .catch((error: unknown) => {
                         state = "disconnected"
-                        rejectConnect(error)
+
                         try { socket.close(4000, "handshake fail") } catch { }
+
+                        reject(error)
                     })
             }
 
-            socket.onmessage = (ev) => handleHandshake(ev.data as string | BufferSource | Blob)
-
-            socket.onerror = (): void => {
-                state = "disconnected"
-
-                const error = new Error("WebSocket error")
-                pending.rejectAll(error)
-
-                ws = null
-
-                if (schedule) {
-                    schedule.run(connect).then(resolve, reject)
-                    return
-                }
-
-                reject(error)
-            }
+            socket.onmessage = (ev) => handleHandshakeMessage(ev.data as string | BufferSource | Blob)
+            socket.onerror = onConnectError
 
             socket.onclose = (ev: { code: number; reason: string }): void => {
                 state = "disconnected"
@@ -155,13 +139,15 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     }
 
     const close = (code?: number, reason?: string): void => {
-        if (state !== "connected" || !ws || ws.readyState !== 1) { throw new Error('Client not connected') }
+        if (state !== "connected" || ws?.readyState !== WebSocket.OPEN) {
+            throw new Error('Client not connected')
+        }
 
-        manuallyClosed = true
+        state = "disconnected"
 
         const socket = ws
+        manuallyClosed = true
         ws = null
-        state = "disconnected"
 
         try { socket?.close(code ?? 1000, reason) } catch { }
 
@@ -175,15 +161,12 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     const pending = usePendingRegistry<number>()
 
     const HANDSHAKE_ID = 0
-
     const sendHandshake = (socket: WebSocket): Promise<{}> => {
         return new Promise<{}>((resolve, reject) => {
-            if (socket.readyState !== 1) {
+            if (socket.readyState !== WebSocket.OPEN) {
                 reject(new Error("Socket is not open"))
                 return
             }
-
-            pending.remove(HANDSHAKE_ID)
 
             let message: string | BufferSource | Blob
             try {
@@ -203,13 +186,12 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         })
     }
 
-    const handleHandshake = async (data: string | BufferSource | Blob): Promise<void> => {
+    const handleHandshakeMessage = async (data: string | BufferSource | Blob): Promise<void> => {
         let value: unknown
         try {
             value = await defaultSerializer.deserialize(data)
         } catch (error) {
-            pending.reject(HANDSHAKE_ID,
-                error instanceof Error ? error : new Error("Unable to deserialize handshake response"))
+            pending.reject(HANDSHAKE_ID, error instanceof Error ? error : new Error("Unable to deserialize handshake response"))
             return
         }
         if (value && typeof value === "object" && Object.keys(value as object).length === 0) {
@@ -250,9 +232,8 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     }
 
     const send = <TRequest, TResponse>(key: string, value: TRequest): Promise<TResponse> => {
-        if (state !== "connected" || !ws || ws.readyState !== 1) {
-            return new Promise<TResponse>(
-                (resolve, reject) => queue.push({ key, value, resolve, reject }))
+        if (state !== "connected" || ws?.readyState !== WebSocket.OPEN) {
+            return new Promise<TResponse>((resolve, reject) => queue.push({ key, value, resolve, reject }))
         }
 
         const socket = ws
@@ -271,7 +252,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     }
 
     const notify = <TRequest>(key: string, value: TRequest): void => {
-        if (state !== "connected" || !ws || ws.readyState !== 1) {
+        if (state !== "connected" || ws?.readyState !== WebSocket.OPEN) {
             throw new Error("Client is not connected")
         }
 
@@ -301,15 +282,12 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         }
     }
 
-    const handleIncoming = async (data: string | BufferSource | Blob): Promise<void> => {
-        if (data === null) {
-            return
-        }
-
+    const handleMessage = async (data: string | BufferSource | Blob): Promise<void> => {
         let parsed: unknown
         try {
             parsed = await serializer.deserialize(data)
         } catch {
+            // log
             return
         }
 
