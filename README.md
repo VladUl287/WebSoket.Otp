@@ -113,7 +113,7 @@ public class SubscribeEndpoint : WsEndpoint<SubscribeRequest>
     public override async Task HandleAsync(SubscribeRequest request, EndpointContext context)
     {
         await context.Groups.AddAsync("notifications", context.ConnectionId);
-        await connection.Send
+        await context.Send
             .SendAsync(new
             {
                 Data = "notification"
