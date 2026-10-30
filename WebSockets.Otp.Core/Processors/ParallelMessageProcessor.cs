@@ -4,14 +4,12 @@ using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Logging;
 
 namespace WebSockets.Otp.Core.Processors;
 
 public sealed class ParallelMessageProcessor(
-    IMessageDispatcher dispatcher, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> bufferPool,
-    ILogger<ParallelMessageProcessor> logger) : IMessageProcessor
+    IMessageDispatcher dispatcher, IMessageEnumerator enumerator, ILogger<ParallelMessageProcessor> logger) : IMessageProcessor
 {
     public async Task Process(
         IGlobalContext context, IMessageSerializer serializer, WsOptionsSnapshot options, CancellationToken token)
@@ -23,7 +21,7 @@ public sealed class ParallelMessageProcessor(
             CancellationToken = token
         };
 
-        var messages = enumerator.EnumerateAsync(context.Socket, options, bufferPool, token);
+        var messages = enumerator.EnumerateAsync(context.Socket, options, token);
 
         await Parallel.ForEachAsync(messages, parallelOptions, async (buffer, token) =>
         {
@@ -42,7 +40,7 @@ public sealed class ParallelMessageProcessor(
                 if (options.ShrinkBuffers)
                     buffer.Shrink();
 
-                await bufferPool.Return(buffer, token);
+                await enumerator.ReturnBuffer(buffer, token);
             }
         });
     }

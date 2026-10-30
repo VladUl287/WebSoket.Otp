@@ -72,7 +72,7 @@ public static class ServiceCollectionExtensions
 
     private static IServiceCollection AddTransport(this IServiceCollection services)
     {
-        services.AddSingleton<IMessageEnumerator>(new MessageEnumerator(ArrayPool<byte>.Create()));
+        services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
         services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
         return services;

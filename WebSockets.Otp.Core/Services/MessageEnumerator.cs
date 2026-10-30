@@ -7,19 +7,18 @@ using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class MessageEnumerator(ArrayPool<byte> arrayPool) : IMessageEnumerator
+public sealed class MessageEnumerator(IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
-         WebSocket socket, WsOptionsSnapshot config, IAsyncObjectPool<IMessageBuffer> bufferPool,
-         [EnumeratorCancellation] CancellationToken token)
+         WebSocket socket, WsOptionsSnapshot config, [EnumeratorCancellation] CancellationToken token)
     {
-        var receiveBuffer = arrayPool.Rent(config.ReceiveBufferSize);
+        var receiveBuffer = ArrayPool<byte>.Shared.Rent(config.ReceiveBufferSize);
 
         IMessageBuffer? messageBuffer = null;
         while (!token.IsCancellationRequested)
         {
             messageBuffer ??= await bufferPool.Rent(token);
-
+            
             var receiveResult = await socket.ReceiveAsync(receiveBuffer, token);
 
             if (receiveResult is { MessageType: WebSocketMessageType.Close })
@@ -39,6 +38,8 @@ public sealed class MessageEnumerator(ArrayPool<byte> arrayPool) : IMessageEnume
             }
         }
 
-        arrayPool.Return(receiveBuffer);
+        ArrayPool<byte>.Shared.Return(receiveBuffer);
     }
+
+    public ValueTask ReturnBuffer(IMessageBuffer buffer, CancellationToken token) => bufferPool.Return(buffer, token);
 }
