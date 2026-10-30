@@ -19,7 +19,6 @@ export type WsClientOptions = {
     readonly socketFactory?: typeof defaultFactory,
     readonly scheduleFactory?: ReturnType<typeof buildSchedule>,
     readonly pendingFactory?: () => PendingRegistry<number>
-    readonly handshakeTimeout?: number
 }
 
 export type WsClient = {
@@ -38,8 +37,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         serializer = defaultSerializer,
         socketFactory = defaultFactory,
         scheduleFactory,
-        pendingFactory = usePendingRegistry,
-        handshakeTimeout = 30_000,
+        pendingFactory = usePendingRegistry
     } = options
 
     let ws: WebSocket | null = null
@@ -62,25 +60,21 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
 
             const onConnectError = (): void => {
                 state = "disconnected"
-
                 if (schedule) {
                     schedule.run(connect).then(resolve, reject)
                     return
                 }
-
                 const error = new Error("WebSocket error")
                 reject(error)
             }
 
             const onRuntimeError = (): void => {
                 state = "disconnected"
-
                 if (schedule) {
                     schedule.run(connect)
                     return
                 }
-
-                const error = new Error("WebSocket error")
+                const error = new Error("WebSocket runtime error")
                 pending.rejectAll(error)
             }
 
@@ -105,21 +99,16 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                         socket.onmessage = (ev) => handleMessage(ev.data as string | BufferSource | Blob)
 
                         resolve()
-
                         resolveQueue(socket)
                     })
                     .catch((error: unknown) => {
                         state = "disconnected"
-
                         try { socket.close(4000, "handshake fail") } catch { }
-
                         reject(error)
                     })
             }
-
             socket.onmessage = (ev) => handleHandshakeMessage(ev.data as string | BufferSource | Blob)
             socket.onerror = onConnectError
-
             socket.onclose = (ev: { code: number; reason: string }): void => {
                 state = "disconnected"
 
@@ -158,7 +147,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         rejectQueue(error)
     }
 
-    const pending = usePendingRegistry<number>()
+    const pending = pendingFactory()
 
     const HANDSHAKE_ID = 0
     const sendHandshake = (socket: WebSocket): Promise<{}> => {
@@ -214,9 +203,13 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         reject: (reason?: unknown) => void
     }
     const queue: QueueItem[] = []
-    const rejectQueue = (error: unknown) => queue.splice(0).forEach(a => a.reject(error))
+    const rejectQueue = (error: unknown) => {
+        queue.splice(0).forEach(a => a.reject(error))
+    }
     const resolveQueue = (socket: WebSocket) => {
-        if (state !== "connected" || !ws || ws.readyState !== 1) return
+        if (state !== "connected" || ws?.readyState !== WebSocket.OPEN) {
+            return
+        }
 
         queue.splice(0).forEach(({ key, value, resolve, reject }) => {
             const correlationId = nextCorrelationId()
@@ -287,7 +280,6 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         try {
             parsed = await serializer.deserialize(data)
         } catch {
-            // log
             return
         }
 
