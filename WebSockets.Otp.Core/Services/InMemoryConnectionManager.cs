@@ -31,7 +31,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     public ValueTask SendAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) where TData : notnull =>
         SendAsync(_store.Values.Select(c => c.Id), headers, data, token);
 
-    public ValueTask SendAsync<TData>(string connectionId, MessageHeaders headers, TData data, CancellationToken token) 
+    public ValueTask SendAsync<TData>(string connectionId, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
         var connection = _store[connectionId];
@@ -40,59 +40,98 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return connection.Socket.SendAsync(message, serializer.Type, true, token);
     }
 
-    public async ValueTask SendAsync<TData>(IEnumerable<string> connections, MessageHeaders headers, TData data, CancellationToken token)
+    public async ValueTask SendAsync<TData>(
+        IEnumerable<string> connections, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
+        var requested = new HashSet<string>(connections);
+
         var grouped = _store.Values
-            .Where(c => connections.Contains(c.Id))
+            .Where(c => requested.Contains(c.Id))
             .GroupBy(c => c.Serializer);
+
+        var tasks = new List<Task>();
+
+        var options = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = Environment.ProcessorCount,
+            CancellationToken = token
+        };
 
         foreach (var group in grouped)
         {
             var serializer = group.Key;
+
             var message = serializer.SerializeToMessage(headers, data);
 
-            foreach (var connection in group)
-            {
-                await connection.Socket.SendAsync(message, serializer.Type, true, token);
-            }
+            tasks.Add(
+                Parallel.ForEachAsync(group, options, 
+                    (conn, ct) => conn.Socket.SendAsync(message, serializer.Type, true, ct))
+            );
         }
+
+        await Task.WhenAll(tasks);
     }
 
     public async ValueTask SendToGroupAsync<TData>(string group, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
-        var grouped = _groups[group].Values.GroupBy(c => c.Serializer);
+        var grouped = _groups[group].Values
+            .GroupBy(c => c.Serializer);
+
+        var tasks = new List<Task>();
+
+        var options = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = Environment.ProcessorCount,
+            CancellationToken = token
+        };
 
         foreach (var connections in grouped)
         {
             var serializer = connections.Key;
+
             var message = serializer.SerializeToMessage(headers, data);
 
-            foreach (var connection in connections)
-            {
-                await connection.Socket.SendAsync(message, serializer.Type, true, token);
-            }
+            tasks.Add(
+                Parallel.ForEachAsync(connections, options, 
+                    (conn, ct) => conn.Socket.SendAsync(message, serializer.Type, true, ct))
+            );
         }
+
+        await Task.WhenAll(tasks);
     }
 
     public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, MessageHeaders headers, TData data, CancellationToken token)
         where TData : notnull
     {
+        var requested = new HashSet<string>(groups);
+
         var grouped = _groups
-            .Where(c => groups.Contains(c.Key))
+            .Where(c => requested.Contains(c.Key))
             .SelectMany(c => c.Value.Select(c => c.Value))
             .GroupBy(c => c.Serializer);
 
-        foreach (var group in grouped)
+        var tasks = new List<Task>();
+
+        var options = new ParallelOptions
         {
-            var serializer = group.Key;
+            MaxDegreeOfParallelism = Environment.ProcessorCount,
+            CancellationToken = token
+        };
+
+        foreach (var connections in grouped)
+        {
+            var serializer = connections.Key;
+
             var message = serializer.SerializeToMessage(headers, data);
 
-            foreach (var connection in group)
-            {
-                await connection.Socket.SendAsync(message, serializer.Type, true, token);
-            }
+            tasks.Add(
+                Parallel.ForEachAsync(connections, options, 
+                    (conn, ct) => conn.Socket.SendAsync(message, serializer.Type, true, ct))
+            );
         }
+
+        await Task.WhenAll(tasks);
     }
 }
