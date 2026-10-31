@@ -23,7 +23,7 @@ public class DefaultMessageDispatcher(
 
         if (keySlice.IsEmpty || !endpointResolver.TryResolve(keySlice, out var endpointInfo))
         {
-            logger.FailToResolveFieldInfo(0, payload.Span.Length);
+            logger.KeyFieldMissing();
             return;
         }
 
@@ -36,7 +36,7 @@ public class DefaultMessageDispatcher(
 
             if (result.IsError)
             {
-                logger.AuthFailed(result.Error);
+                logger.AuthorizationFailed(result.Error);
                 return;
             }
         }
