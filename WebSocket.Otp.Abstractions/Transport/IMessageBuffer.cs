@@ -11,7 +11,7 @@ public interface IMessageBuffer : IDisposable
     Memory<byte> Memory { get; }
 
     void Write(ReadOnlySpan<byte> data);
-    void Write(ReadOnlySequence<byte> data);
+
     void SetLength(int length);
     void Shrink();
 }

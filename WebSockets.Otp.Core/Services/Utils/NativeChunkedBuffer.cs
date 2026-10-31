@@ -18,24 +18,6 @@ public sealed unsafe class NativeChunkedBuffer(int capacity) : MemoryManager<byt
 
     public Span<byte> Span => new(_buffer, _length);
 
-    public void Write(ReadOnlySequence<byte> data)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        if (_length > Array.MaxLength - data.Length)
-            throw new OutOfMemoryException("The combined length would exceed maximum array size.");
-
-        var dataLength = (int)data.Length;
-
-        if (_length > _capacity - dataLength)
-            EnsureCapacity(_length + dataLength);
-
-        var target = new Span<byte>(_buffer + _length, dataLength);
-        data.CopyTo(target);
-
-        _length += dataLength;
-    }
-
     public void Write(ReadOnlySpan<byte> data)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

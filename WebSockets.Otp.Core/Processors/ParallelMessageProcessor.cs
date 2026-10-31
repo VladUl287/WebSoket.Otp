@@ -35,12 +35,7 @@ public sealed class ParallelMessageProcessor(
             }
             finally
             {
-                buffer.SetLength(0);
-
-                if (options.ShrinkBuffers)
-                    buffer.Shrink();
-
-                await enumerator.ReturnBuffer(buffer, token);
+                enumerator.ReturnBuffer(buffer);
             }
         });
     }

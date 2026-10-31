@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Buffers;
+using Microsoft.Extensions.ObjectPool;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -21,7 +21,6 @@ using WebSockets.Otp.Core.Services.Endpoints;
 using WebSockets.Otp.Core.Services.IdProviders;
 using WebSockets.Otp.Core.Services.Serializers;
 using WebSockets.Otp.Core.Services.Utils;
-using WebSockets.Otp.Core.Utils;
 
 namespace WebSockets.Otp.Core.Extensions;
 
@@ -59,21 +58,26 @@ public static class ServiceCollectionExtensions
     private static IServiceCollection AddWsEndpointsCore(this IServiceCollection services, WsOptions options, Assembly[] assemblies)
     {
         services.AddSingleton(options);
-
-        services.AddTransport();
+        services.AddTransport(options);
         services.AddDefaultSerializers();
         services.AddCoreServices();
         services.AddConnectionServices();
-        services.AddUtility(options);
-        services.AddEndpoints(options, assemblies);
+        services.AddUtility();
+        services.AddEndpoints(assemblies);
 
         return services;
     }
 
-    private static IServiceCollection AddTransport(this IServiceCollection services)
+    private static IServiceCollection AddTransport(this IServiceCollection services, WsOptions options)
     {
+        services.AddSingleton<ObjectPoolProvider, DefaultObjectPoolProvider>();
+        services.AddSingleton(serviceProvider =>
+        {
+            var provider = serviceProvider.GetRequiredService<ObjectPoolProvider>();
+            var policy = new NativeChunkedBufferPolicy(options);
+            return provider.Create(policy);
+        });
         services.AddSingleton<IMessageEnumerator, MessageEnumerator>();
-        services.AddSingleton<IMessageBufferFactory, MessageBufferFactory>();
         services.AddSingleton<IMessageProcessor, ParallelMessageProcessor>();
         return services;
     }
@@ -114,19 +118,13 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddUtility(this IServiceCollection services, WsOptions options)
+    private static IServiceCollection AddUtility(this IServiceCollection services)
     {
-        services.AddSingleton<IAsyncObjectPool<IMessageBuffer>>(
-            (_) => new AsyncObjectPool<IMessageBuffer>(
-                options.BufferPoolSize,
-                () => new NativeChunkedBuffer(options.ReceiveBufferSize)
-            )
-        );
         services.AddSingleton<IIdProvider, GuidIdProvider>();
         return services;
     }
 
-    private static IServiceCollection AddEndpoints(this IServiceCollection services, WsOptions config, params Assembly[] assemblies)
+    private static IServiceCollection AddEndpoints(this IServiceCollection services, params Assembly[] assemblies)
     {
         services.AddSingleton<IContextFactory, DefaultContextFactory>();
 

@@ -1,24 +1,21 @@
-﻿using System.Buffers;
-using System.Net.WebSockets;
+﻿using System.Net.WebSockets;
+using Microsoft.Extensions.ObjectPool;
 using System.Runtime.CompilerServices;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.Core.Services;
 
-public sealed class MessageEnumerator(IAsyncObjectPool<IMessageBuffer> bufferPool) : IMessageEnumerator
+public sealed class MessageEnumerator(ObjectPool<IMessageBuffer> bufferPool) : IMessageEnumerator
 {
     public async IAsyncEnumerable<IMessageBuffer> EnumerateAsync(
          WebSocket socket, WsOptionsSnapshot config, [EnumeratorCancellation] CancellationToken token)
     {
-        var receiveBuffer = ArrayPool<byte>.Shared.Rent(config.ReceiveBufferSize);
+        var receiveBuffer = GC.AllocateUninitializedArray<byte>(config.ReceiveBufferSize);
+        var messageBuffer = bufferPool.Get();
 
-        IMessageBuffer? messageBuffer = null;
         while (!token.IsCancellationRequested)
         {
-            messageBuffer ??= await bufferPool.Rent(token);
-            
             var receiveResult = await socket.ReceiveAsync(receiveBuffer, token);
 
             if (receiveResult is { MessageType: WebSocketMessageType.Close })
@@ -31,15 +28,12 @@ public sealed class MessageEnumerator(IAsyncObjectPool<IMessageBuffer> bufferPoo
 
             if (receiveResult.EndOfMessage)
             {
-                var completedBuffer = messageBuffer;
-                messageBuffer = null;
-
-                yield return completedBuffer;
+                yield return messageBuffer;
+             
+                messageBuffer = bufferPool.Get();
             }
         }
-
-        ArrayPool<byte>.Shared.Return(receiveBuffer);
     }
 
-    public ValueTask ReturnBuffer(IMessageBuffer buffer, CancellationToken token) => bufferPool.Return(buffer, token);
+    public void ReturnBuffer(IMessageBuffer buffer) => bufferPool.Return(buffer);
 }
