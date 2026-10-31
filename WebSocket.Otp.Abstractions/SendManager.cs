@@ -1,5 +1,5 @@
 ﻿using WebSockets.Otp.Abstractions.Connections;
-using WebSockets.Otp.Abstractions.Models;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions;
 
@@ -33,24 +33,21 @@ public sealed class SendManager(IWsConnectionManager manager)
     public async ValueTask SendAsync<TResponse>(string key, TResponse data, CancellationToken token = default)
         where TResponse : notnull
     {
-        var headers = new MessageHeaders
-        {
-            Key = key
-        };
+        var envelope = new MessageEnvelope<TResponse>(key, data);
 
         try
         {
             if (_targetAll)
             {
-                await _manager.SendAsync(headers, data, token);
+                await _manager.Send(envelope, token);
                 return;
             }
 
             if (_connectionIds.Count > 0)
-                await _manager.SendAsync(_connectionIds, headers, data, token);
+                await _manager.Send(_connectionIds, envelope, token);
 
             if (_groups.Count > 0)
-                await _manager.SendToGroupAsync(_groups, headers, data, token);
+                await _manager.SendToGroup(_groups, envelope, token);
         }
         finally
         {

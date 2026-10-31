@@ -1,4 +1,4 @@
-﻿using WebSockets.Otp.Abstractions.Models;
+﻿using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Abstractions.Connections;
 
@@ -7,18 +7,18 @@ public interface IWsConnectionManager
     ValueTask<bool> TryAdd(IWsConnection connection, CancellationToken token);
     ValueTask<bool> TryRemove(string connectionId, CancellationToken token);
 
-    ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token);
-    ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token);
+    ValueTask<bool> AddToGroup(string group, string connectionId, CancellationToken token);
+    ValueTask<bool> RemoveFromGroup(string group, string connectionId, CancellationToken token);
 
-    ValueTask SendAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) 
+    ValueTask Send<TData>(MessageEnvelope<TData> envelope, CancellationToken token) 
         where TData : notnull;
-    ValueTask SendAsync<TData>(string connectionId, MessageHeaders headers, TData data, CancellationToken token) 
+    ValueTask Send<TData>(string connectionId, MessageEnvelope<TData> envelope, CancellationToken token) 
         where TData : notnull;
-    ValueTask SendAsync<TData>(IEnumerable<string> connections, MessageHeaders headers, TData data, CancellationToken token) 
+    ValueTask Send<TData>(IEnumerable<string> connections, MessageEnvelope<TData> envelope, CancellationToken token) 
         where TData : notnull;
 
-    ValueTask SendToGroupAsync<TData>(string group, MessageHeaders headers, TData data, CancellationToken token) 
+    ValueTask SendToGroup<TData>(string group, MessageEnvelope<TData> envelope, CancellationToken token) 
         where TData : notnull;
-    ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, MessageHeaders headers, TData data, CancellationToken token) 
+    ValueTask SendToGroup<TData>(IEnumerable<string> groups, MessageEnvelope<TData> envelope, CancellationToken token) 
         where TData : notnull;
 }

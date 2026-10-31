@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using WebSockets.Otp.Abstractions.Connections;
-using WebSockets.Otp.Abstractions.Models;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core.Services;
 
@@ -12,7 +12,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
     public ValueTask<bool> TryAdd(IWsConnection connection, CancellationToken token) => new(_store.TryAdd(connection.Id, connection));
     public ValueTask<bool> TryRemove(string connectionId, CancellationToken token) => new(_store.TryRemove(connectionId, out _));
 
-    public ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token)
+    public ValueTask<bool> AddToGroup(string group, string connectionId, CancellationToken token)
     {
         var added = _groups
             .GetOrAdd(group, [])
@@ -20,7 +20,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(added);
     }
 
-    public ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token)
+    public ValueTask<bool> RemoveFromGroup(string group, string connectionId, CancellationToken token)
     {
         var removed = _groups
             .GetOrAdd(group, [])
@@ -28,20 +28,20 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         return ValueTask.FromResult(removed);
     }
 
-    public ValueTask SendAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) where TData : notnull =>
-        SendAsync(_store.Values.Select(c => c.Id), headers, data, token);
+    public ValueTask Send<TData>(MessageEnvelope<TData> envelope, CancellationToken token) where TData : notnull =>
+        Send(_store.Values.Select(c => c.Id), envelope, token);
 
-    public ValueTask SendAsync<TData>(string connectionId, MessageHeaders headers, TData data, CancellationToken token)
+    public ValueTask Send<TData>(string connectionId, MessageEnvelope<TData> envelope, CancellationToken token)
         where TData : notnull
     {
         var connection = _store[connectionId];
         var serializer = connection.Serializer;
-        var message = serializer.SerializeToMessage(headers, data);
+        var message = serializer.SerializeToMessage(envelope);
         return connection.Socket.SendAsync(message, serializer.Type, true, token);
     }
 
-    public async ValueTask SendAsync<TData>(
-        IEnumerable<string> connections, MessageHeaders headers, TData data, CancellationToken token)
+    public async ValueTask Send<TData>(
+        IEnumerable<string> connections, MessageEnvelope<TData> envelope, CancellationToken token)
         where TData : notnull
     {
         var requested = new HashSet<string>(connections);
@@ -62,7 +62,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         {
             var serializer = group.Key;
 
-            var message = serializer.SerializeToMessage(headers, data);
+            var message = serializer.SerializeToMessage(envelope);
 
             tasks.Add(
                 Parallel.ForEachAsync(group, options, 
@@ -73,7 +73,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         await Task.WhenAll(tasks);
     }
 
-    public async ValueTask SendToGroupAsync<TData>(string group, MessageHeaders headers, TData data, CancellationToken token)
+    public async ValueTask SendToGroup<TData>(string group, MessageEnvelope<TData> envelope, CancellationToken token)
         where TData : notnull
     {
         var grouped = _groups[group].Values
@@ -91,7 +91,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         {
             var serializer = connections.Key;
 
-            var message = serializer.SerializeToMessage(headers, data);
+            var message = serializer.SerializeToMessage(envelope);
 
             tasks.Add(
                 Parallel.ForEachAsync(connections, options, 
@@ -102,7 +102,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         await Task.WhenAll(tasks);
     }
 
-    public async ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, MessageHeaders headers, TData data, CancellationToken token)
+    public async ValueTask SendToGroup<TData>(IEnumerable<string> groups, MessageEnvelope<TData> envelope, CancellationToken token)
         where TData : notnull
     {
         var requested = new HashSet<string>(groups);
@@ -124,7 +124,7 @@ public sealed class InMemoryConnectionManager : IWsConnectionManager
         {
             var serializer = connections.Key;
 
-            var message = serializer.SerializeToMessage(headers, data);
+            var message = serializer.SerializeToMessage(envelope);
 
             tasks.Add(
                 Parallel.ForEachAsync(connections, options, 

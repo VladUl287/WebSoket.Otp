@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using System.Buffers;
 using WebSockets.Otp.Abstractions.Contracts;
 using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Serializers;
@@ -18,26 +17,13 @@ public class DefaultMessageDispatcher(
     {
         var payloadMem = payload.Memory;
 
-        var results = ArrayPool<Segment>.Shared.Rent(16);
+        var messageHeader = serializer.ReadHeaders(payloadMem);
 
-        Segment keySlice, correlationSlice, valueSlice;
+        var keySlice = messageHeader.Key;
 
-        try
+        if (keySlice.IsEmpty || !endpointResolver.TryResolve(keySlice, out var endpointInfo))
         {
-            serializer.ScanMessage(payloadMem, results);
-
-            keySlice = results[0];
-            correlationSlice = results[1];
-            valueSlice = results[2];
-        }
-        finally
-        {
-            ArrayPool<Segment>.Shared.Return(results, true);
-        }
-
-        if (!keySlice.Found || !endpointResolver.TryResolve(payload.Memory[(keySlice.Start + 1)..], out var endpointInfo))
-        {
-            logger.FailToResolveFieldInfo(keySlice.Start, payload.Span.Length);
+            logger.FailToResolveFieldInfo(0, payload.Span.Length);
             return;
         }
 
@@ -45,7 +31,7 @@ public class DefaultMessageDispatcher(
 
         if (endpointInfo.Endpoint is not null)
         {
-            var authorizer = context.Context.RequestServices.GetRequiredService<IEndpointAuthorizer>();
+            var authorizer = scope.ServiceProvider.GetRequiredService<IEndpointAuthorizer>();
             var result = await authorizer.AuthorizeAsync(context.Context, endpointInfo);
 
             if (result.IsError)
@@ -58,13 +44,7 @@ public class DefaultMessageDispatcher(
         var endpointType = endpointInfo.EndpointType;
         var endpoint = scope.ServiceProvider.GetRequiredService(endpointType);
 
-        uint? correlationId = null;
-        if (correlationSlice.Found)
-        {
-            correlationId = serializer.ParseUInt(payloadMem[correlationSlice.Start..correlationSlice.End]);
-        }
-        var data = payloadMem[valueSlice.Start..valueSlice.End];
-        var endpointContext = contextFactory.Create(correlationId, context, data, token);
+        var endpointContext = contextFactory.Create(messageHeader.Id, context, messageHeader.Value, token);
 
         await endpointInfo.Invoker.Invoke(endpoint, endpointContext);
     }
