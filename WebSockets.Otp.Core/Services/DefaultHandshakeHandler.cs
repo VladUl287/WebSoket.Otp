@@ -13,8 +13,7 @@ using WebSockets.Otp.Core.Utils;
 namespace WebSockets.Otp.Core.Services;
 
 public sealed class DefaultHandshakeHandler(
-    ISerializerStore store, IMessageEnumerator enumerator, IAsyncObjectPool<IMessageBuffer> objectPool,
-    ILogger<DefaultHandshakeHandler> logger) : IHandshakeHandler
+    ISerializerStore store, IMessageEnumerator enumerator, ILogger<DefaultHandshakeHandler> logger) : IHandshakeHandler
 {
     private static readonly string _protocol = "json";
     private static readonly ReadOnlyMemory<byte> _responseBytes = "{}"u8.ToArray();
@@ -24,7 +23,7 @@ public sealed class DefaultHandshakeHandler(
     {
         var requestId = new RequestId(context);
 
-        var messagesEnumerable = enumerator.EnumerateAsync(socket, options, objectPool, token);
+        var messagesEnumerable = enumerator.EnumerateAsync(socket, options, token);
 
         using var handshakeBuffer = await AsyncEnumerableExtensions.FirstOrDefaultAsync(messagesEnumerable, token);
         if (handshakeBuffer is null)
@@ -49,6 +48,7 @@ public sealed class DefaultHandshakeHandler(
         }
 
         await socket.SendAsync(_responseBytes, WebSocketMessageType.Text, true, token);
+        enumerator.ReturnBuffer(handshakeBuffer);
         return handshakeOptions;
     }
 }
