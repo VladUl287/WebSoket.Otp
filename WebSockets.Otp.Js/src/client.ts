@@ -18,7 +18,8 @@ export type WsClientOptions = {
     readonly serializer?: Serializer,
     readonly socketFactory?: typeof defaultFactory,
     readonly scheduleFactory?: ReturnType<typeof buildSchedule>,
-    readonly pendingFactory?: () => PendingRegistry<number>
+    readonly pendingFactory?: () => PendingRegistry<number>,
+    readonly handshakeTimeoutMs?: number,
 }
 
 export type WsClient = {
@@ -37,7 +38,8 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         serializer = defaultSerializer,
         socketFactory = defaultFactory,
         scheduleFactory,
-        pendingFactory = usePendingRegistry
+        pendingFactory = usePendingRegistry,
+        handshakeTimeoutMs = 15000,
     } = options
 
     let ws: WebSocket | null = null
@@ -45,6 +47,10 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
     let manuallyClosed = false
 
     let schedule = scheduleFactory?.()
+
+    const pending = pendingFactory()
+
+    const HANDSHAKE_ID = 0
 
     const connect = (): Promise<void> => {
         if (state === "connected" || state === "connecting") {
@@ -64,7 +70,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                     schedule.run(connect).then(resolve, reject)
                     return
                 }
-                const error = new Error("WebSocket error")
+                const error = new Error("WebSocket connection error")
                 reject(error)
             }
 
@@ -82,9 +88,7 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                 const URL = typeof url === 'string' ? url : url()
                 ws = socket = socketFactory(URL)
             } catch (err) {
-                state = "disconnected"
-                schedule?.run(connect).then(resolve, reject)
-                return
+                return onConnectError()
             }
 
             socket.onopen = (): void => {
@@ -147,9 +151,6 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         rejectQueue(error)
     }
 
-    const pending = pendingFactory()
-
-    const HANDSHAKE_ID = 0
     const sendHandshake = (socket: WebSocket): Promise<{}> => {
         return new Promise<{}>((resolve, reject) => {
             if (socket.readyState !== WebSocket.OPEN) {
@@ -165,8 +166,21 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                 return
             }
 
+            const timer = setTimeout(() => {
+                pending.remove(HANDSHAKE_ID)
+                reject(new Error("Handshake timed out"))
+            }, handshakeTimeoutMs)
+
+            const settle = (fn: () => void) => {
+                clearTimeout(timer)
+                fn()
+            }
+
             try {
-                pending.enqueue(HANDSHAKE_ID, { resolve, reject })
+                pending.enqueue(HANDSHAKE_ID, {
+                    resolve: (v) => settle(() => resolve(v)),
+                    reject: (e) => settle(() => reject(e)),
+                })
                 socket.send(message)
             } catch (err) {
                 pending.remove(HANDSHAKE_ID)
@@ -192,7 +206,11 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
 
     const buildCorrelationId = () => {
         let correlationId = 0
-        return () => (correlationId = (correlationId + 1) >>> 0)
+        return () => {
+            correlationId = (correlationId + 1) >>> 0
+            if (correlationId === 0) correlationId = 1
+            return correlationId
+        }
     }
     const nextCorrelationId = buildCorrelationId()
 
@@ -202,10 +220,13 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
         resolve: (value: any) => void
         reject: (reason?: unknown) => void
     }
+
     const queue: QueueItem[] = []
+
     const rejectQueue = (error: unknown) => {
         queue.splice(0).forEach(a => a.reject(error))
     }
+
     const resolveQueue = (socket: WebSocket) => {
         if (state !== "connected" || ws?.readyState !== WebSocket.OPEN) {
             return
