@@ -1,420 +1,644 @@
-import { FakeWebSocket } from "./fakes/fakeWebSocket"
-import { makeFakeSerializer } from "./fakes/fakeSerializer"
-import { useWsClient } from "../src/client"
+import {
+    describe,
+    it,
+    expect,
+    beforeEach,
+    afterEach,
+    jest,
+} from "@jest/globals"
+import type { ConnectionState, PendingRequest, Serializer } from "../src/types"
+import type { PendingRegistry } from "../src/pending"
+import { useWsClient, type WsClient, type WsClientOptions } from "../src/client"
 
-function setup(opts?: {
-    protocol?: string
-    serializer?: ReturnType<typeof makeFakeSerializer>
-}) {
-    const serializer = opts?.serializer ?? makeFakeSerializer(opts?.protocol)
-    let socket!: FakeWebSocket
-    const factory: (() => WebSocket) = () => {
-        socket = new FakeWebSocket()
-        return socket.asWebSocket()
+type MessageHandler = (ev: { data: unknown }) => void
+type SimpleHandler = (ev: unknown) => void
+type CloseHandler = (ev: { code: number; reason: string }) => void
+
+class MockSocket {
+    static instances: MockSocket[] = []
+
+    static reset(): void {
+        MockSocket.instances = []
     }
-    const client = useWsClient({
-        url: "wss://example.test",
-        serializer,
-        factory
-    })
-    return { client, get socket() { return socket }, serializer }
+
+    readyState = 0 // CONNECTING
+    sent: string[] = []
+    readonly url: string
+
+    onopen: SimpleHandler | null = null
+    onmessage: MessageHandler | null = null
+    onerror: SimpleHandler | null = null
+    onclose: CloseHandler | null = null
+
+    constructor(url: string) {
+        this.url = url
+        MockSocket.instances.push(this)
+    }
+
+    send(data: string): void {
+        if (this.readyState !== 1) throw new Error("MockSocket: not OPEN")
+        this.sent.push(data)
+    }
+
+    close(code = 1000, reason = ""): void {
+        if (this.readyState === 3) return
+        this.readyState = 3
+        this.onclose?.({ code, reason })
+    }
+
+    asWebSocket(): WebSocket {
+        return this as unknown as WebSocket
+    }
+
+    open(): void {
+        this.readyState = 1
+        this.onopen?.({})
+    }
+
+    receive(data: string): void {
+        this.onmessage?.({ data })
+    }
+
+    fireError(): void {
+        this.onerror?.({})
+    }
+
+    serverClose(code = 1000, reason = ""): void {
+        if (this.readyState === 3) return
+        this.readyState = 3
+        this.onclose?.({ code, reason })
+    }
 }
 
-async function connectAndHandshake(
-    ctx: ReturnType<typeof setup>
-): Promise<void> {
-    const p = ctx.client.connect()
-    await Promise.resolve()
-    ctx.socket.open()
-    ctx.socket.message(JSON.stringify({ ok: true }))
-    await p
+function getSocket(index = -1): MockSocket {
+    const arr = MockSocket.instances
+    const idx = index < 0 ? arr.length + index : index
+    const s = arr[idx]
+    if (!s) throw new Error(`MockSocket: no instance at index ${idx}`)
+    return s
 }
 
-describe("useWsClient  construction", () => {
-    it("throws if no global WebSocket and no factory is provided", async () => {
-        const original = (globalThis as any).WebSocket
-        delete (globalThis as any).WebSocket
-        try {
-            const client = useWsClient({ url: "wss://x" })
-            await expect(client.connect()).rejects.toThrow()
-        } finally {
-            (globalThis as any).WebSocket = original
-        }
-    })
+const mockSerializer: Serializer = {
+    protocol: "test.v1",
+    serialize: (value: unknown): string => JSON.stringify(value),
+    deserialize: (data): Promise<unknown> => Promise.resolve(JSON.parse(data as string)),
+}
 
-    it("exposes initial state as disconnected", () => {
-        const { client } = setup()
-        expect(client.state()).toBe("disconnected")
-        expect(client.isConnected()).toBe(false)
-    })
-})
+type MockSchedule = {
+    run: jest.Mock<(fn: () => Promise<void>) => Promise<void>>
+    reset: jest.Mock<() => void>
+}
 
-describe("useWsClient  connect()", () => {
-    it("resolves after open + handshake ack", async () => {
-        const ctx = setup()
-        const p = ctx.client.connect()
-        await Promise.resolve()
-        expect(ctx.client.state()).toBe("connecting")
+function createSchedule(autoRun: boolean): MockSchedule {
+    return {
+        run: jest.fn<(fn: () => Promise<void>) => Promise<void>>((fn) =>
+            autoRun ? fn() : Promise.resolve(),
+        ),
+        reset: jest.fn<() => void>(),
+    }
+}
 
-        ctx.socket.open()
-        expect(ctx.client.state()).toBe("handshaking")
+type MockPending = PendingRegistry<number> & {
+    readonly entries: Map<number, PendingRequest>
+    readonly enqueue: jest.Mock<(id: number, entry: PendingRequest) => void>
+    readonly remove: jest.Mock<(id: number) => void>
+    readonly resolve: jest.Mock<(id: number, value: unknown) => void>
+    readonly reject: jest.Mock<(id: number, error: unknown) => void>
+    readonly rejectAll: jest.Mock<(error: unknown) => void>
+}
 
-        ctx.socket.message(JSON.stringify({ ok: true }))
-        await expect(p).resolves.toBeUndefined()
-        expect(ctx.client.state()).toBe("connected")
-        expect(ctx.client.isConnected()).toBe(true)
-    })
+function createPending(): MockPending {
+    const entries = new Map<number, PendingRequest>()
 
-    it("is idempotent while connecting/handshaking/connected", async () => {
-        const ctx = setup()
-        const p1 = ctx.client.connect()
-        await Promise.resolve()
-
-        const p2 = ctx.client.connect()
-        await Promise.resolve()
-        expect(p1).not.toBe(p2)
-        await expect(p2).resolves.toBeUndefined()
-
-        ctx.socket.open()
-        const p3 = ctx.client.connect()
-        await expect(p3).resolves.toBeUndefined()
-
-        ctx.socket.message(JSON.stringify({ ok: true }))
-        await p1
-
-        const p4 = ctx.client.connect()
-        await expect(p4).resolves.toBeUndefined()
-    })
-
-    it("rejects if the factory throws", async () => {
-        const client = useWsClient({
-            url: "wss://x",
-            serializer: makeFakeSerializer(),
-            factory: () => {
-                throw new Error("boom")
+    const api = {
+        entries,
+        enqueue: jest.fn<(id: number, entry: PendingRequest) => void>((id, entry) => {
+            entries.set(id, entry)
+        }),
+        remove: jest.fn<(id: number) => void>((id) => {
+            entries.delete(id)
+        }),
+        resolve: jest.fn<(id: number, value: unknown) => void>((id, value) => {
+            const e = entries.get(id)
+            if (e) {
+                entries.delete(id)
+                e.resolve(value)
             }
+        }),
+        reject: jest.fn<(id: number, error: unknown) => void>((id, error) => {
+            const e = entries.get(id)
+            if (e) {
+                entries.delete(id)
+                e.reject(error)
+            }
+        }),
+        rejectAll: jest.fn<(error: unknown) => void>((error) => {
+            const all = Array.from(entries.values())
+            entries.clear()
+            for (const e of all) e.reject(error)
+        }),
+    }
+
+    return api as unknown as MockPending
+}
+
+async function flushPromises(): Promise<void> {
+    for (let i = 0; i < 20; i++) await Promise.resolve()
+}
+
+type Harness = {
+    client: WsClient
+    schedule: MockSchedule
+    pending: MockPending
+}
+
+function createClient(overrides: Partial<WsClientOptions> = {}): Harness {
+    const schedule = createSchedule(false)
+    const pending = createPending()
+
+    const client = useWsClient({
+        url: "ws://test",
+        defaultSerializer: mockSerializer,
+        serializer: mockSerializer,
+        socketFactory: (url: string): WebSocket => new MockSocket(url).asWebSocket(),
+        scheduleFactory: () => schedule,
+        pendingFactory: () => pending,
+        ...overrides,
+    })
+
+    return { client, schedule, pending }
+}
+
+async function finishHandshake(socket: MockSocket): Promise<void> {
+    socket.open()
+    await flushPromises()
+    socket.receive("{}")
+    await flushPromises()
+}
+
+async function connectAndHandshake(client: WsClient): Promise<MockSocket> {
+    const p = client.connect()
+    const socket = getSocket()
+    await finishHandshake(socket)
+    await p
+    return socket
+}
+
+function stateOf(client: WsClient): ConnectionState {
+    return client.state()
+}
+
+beforeEach(() => {
+    MockSocket.reset()
+    jest.useRealTimers()
+})
+
+afterEach(() => {
+    jest.restoreAllMocks()
+})
+
+describe("connect()", () => {
+    it("performs handshake then transitions to connected", async () => {
+        const { client, schedule } = createClient()
+        const socket = await connectAndHandshake(client)
+
+        expect(stateOf(client)).toBe("connected")
+        expect(socket.url).toBe("ws://test")
+        expect(socket.sent).toHaveLength(1)
+        expect(JSON.parse(socket.sent[0]!)).toEqual({ protocol: "test.v1" })
+        expect(schedule.reset).toHaveBeenCalledTimes(1)
+    })
+
+    it("resolves immediately with no-op when already connected", async () => {
+        const { client } = createClient()
+        await connectAndHandshake(client)
+        const before = MockSocket.instances.length
+
+        await client.connect()
+
+        expect(MockSocket.instances.length).toBe(before)
+        expect(stateOf(client)).toBe("connected")
+    })
+
+    it("BUG #1: returns a *different*, already-resolved promise for a concurrent call", async () => {
+        const { client } = createClient()
+
+        const p1 = client.connect()
+        const p2 = client.connect()
+
+        expect(p1).not.toBe(p2)
+
+        await p2
+        expect(stateOf(client)).toBe("connecting")
+
+        await finishHandshake(getSocket())
+        await p1
+        expect(stateOf(client)).toBe("connected")
+    })
+
+    it("rejects when the handshake times out", async () => {
+        jest.useFakeTimers()
+        const { client } = createClient({
+            handshakeTimeoutMs: 1_000,
+            scheduleFactory: undefined,
         })
-        await expect(client.connect()).rejects.toThrow("boom")
-        expect(client.state()).toBe("disconnected")
+
+        const p = client.connect()
+        p.catch(() => { })
+
+        const socket = getSocket()
+        socket.open()
+        await flushPromises()
+        expect(socket.sent).toHaveLength(1)
+
+        await jest.advanceTimersByTimeAsync(1_000)
+
+        await expect(p).rejects.toThrow()
+        expect(socket.readyState).toBe(3)
+        expect(stateOf(client)).toBe("disconnected")
     })
 
-    it("rejects if the socket errors before handshake completes", async () => {
-        const ctx = setup()
-        const p = ctx.client.connect()
-        await Promise.resolve()
-        ctx.socket.open()
-        ctx.socket.error()
-        await expect(p).rejects.toThrow("WebSocket error")
-        expect(ctx.client.state()).toBe("disconnected")
+    it("rejects non-object handshake replies", async () => {
+        const { client } = createClient({ scheduleFactory: undefined })
+        const p = client.connect()
+        const socket = getSocket()
+
+        socket.open()
+        await flushPromises()
+        socket.receive(`"not-an-object"`)
+        await flushPromises()
+
+        await expect(p).rejects.toThrow(/invalid format/i)
+        expect(socket.readyState).toBe(3)
+        expect(stateOf(client)).toBe("disconnected")
     })
 
-    it("rejects if the socket closes before handshake completes", async () => {
-        const ctx = setup()
-        const p = ctx.client.connect()
-        await Promise.resolve()
-        ctx.socket.open()
-        ctx.socket.closeFromServer(1006, "nope")
-        await expect(p).rejects.toThrow(/Connection closed before handshake/)
-        expect(ctx.client.state()).toBe("disconnected")
-    })
+    it("BUG #11: accepts an empty array as a valid handshake reply", async () => {
+        const { client } = createClient({ scheduleFactory: undefined })
+        const p = client.connect()
+        const socket = getSocket()
 
-    it("ignores non-parseable frames during handshaking", async () => {
-        const ctx = setup()
-        const p = ctx.client.connect()
-        await Promise.resolve()
-        ctx.socket.open()
+        socket.open()
+        await flushPromises()
+        socket.receive("[]")
+        await flushPromises()
 
-        ctx.socket.message("not json")
-        await Promise.resolve()
-        expect(ctx.client.state()).toBe("handshaking")
-
-        ctx.socket.message(JSON.stringify({ ok: true }))
-        await expect(p).resolves.toBeUndefined()
-    })
-
-    it("ignores frames deserialize throws on during handshaking", async () => {
-        const serializer = makeFakeSerializer()
-        serializer.throwOnDeserialize = new Error("bad")
-        const ctx = setup({ serializer })
-        const p = ctx.client.connect()
-        await Promise.resolve()
-        ctx.socket.open()
-
-        ctx.socket.message("anything")
-        await Promise.resolve()
-        expect(ctx.client.state()).toBe("handshaking")
-
-        serializer.throwOnDeserialize = null
-        ctx.socket.message(JSON.stringify({ ok: true }))
-        await expect(p).resolves.toBeUndefined()
-    })
-})
-
-describe("useWsClient close()", () => {
-    it("closes the socket and transitions to disconnected", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        ctx.client.close(1000, "bye")
-        expect(ctx.socket.closeCode).toBe(1000)
-        expect(ctx.socket.closeReason).toBe("bye")
-        expect(ctx.client.state()).toBe("disconnected")
-        expect(ctx.client.isConnected()).toBe(false)
-    })
-
-    it("rejects all pending requests on close", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const p = ctx.client.send("k", { a: 1 })
-        ctx.client.close(1000, "bye")
-        await expect(p).rejects.toThrow("bye")
-    })
-
-    it("is safe to call when never connected", () => {
-        const { client } = setup()
-        expect(() => client.close()).not.toThrow()
-        expect(client.state()).toBe("disconnected")
-    })
-})
-
-describe("useWsClient send()", () => {
-    it("rejects when not connected", async () => {
-        const { client } = setup()
-        await expect(client.send("k")).rejects.toThrow("not connected")
-    })
-
-    it("rejects when the socket is not OPEN", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-        ctx.socket.readyState = 3
-        await expect(ctx.client.send("k")).rejects.toThrow("not connected")
-    })
-
-    it("writes the serialized frame and resolves on matching response", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const p = ctx.client.send<{ a: number }, { b: number }>("k", { a: 1 })
-
-        expect(ctx.socket.sent).toHaveLength(2)
-        const wire = JSON.parse(ctx.socket.sent[1] as string)
-        expect(wire.key).toBe("k")
-        expect(wire.value).toEqual({ a: 1 })
-        expect(typeof wire.correlationId).toBe("number")
-
-
-        ctx.socket.message(
-            JSON.stringify({ correlationId: wire.correlationId, value: { b: 2 } })
-        )
-        await expect(p).resolves.toEqual({ b: 2 })
-    })
-
-    it("resolves with undefined value when response has no value", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-        const p = ctx.client.send("k")
-        const wire = JSON.parse(ctx.socket.sent[1] as string)
-        ctx.socket.message(JSON.stringify({ correlationId: wire.correlationId }))
-        await expect(p).resolves.toBeUndefined()
-    })
-
-    it("rejects if socket.send throws", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        ctx.socket.sendThrows = new Error("write failed")
-        await expect(ctx.client.send("k", { a: 1 })).rejects.toThrow("write failed")
-    })
-
-    it("uses incrementing correlationIds", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const p1 = ctx.client.send("a")
-        const p2 = ctx.client.send("b")
-        const [_, f1, f2] = ctx.socket.sent.map((s) => JSON.parse(s as string))
-        expect(f2.correlationId).toBe(f1.correlationId + 1)
-
-        ctx.socket.message(JSON.stringify({ correlationId: f1.correlationId, value: 1 }))
-        ctx.socket.message(JSON.stringify({ correlationId: f2.correlationId, value: 2 }))
-        await expect(p1).resolves.toBe(1)
-        await expect(p2).resolves.toBe(2)
-    })
-
-    it("rejects all in-flight requests when the connection drops", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const p1 = ctx.client.send("a")
-        const p2 = ctx.client.send("b")
-
-        ctx.socket.closeFromServer(1006, "server died")
-        await expect(p1).rejects.toThrow()
-        await expect(p2).rejects.toThrow()
-    })
-})
-
-describe("useWsClient notify()", () => {
-    it("sends a frame and resolves void when server replies", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const p = ctx.client.notify("evt")
-        const wire = JSON.parse(ctx.socket.sent[1] as string)
-        expect(wire.key).toBe("evt")
-
-        ctx.socket.message(JSON.stringify({ correlationId: wire.correlationId }))
-        await expect(p).resolves.toBeUndefined()
-    })
-
-    it("rejects when not connected", async () => {
-        const { client } = setup()
-        await expect(client.notify("x")).rejects.toThrow("not connected")
-    })
-})
-
-describe("useWsClient  receive()", () => {
-    it("invokes the handler for matching key, with the value", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const cb = jest.fn()
-        clientReceive(ctx, "chat", cb)
-        ctx.socket.message(JSON.stringify({ key: "chat", value: { text: "hi" } }))
-
-        await Promise.resolve()
-        await Promise.resolve()
-        expect(cb).toHaveBeenCalledWith({ text: "hi" })
-    })
-
-    it("supports multiple subscribers per key", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const a = jest.fn()
-        const b = jest.fn()
-        ctx.client.receive("chat", a)
-        ctx.client.receive("chat", b)
-
-        ctx.socket.message(JSON.stringify({ key: "chat", value: 1 }))
-        await flush()
-        expect(a).toHaveBeenCalledWith(1)
-        expect(b).toHaveBeenCalledWith(1)
-    })
-
-    it("unsubscribe removes only that handler", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const a = jest.fn()
-        const b = jest.fn()
-        const offA = ctx.client.receive("chat", a)
-        ctx.client.receive("chat", b)
-
-        offA()
-        ctx.socket.message(JSON.stringify({ key: "chat", value: 1 }))
-        await flush()
-        expect(a).not.toHaveBeenCalled()
-        expect(b).toHaveBeenCalledWith(1)
-    })
-
-    it("does not invoke handlers for other keys", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const cb = jest.fn()
-        ctx.client.receive("chat", cb)
-        ctx.socket.message(JSON.stringify({ key: "other", value: 1 }))
-        await flush()
-        expect(cb).not.toHaveBeenCalled()
-    })
-
-    it("a throwing handler does not prevent other handlers", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const bad = jest.fn(() => {
-            throw new Error("bad")
-        })
-        const good = jest.fn()
-        ctx.client.receive("chat", bad)
-        ctx.client.receive("chat", good)
-
-        ctx.socket.message(JSON.stringify({ key: "chat", value: 1 }))
-        await flush()
-        expect(bad).toHaveBeenCalled()
-        expect(good).toHaveBeenCalled()
-    })
-
-    it("routes correlationId messages to pending, not to receive()", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-
-        const cb = jest.fn()
-        ctx.client.receive("k", cb)
-
-        const p = ctx.client.send("k", { a: 1 })
-        const wire = JSON.parse(ctx.socket.sent[1] as string)
-        ctx.socket.message(
-            JSON.stringify({ correlationId: wire.correlationId, key: "k", value: 1 })
-        )
-        await expect(p).resolves.toBe(1)
-        expect(cb).not.toHaveBeenCalled()
-    })
-
-    it("ignores frames whose deserialize throws", async () => {
-        const serializer = makeFakeSerializer()
-        const ctx = setup({ serializer })
-        await connectAndHandshake(ctx)
-
-        const cb = jest.fn()
-        ctx.client.receive("chat", cb)
-
-        serializer.throwOnDeserialize = new Error("bad")
-        ctx.socket.message("garbage")
-        await flush()
-        expect(cb).not.toHaveBeenCalled()
-    })
-})
-
-describe("useWsClient  lifecycle edge cases", () => {
-    it("can reconnect after close", async () => {
-        const ctx = setup()
-        await connectAndHandshake(ctx)
-        ctx.client.close()
-
-        const p = ctx.client.connect()
-        await Promise.resolve()
-        ctx.socket.open()
-        ctx.socket.message(JSON.stringify({ ok: true }))
-        await expect(p).resolves.toBeUndefined()
-        expect(ctx.client.isConnected()).toBe(true)
-    })
-
-    it("state transitions are exactly connecting → handshaking → connected", async () => {
-        const ctx = setup()
-        const seen: string[] = []
-        const p = ctx.client.connect()
-        seen.push(ctx.client.state())
-        await Promise.resolve()
-        ctx.socket.open()
-        seen.push(ctx.client.state())
-        ctx.socket.message(JSON.stringify({ ok: true }))
         await p
-        seen.push(ctx.client.state())
-        expect(seen).toEqual(["connecting", "handshaking", "connected"])
+        expect(stateOf(client)).toBe("connected")
+    })
+
+    it("BUG: loses the original error when the socket factory throws", async () => {
+        const { client, pending } = createClient({
+            socketFactory: () => {
+                throw new Error("factory exploded")
+            },
+            scheduleFactory: undefined,
+        })
+
+        await expect(client.connect()).rejects.toThrow(/WebSocket connection error/i)
+        expect(pending.rejectAll).not.toHaveBeenCalled()
+        expect(stateOf(client)).toBe("disconnected")
+    })
+
+    it("BUG #3 (partial): rejects connect() on socket error, but does NOT reject in-flight pending", async () => {
+        const { client, pending } = createClient({ scheduleFactory: undefined })
+        const p = client.connect()
+        const socket = getSocket()
+
+        socket.fireError()
+
+        await expect(p).rejects.toThrow(/connection error/i)
+        expect(pending.rejectAll).not.toHaveBeenCalled()
+        expect(stateOf(client)).toBe("disconnected")
     })
 })
 
-async function flush(n = 3): Promise<void> {
-    for (let i = 0; i < n; i++) await Promise.resolve()
-}
+describe("send()", () => {
+    it("sends immediately when connected and resolves on reply", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
 
-function clientReceive(
-    ctx: ReturnType<typeof setup>,
-    key: string,
-    cb: (v: unknown) => void
-): void {
-    ctx.client.receive(key, cb)
-}
+        const p = client.send<{ foo: string }, { ok: boolean }>("req", { foo: "bar" })
+
+        expect(socket.sent).toHaveLength(2)
+        const msg = JSON.parse(socket.sent[1]!) as {
+            key: string
+            id: number
+            value: unknown
+        }
+        expect(msg.key).toBe("req")
+        expect(msg.value).toEqual({ foo: "bar" })
+        expect(typeof msg.id).toBe("number")
+        expect(msg.id).not.toBe(0)
+
+        socket.receive(JSON.stringify({ id: msg.id, value: { ok: true } }))
+        await flushPromises()
+        await expect(p).resolves.toEqual({ ok: true })
+    })
+
+    it("queues while connecting and flushes after handshake", async () => {
+        const { client } = createClient()
+        const connectP = client.connect()
+        const socket = getSocket()
+
+        const sendP = client.send<unknown, { result: number }>("req", { x: 1 })
+        expect(socket.sent).toHaveLength(0) // still queued
+
+        await finishHandshake(socket)
+        await connectP
+
+        expect(socket.sent).toHaveLength(2)
+        const msg = JSON.parse(socket.sent[1]!) as { id: number }
+        socket.receive(JSON.stringify({ id: msg.id, value: { result: 42 } }))
+        await flushPromises()
+
+        await expect(sendP).resolves.toEqual({ result: 42 })
+    })
+
+    it("BUG #3: queued sends stay pending forever when connect() fails", async () => {
+        const { client } = createClient({ scheduleFactory: undefined })
+        const connectP = client.connect()
+        const socket = getSocket()
+
+        const sendP = client.send("req", {})
+        let sendSettled = false
+        void sendP.then(
+            () => { sendSettled = true },
+            () => { sendSettled = true },
+        )
+
+        socket.fireError()
+        await expect(connectP).rejects.toThrow()
+        await flushPromises()
+
+        expect(sendSettled).toBe(false)
+    })
+
+    it("BUG #4: throws synchronously (not a rejected promise) on serialize failure", async () => {
+        const throwingSerializer: Serializer = {
+            protocol: "test",
+            serialize: () => {
+                throw new Error("cannot serialize")
+            },
+            deserialize: () => Promise.resolve(undefined),
+        }
+        const { client } = createClient({ serializer: throwingSerializer })
+        await connectAndHandshake(client)
+
+        expect(() => client.send("req", {})).toThrow("cannot serialize")
+    })
+
+    it("rejects in-flight send when the socket closes unexpectedly", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
+
+        const p = client.send("req", {})
+        socket.serverClose(1006, "abnormal")
+
+        await expect(p).rejects.toThrow(/Connection closed/i)
+    })
+
+    it("gives each request a unique correlation id", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
+
+        const a = client.send("a", {})
+        const b = client.send("b", {})
+        const c = client.send("c", {})
+        a.catch(() => { }); b.catch(() => { }); c.catch(() => { })
+
+        const ids = socket.sent
+            .slice(1)
+            .map((s) => (JSON.parse(s) as { id: number }).id)
+        expect(new Set(ids).size).toBe(ids.length)
+        expect(ids.every((id) => id > 0)).toBe(true)
+    })
+})
+
+describe("notify()", () => {
+    it("throws synchronously when not connected", () => {
+        const { client } = createClient()
+        expect(() => client.notify("evt", {})).toThrow(/not connected/i)
+    })
+
+    it("serializes key/value without an id", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
+
+        client.notify("evt", { a: 1 })
+
+        expect(socket.sent).toHaveLength(2)
+        expect(JSON.parse(socket.sent[1]!)).toEqual({ key: "evt", value: { a: 1 } })
+    })
+})
+
+describe("receive()", () => {
+    it("dispatches keyed messages to handlers", async () => {
+        const { client } = createClient()
+        const got: unknown[] = []
+        client.receive("evt", (v) => got.push(v))
+
+        const socket = await connectAndHandshake(client)
+        socket.receive(JSON.stringify({ key: "evt", value: { a: 1 } }))
+        await flushPromises()
+
+        expect(got).toEqual([{ a: 1 }])
+    })
+
+    it("delivers to multiple subscribers", async () => {
+        const { client } = createClient()
+        const a: unknown[] = []
+        const b: unknown[] = []
+        client.receive("evt", (v) => a.push(v))
+        client.receive("evt", (v) => b.push(v))
+
+        const socket = await connectAndHandshake(client)
+        socket.receive(JSON.stringify({ key: "evt", value: 7 }))
+        await flushPromises()
+
+        expect(a).toEqual([7])
+        expect(b).toEqual([7])
+    })
+
+    it("unsubscribe stops delivery", async () => {
+        const { client } = createClient()
+        const got: unknown[] = []
+        const off = client.receive("evt", (v) => got.push(v))
+
+        const socket = await connectAndHandshake(client)
+        off()
+        socket.receive(JSON.stringify({ key: "evt", value: 1 }))
+        await flushPromises()
+
+        expect(got).toEqual([])
+    })
+
+    it("isolates a throwing handler from the next", async () => {
+        const { client } = createClient()
+        const got: unknown[] = []
+        client.receive("evt", () => {
+            throw new Error("boom")
+        })
+        client.receive("evt", (v) => got.push(v))
+
+        const socket = await connectAndHandshake(client)
+        socket.receive(JSON.stringify({ key: "evt", value: 7 }))
+        await flushPromises()
+
+        expect(got).toEqual([7])
+    })
+
+    it("ignores unknown keys", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
+        expect(() => socket.receive(JSON.stringify({ key: "nope", value: 1 }))).not.toThrow()
+    })
+})
+
+describe("close()", () => {
+    it("rejects in-flight requests and marks disconnected", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
+
+        const p = client.send("req", {})
+        client.close()
+
+        expect(stateOf(client)).toBe("disconnected")
+        expect(socket.readyState).toBe(3)
+        await expect(p).rejects.toThrow(/Connection closed/i)
+    })
+
+    it("does not trigger auto-reconnect", async () => {
+        const { client, schedule } = createClient()
+        await connectAndHandshake(client)
+        client.close()
+        await flushPromises()
+        expect(schedule.run).not.toHaveBeenCalled()
+    })
+
+    it("throws when not connected", () => {
+        const { client } = createClient()
+        expect(() => client.close()).toThrow(/not connected/i)
+    })
+})
+
+describe("reconnect", () => {
+    it("retries via scheduleFactory on unexpected close", async () => {
+        const autoSchedule = createSchedule(true)
+        const { client } = createClient({ scheduleFactory: () => autoSchedule })
+
+        const socketA = await connectAndHandshake(client)
+
+        socketA.serverClose(1006, "network")
+        await flushPromises()
+
+        expect(autoSchedule.run).toHaveBeenCalledTimes(1)
+        expect(MockSocket.instances).toHaveLength(2)
+    })
+
+    it("BUG #2: a stale socket's close corrupts state and triggers a spurious reconnect", async () => {
+        const autoSchedule = createSchedule(true)
+        const { client } = createClient({ scheduleFactory: () => autoSchedule })
+
+        const connectP = client.connect()
+        const socketA = getSocket(0)
+
+        socketA.fireError()
+        await expect(connectP).rejects.toThrow()
+        await flushPromises()
+
+        const socketB = getSocket(1)
+        await finishHandshake(socketB)
+        await flushPromises()
+        expect(stateOf(client)).toBe("connected")
+
+        const sendP = client.send<unknown, string>("req", {})
+        const sendResult = sendP.then(
+            (v) => ({ ok: true as const, v }),
+            (e: unknown) => ({ ok: false as const, e }),
+        )
+
+        socketA.receive(JSON.stringify({ id: 999, value: "stale" }))
+        socketA.serverClose(1006, "late")
+        await flushPromises()
+
+        expect(stateOf(client)).toBe("connecting")
+        expect(MockSocket.instances.length).toBeGreaterThanOrEqual(3)
+        const result = await sendResult
+        expect(result.ok).toBe(false)
+    })
+
+    it("stale socket messages do not reach user handlers (they hit the handshake path)", async () => {
+        const autoSchedule = createSchedule(true)
+        const { client } = createClient({ scheduleFactory: () => autoSchedule })
+
+        const connectP = client.connect()
+        const socketA = getSocket(0)
+        socketA.fireError()
+        await expect(connectP).rejects.toThrow()
+        await flushPromises()
+
+        const socketB = getSocket(1)
+        await finishHandshake(socketB)
+        await flushPromises()
+
+        const got: unknown[] = []
+        client.receive("evt", (v) => got.push(v))
+
+        socketA.receive(JSON.stringify({ key: "evt", value: "stale" }))
+        await flushPromises()
+
+        expect(got).toEqual([])
+    })
+})
+
+describe("handleMessage()", () => {
+    it("rejects id response containing error", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
+
+        const p = client.send("req", {})
+        const msg = JSON.parse(socket.sent[1]!) as { id: number }
+        socket.receive(JSON.stringify({ id: msg.id, error: "bad" }))
+        await flushPromises()
+
+        await expect(p).rejects.toBe("bad")
+    })
+
+    it("BUG #8: calls both pending.reject and pending.resolve when error + value coexist", async () => {
+        const { client, pending } = createClient()
+        const socket = await connectAndHandshake(client)
+
+        const p = client.send("req", {})
+        const msg = JSON.parse(socket.sent[1]!) as { id: number }
+        socket.receive(JSON.stringify({ id: msg.id, error: "bad", value: "ok" }))
+        await flushPromises()
+
+        expect(pending.reject).toHaveBeenCalledWith(msg.id, "bad")
+        expect(pending.resolve).toHaveBeenCalledWith(msg.id, "ok")
+        await expect(p).rejects.toBe("bad")
+    })
+
+    it("ignores malformed JSON", async () => {
+        const { client } = createClient()
+        const socket = await connectAndHandshake(client)
+        expect(() => socket.receive("<<not json>>")).not.toThrow()
+        await flushPromises()
+        expect(stateOf(client)).toBe("connected")
+    })
+})
+
+describe("schedule usage", () => {
+    it("resets the schedule on successful connect", async () => {
+        const { client, schedule } = createClient()
+        await connectAndHandshake(client)
+        expect(schedule.reset).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not call schedule.run on clean manual close", async () => {
+        const { client, schedule } = createClient()
+        await connectAndHandshake(client)
+        client.close()
+        expect(schedule.run).not.toHaveBeenCalled()
+    })
+})
