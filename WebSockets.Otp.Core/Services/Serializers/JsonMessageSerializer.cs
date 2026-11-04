@@ -40,7 +40,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
                         var start = reader.TokenStartIndex;
                         reader.Skip();
                         var end = reader.BytesConsumed;
-                        key = data.Slice((int)start, (int)end);
+                        key = data[(int)start..(int)end];
                     }
                     else if (reader.ValueTextEquals(Id))
                     {
@@ -48,7 +48,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
                         var start = reader.TokenStartIndex;
                         reader.Skip();
                         var end = reader.BytesConsumed;
-                        value = data.Slice((int)start, (int)end);
+                        id = uint.Parse(dataSpan[(int)start..(int)end]);
                     }
                     else if (reader.ValueTextEquals(Value))
                     {
@@ -56,7 +56,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
                         var start = reader.TokenStartIndex;
                         reader.Skip();
                         var end = reader.BytesConsumed;
-                        id = uint.Parse(dataSpan.Slice((int)start, (int)end));
+                        value = data[(int)start..(int)end];
                     }
                     break;
             }
