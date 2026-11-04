@@ -40,7 +40,7 @@ public sealed class JsonMessageSerializer(JsonSerializerOptions options) : IMess
                         var start = reader.TokenStartIndex;
                         reader.Skip();
                         var end = reader.BytesConsumed;
-                        key = data[(int)start..(int)end];
+                        key = data[((int)start + 1)..((int)end - 1)];
                     }
                     else if (reader.ValueTextEquals(Id))
                     {
