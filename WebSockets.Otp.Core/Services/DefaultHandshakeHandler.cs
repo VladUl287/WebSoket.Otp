@@ -25,7 +25,7 @@ public sealed class DefaultHandshakeHandler(
 
         var messagesEnumerable = enumerator.EnumerateAsync(socket, options, token);
 
-        using var handshakeBuffer = await AsyncEnumerableExtensions.FirstOrDefaultAsync(messagesEnumerable, token);
+        var handshakeBuffer = await AsyncEnumerableExtensions.FirstOrDefaultAsync(messagesEnumerable, token);
         if (handshakeBuffer is null)
         {
             logger.HandshakeFailReadHandshakeMessage(requestId);
