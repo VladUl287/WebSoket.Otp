@@ -107,8 +107,8 @@ export const useWsClient = (options: WsClientOptions): WsClient => {
                     })
                     .catch((error: unknown) => {
                         state = "disconnected"
-                        try { socket.close(4000, "handshake fail") } catch { }
                         reject(error)
+                        try { socket.close(4000, "handshake fail") } catch { }
                     })
             }
             socket.onmessage = (ev) => handleHandshakeMessage(ev.data as string | BufferSource | Blob)
