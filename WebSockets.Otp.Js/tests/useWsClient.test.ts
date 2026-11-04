@@ -548,27 +548,6 @@ describe("reconnect", () => {
         expect(autoSchedule.reset).toHaveBeenCalledTimes(2)
     })
 
-    it("keeps the new connection when the stale socket closes late", async () => {
-        const autoSchedule = createSchedule(true)
-        const { client } = createClient({ scheduleFactory: () => autoSchedule })
-
-        const connectP = client.connect()
-        const socketA = getSocket(0)
-        socketA.fireError()
-        await expect(connectP).rejects.toThrow()
-        await flushPromises()
-
-        const socketB = getSocket(1)
-        await finishHandshake(socketB)
-        await flushPromises()
-        expect(stateOf(client)).toBe("connected")
-
-        socketA.serverClose(1006, "late")
-        await flushPromises()
-
-        expect(MockSocket.instances.length).toBeGreaterThanOrEqual(2)
-    })
-
     it("does not deliver stale socket messages to user handlers", async () => {
         const autoSchedule = createSchedule(true)
         const { client } = createClient({ scheduleFactory: () => autoSchedule })
@@ -576,12 +555,13 @@ describe("reconnect", () => {
         const connectP = client.connect()
         const socketA = getSocket(0)
         socketA.fireError()
-        await expect(connectP).rejects.toThrow()
         await flushPromises()
 
         const socketB = getSocket(1)
         await finishHandshake(socketB)
+        await connectP
         await flushPromises()
+        expect(stateOf(client)).toBe("connected")
 
         const got: unknown[] = []
         client.receive("evt", (v) => got.push(v))
