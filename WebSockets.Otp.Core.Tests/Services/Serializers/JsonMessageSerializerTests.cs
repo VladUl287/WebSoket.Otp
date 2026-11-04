@@ -1,307 +1,336 @@
 ﻿using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Core.Services.Serializers;
 
 namespace WebSockets.Otp.Core.Tests.Services.Serializers;
 
-public sealed class JsonMessageSerializerTests
+public class JsonMessageSerializerTests
 {
-    private readonly JsonMessageSerializer _sut;
+    private static JsonMessageSerializer CreateSerializer() =>
+        new(new JsonSerializerOptions());
 
-    public JsonMessageSerializerTests()
-    {
-        _sut = new JsonMessageSerializer(new()
-        {
-            PropertyNameCaseInsensitive = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        });
-    }
-
-    #region Constructor Tests
+    private static JsonMessageSerializer CreateSerializer(JsonSerializerOptions options) =>
+        new(options);
 
     [Fact]
-    public void Constructor_Default_ShouldInitializeWithDefaultOptions()
+    public void Protocol_IsJson()
     {
-        // Act
-        var serializer = new JsonMessageSerializer(new());
-
-        // Assert
-        Assert.Equal("json", serializer.Protocol);
+        Assert.Equal("json", CreateSerializer().Protocol);
     }
 
     [Fact]
-    public void Constructor_WithCustomOptions_ShouldUseProvidedOptions()
+    public void Type_IsText()
     {
-        // Arrange
-        var customOptions = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            WriteIndented = true
-        };
-
-        // Act
-        var serializer = new JsonMessageSerializer(customOptions);
-
-        // Assert
-        Assert.Equal("json", serializer.Protocol);
-    }
-
-    #endregion
-
-    #region ProtocolName Tests
-
-    [Fact]
-    public void ProtocolName_ShouldReturnJson()
-    {
-        // Assert
-        Assert.Equal("json", _sut.Protocol);
-    }
-
-    #endregion
-
-    #region Serialize Tests
-
-    [Fact]
-    public void Serialize_ValidObject_ShouldReturnSerializedBytes()
-    {
-        // Arrange
-        var testObject = new TestClass
-        {
-            Id = 123,
-            Name = "Test",
-            Value = 45.67m
-        };
-
-        // Act
-        var result = _sut.Serialize(testObject);
-
-        // Assert
-        Assert.NotEmpty(result.ToArray());
-        var json = System.Text.Encoding.UTF8.GetString(result.Span);
-        Assert.Contains("123", json);
-        Assert.Contains("Test", json);
+        Assert.Equal(System.Net.WebSockets.WebSocketMessageType.Text, CreateSerializer().Type);
     }
 
     [Fact]
-    public void Serialize_NullObject_ShouldThrowArgumentNullException()
+    public void Deserialize_SimpleObject_RoundTrips()
     {
-        // Arrange
-        TestClass? nullObject = null;
+        var serializer = CreateSerializer();
+        var original = new TestPayload { Name = "abc", Count = 42 };
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(original);
 
-        // Act & Assert
-        Assert.Throws<ArgumentNullException>(() => _sut.Serialize(nullObject!));
-    }
+        var result = serializer.Deserialize<TestPayload>(bytes);
 
-    [Fact]
-    public void Serialize_WithCamelCaseNamingPolicy_ShouldUseCamelCase()
-    {
-        // Arrange
-        var testObject = new { TestProperty = "value" };
-
-        // Act
-        var result = _sut.Serialize(testObject);
-        var json = System.Text.Encoding.UTF8.GetString(result.Span);
-
-        // Assert
-        Assert.Contains("testProperty", json);
-        Assert.DoesNotContain("TestProperty", json);
-    }
-
-    [Fact]
-    public void Serialize_WithNullValues_ShouldIgnoreNullProperties()
-    {
-        // Arrange
-        var testObject = new
-        {
-            Property1 = "value",
-            Property2 = (string?)null,
-            Property3 = 123
-        };
-
-        // Act
-        var result = _sut.Serialize(testObject);
-        var json = System.Text.Encoding.UTF8.GetString(result.Span);
-
-        // Assert
-        Assert.Contains("property1", json);
-        Assert.Contains("property3", json);
-        Assert.DoesNotContain("property2", json);
-    }
-
-    #endregion
-
-    #region Deserialize Tests
-
-    [Fact]
-    public void Deserialize_ValidJson_ShouldReturnDeserializedObject()
-    {
-        // Arrange
-        var json = "{\"id\":123,\"name\":\"Test\",\"value\":45.67}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-
-        // Act
-        var result = _sut.Deserialize<TestClass>(bytes);
-
-        // Assert
         Assert.NotNull(result);
-        var testClass = Assert.IsType<TestClass>(result);
-        Assert.Equal(123, testClass.Id);
-        Assert.Equal("Test", testClass.Name);
-        Assert.Equal(45.67m, testClass.Value);
+        Assert.Equal("abc", result!.Name);
+        Assert.Equal(42, result.Count);
     }
 
     [Fact]
-    public void Deserialize_InvalidJson_ShouldThrow()
+    public void Deserialize_RespectsOptions()
     {
-        // Arrange
-        var invalidJson = "{ invalid json }";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(invalidJson);
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var serializer = CreateSerializer(options);
+        var bytes = Encoding.UTF8.GetBytes("""{"name":"x","count":7}""");
 
-        // Act & Assert
-        Assert.Throws<JsonException>(() => _sut.Deserialize<TestClass>(bytes));
-    }
+        var result = serializer.Deserialize<TestPayload>(bytes);
 
-    [Fact]
-    public void Deserialize_EmptyData_ShouldThrow()
-    {
-        // Arrange
-        ReadOnlyMemory<byte> emptyData = Array.Empty<byte>();
-
-        // Act & Assert
-        Assert.Throws<JsonException>(() => _sut.Deserialize<TestClass>(emptyData.Span));
-    }
-
-    [Fact]
-    public void Deserialize_WithCaseInsensitivePropertyMatching_ShouldMatchProperties()
-    {
-        // Arrange
-        var json = "{\"ID\":123,\"NAME\":\"Test\",\"VALUE\":45.67}";
-        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
-
-        // Act
-        var result = _sut.Deserialize<TestClass>(bytes);
-
-        // Assert
         Assert.NotNull(result);
-        var testClass = Assert.IsType<TestClass>(result);
-        Assert.Equal(123, testClass.Id);
-        Assert.Equal("Test", testClass.Name);
-        Assert.Equal(45.67m, testClass.Value);
-    }
-
-    #endregion
-
-    #region ExtractField Tests (Without StringPool)
-
-    [Fact]
-    public void ExtractField_ValidField_ShouldReturnStringValue()
-    {
-        // Arrange
-        var json = "{\"id\":123,\"name\":\"John Doe\",\"active\":true}";
-        var bytes = Encoding.UTF8.GetBytes(json);
-
-        // Act
-        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "name", out var index);
-
-        // Assert
-        Assert.True(result);
-        Assert.Equal(18, index);
+        Assert.Equal("x", result!.Name);
+        Assert.Equal(7, result.Count);
     }
 
     [Fact]
-    public void ExtractField_FieldNotFound_ShouldReturnFalse()
+    public void Deserialize_EmptyObject_ReturnsDefault()
     {
-        // Arrange
-        var json = "{\"id\":123,\"name\":\"John Doe\"}";
-        var bytes = Encoding.UTF8.GetBytes(json);
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes("{}");
 
-        // Act & Assert
-        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "nonexistent", out var index);
-        Assert.False(result);
-        Assert.Equal(default, index);
+        var result = serializer.Deserialize<TestPayload>(bytes);
+
+        Assert.NotNull(result);
+        Assert.Null(result!.Name);
+        Assert.Equal(0, result.Count);
     }
 
     [Fact]
-    public void ExtractField_FieldValueIsNotString_ShouldReturnCorrectIndex()
+    public void ReadHeaders_ExtractsIdKeyAndValue()
     {
-        // Arrange
-        var json = "{\"id\":123,\"name\":\"John Doe\"}";
-        var bytes = Encoding.UTF8.GetBytes(json);
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes(
+            """{"id":123,"key":"myKey","value":{"a":1}}""");
 
-        // Act & Assert
-        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "id", out var index);
-        Assert.True(result);
-        Assert.Equal(5, index);
+        var headers = serializer.ReadHeaders(bytes);
+
+        Assert.Equal(123u, headers.Id);
+        Assert.Equal("\"myKey\"", Encoding.UTF8.GetString(headers.Key.Span));
+        Assert.Equal("""{"a":1}""", Encoding.UTF8.GetString(headers.Value.Span));
     }
 
     [Fact]
-    public void ExtractField_MultipleProperties_ShouldFindCorrectOne()
+    public void ReadHeaders_OrderIndependent()
     {
-        // Arrange
-        var json = "{\"id\":1,\"id\":2,\"name\":\"test\"}";
-        var bytes = Encoding.UTF8.GetBytes(json);
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes(
+            """{"value":"v","key":"k","id":9}""");
 
-        var result = _sut.TryGetFieldValueIndex(bytes.AsSpan(), "name", out var index);
+        var headers = serializer.ReadHeaders(bytes);
 
-        Assert.True(result);
-        Assert.Equal(23, index);
+        Assert.Equal(9u, headers.Id);
+        Assert.Equal("\"k\"", Encoding.UTF8.GetString(headers.Key.Span));
+        Assert.Equal("\"v\"", Encoding.UTF8.GetString(headers.Value.Span));
     }
 
-    #endregion
+    [Fact]
+    public void ReadHeaders_IgnoresNestedProperties()
+    {
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes(
+            """{"id":5,"value":{"id":999,"key":"nested","value":"nope"}}""");
 
-    #region Edge Cases
+        var headers = serializer.ReadHeaders(bytes);
+
+        Assert.Equal(5u, headers.Id);
+        Assert.Equal("""{"id":999,"key":"nested","value":"nope"}""",
+            Encoding.UTF8.GetString(headers.Value.Span));
+        Assert.True(headers.Key.IsEmpty);
+    }
 
     [Fact]
-    public void Serialize_Deserialize_RoundTrip_ShouldReturnOriginalObject()
+    public void ReadHeaders_NoHeaders_ReturnsDefaults()
     {
-        // Arrange
-        var original = new TestClass
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes("""{"other":"x"}""");
+
+        var headers = serializer.ReadHeaders(bytes);
+
+        Assert.Equal(0u, headers.Id);
+        Assert.True(headers.Key.IsEmpty);
+        Assert.True(headers.Value.IsEmpty);
+    }
+
+    [Fact]
+    public void ReadHeaders_EmptyObject_ReturnsDefaults()
+    {
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes("{}");
+
+        var headers = serializer.ReadHeaders(bytes);
+
+        Assert.Equal(0u, headers.Id);
+        Assert.True(headers.Key.IsEmpty);
+        Assert.True(headers.Value.IsEmpty);
+    }
+
+    [Fact]
+    public void ReadHeaders_StringValue_IsCapturedIncludingQuotes()
+    {
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes("""{"value":"hello"}""");
+
+        var headers = serializer.ReadHeaders(bytes);
+
+        Assert.Equal("\"hello\"", Encoding.UTF8.GetString(headers.Value.Span));
+    }
+
+    [Fact]
+    public void ReadHeaders_NumericValue_IsCaptured()
+    {
+        var serializer = CreateSerializer();
+        var bytes = Encoding.UTF8.GetBytes("""{"id":1234567}""");
+
+        var headers = serializer.ReadHeaders(bytes);
+
+        Assert.Equal(1234567u, headers.Id);
+    }
+
+    [Fact]
+    public void SerializeToMessage_WritesValueProperty()
+    {
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
         {
-            Id = 999,
-            Name = "RoundTrip Test",
-            Value = 123.45m
+            Value = new TestPayload { Name = "abc", Count = 1 },
         };
 
-        // Act
-        var serialized = _sut.Serialize(original);
-        var deserialized = _sut.Deserialize<TestClass>(serialized.Span) as TestClass;
+        var bytes = serializer.SerializeToMessage(envelope);
 
-        // Assert
-        Assert.NotNull(deserialized);
-        Assert.Equal(original.Id, deserialized.Id);
-        Assert.Equal(original.Name, deserialized.Name);
-        Assert.Equal(original.Value, deserialized.Value);
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.True(doc.RootElement.TryGetProperty("value", out var value));
+        Assert.Equal("abc", value.GetProperty("Name").GetString());
+        Assert.Equal(1, value.GetProperty("Count").GetInt32());
+        Assert.False(doc.RootElement.TryGetProperty("key", out _));
+        Assert.False(doc.RootElement.TryGetProperty("id", out _));
     }
 
     [Fact]
-    public void Serialize_SpecialCharacters_ShouldHandleCorrectly()
+    public void SerializeToMessage_IncludesKeyWhenNonEmpty()
     {
-        // Arrange
-        var testObject = new
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
         {
-            Text = "Line1\nLine2\tTab\"Quote\\Backslash"
+            Key = "myKey",
+            Value = new TestPayload { Name = "x", Count = 0 },
         };
 
-        // Act
-        var result = _sut.Serialize(testObject);
-        var json = System.Text.Encoding.UTF8.GetString(result.Span);
+        var bytes = serializer.SerializeToMessage(envelope);
 
-        // Assert
-        Assert.Contains("Line1\\nLine2\\tTab\\u0022Quote\\\\Backslash", json);
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.Equal("myKey", doc.RootElement.GetProperty("key").GetString());
     }
 
-    #endregion
-
-    #region Test Helper Class
-
-    private class TestClass
+    [Fact]
+    public void SerializeToMessage_OmitsKeyWhenNull()
     {
-        public int Id { get; set; }
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
+        {
+            Key = null,
+            Value = new TestPayload(),
+        };
+
+        var bytes = serializer.SerializeToMessage(envelope);
+
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.False(doc.RootElement.TryGetProperty("key", out _));
+    }
+
+    [Fact]
+    public void SerializeToMessage_OmitsKeyWhenEmpty()
+    {
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
+        {
+            Key = "",
+            Value = new TestPayload(),
+        };
+
+        var bytes = serializer.SerializeToMessage(envelope);
+
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.False(doc.RootElement.TryGetProperty("key", out _));
+    }
+
+    [Fact]
+    public void SerializeToMessage_IncludesIdWhenNonZero()
+    {
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
+        {
+            Id = 42,
+            Value = new TestPayload(),
+        };
+
+        var bytes = serializer.SerializeToMessage(envelope);
+
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.Equal(42, doc.RootElement.GetProperty("id").GetInt32());
+    }
+
+    [Fact]
+    public void SerializeToMessage_OmitsIdWhenZero()
+    {
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
+        {
+            Id = 0,
+            Value = new TestPayload(),
+        };
+
+        var bytes = serializer.SerializeToMessage(envelope);
+
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.False(doc.RootElement.TryGetProperty("id", out _));
+    }
+
+    [Fact]
+    public void SerializeToMessage_ErrorType_WritesErrorProperty()
+    {
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<string>
+        {
+            Type = MessageType.Error,
+            Value = "boom",
+        };
+
+        var bytes = serializer.SerializeToMessage(envelope);
+
+        using var doc = JsonDocument.Parse(bytes);
+        Assert.True(doc.RootElement.TryGetProperty("error", out var error));
+        Assert.Equal("boom", error.GetString());
+        Assert.False(doc.RootElement.TryGetProperty("value", out _));
+    }
+
+    [Fact]
+    public void SerializeToMessage_RespectsOptions()
+    {
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var serializer = CreateSerializer(options);
+        var envelope = new MessageEnvelope<TestPayload>
+        {
+            Value = new TestPayload { Name = "x", Count = 3 },
+        };
+
+        var bytes = serializer.SerializeToMessage(envelope);
+
+        using var doc = JsonDocument.Parse(bytes);
+        var value = doc.RootElement.GetProperty("value");
+        Assert.True(value.TryGetProperty("name", out _));
+        Assert.True(value.TryGetProperty("count", out _));
+    }
+
+    [Fact]
+    public void RoundTrip_HeadersMatchEnvelope()
+    {
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
+        {
+            Key = "rpc",
+            Id = 77,
+            Value = new TestPayload { Name = "abc", Count = 5 },
+        };
+
+        var message = serializer.SerializeToMessage(envelope);
+        var headers = serializer.ReadHeaders(message);
+
+        Assert.Equal(77u, headers.Id);
+        Assert.Equal("\"rpc\"", Encoding.UTF8.GetString(headers.Key.Span));
+    }
+
+    [Fact]
+    public void RoundTrip_DeserializeValueSucceeds()
+    {
+        var serializer = CreateSerializer();
+        var envelope = new MessageEnvelope<TestPayload>
+        {
+            Value = new TestPayload { Name = "abc", Count = 5 },
+        };
+
+        var message = serializer.SerializeToMessage(envelope);
+        var headers = serializer.ReadHeaders(message);
+        var payload = serializer.Deserialize<TestPayload>(headers.Value);
+
+        Assert.NotNull(payload);
+        Assert.Equal("abc", payload!.Name);
+        Assert.Equal(5, payload.Count);
+    }
+
+    private sealed class TestPayload
+    {
         public string? Name { get; set; }
-        public decimal Value { get; set; }
+        public int Count { get; set; }
     }
-
-    #endregion
 }
