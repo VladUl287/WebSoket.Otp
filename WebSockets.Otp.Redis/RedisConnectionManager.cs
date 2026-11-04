@@ -2,9 +2,7 @@
 using StackExchange.Redis;
 using System.Collections.Concurrent;
 using WebSockets.Otp.Abstractions.Connections;
-using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Abstractions.Models;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Redis;
 
@@ -17,7 +15,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     private const string GroupSetPrefix = "ws:group:";
     private const string ConnGroupsPrefix = "ws:conn_groups:";
 
-    private sealed record Envelope(string Kind, MessageHeaders Headers, string[] Targets, string Data, string TypeName);
+    private sealed record Envelope<TData>(string Kind, MessageEnvelope<TData> Data, string[] Targets, string TypeName);
 
     private readonly IConnectionMultiplexer _redis;
     private readonly IDatabase _db;
@@ -97,7 +95,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return removed;
     }
 
-    public async ValueTask<bool> AddToGroupAsync(string group, string connectionId, CancellationToken token)
+    public async ValueTask<bool> AddToGroup(string group, string connectionId, CancellationToken token)
     {
         if (string.IsNullOrEmpty(group) || string.IsNullOrEmpty(connectionId))
             return false;
@@ -116,7 +114,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return ok;
     }
 
-    public async ValueTask<bool> RemoveFromGroupAsync(string group, string connectionId, CancellationToken token)
+    public async ValueTask<bool> RemoveFromGroup(string group, string connectionId, CancellationToken token)
     {
         if (string.IsNullOrEmpty(group) || string.IsNullOrEmpty(connectionId))
             return false;
@@ -139,68 +137,66 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         return ok;
     }
 
-    public ValueTask SendAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) where TData : notnull =>
-        BroadcastAsync(headers, data, token);
+    public ValueTask Send<TData>(MessageEnvelope<TData> data, CancellationToken token) where TData : notnull =>
+        BroadcastAsync(data, token);
 
-    public ValueTask SendAsync<TData>(string connectionId, MessageHeaders headers, TData data, CancellationToken token)
+    public ValueTask Send<TData>(string connectionId, MessageEnvelope<TData> data, CancellationToken token)
         where TData : notnull
     {
         if (string.IsNullOrEmpty(connectionId))
             return ValueTask.CompletedTask;
 
-        return PublishAsync("direct", headers, [connectionId], data);
+        return PublishAsync("direct", data, [connectionId]);
     }
 
-    public ValueTask SendAsync<TData>(IEnumerable<string> connections, MessageHeaders headers, TData data, CancellationToken token)
+    public ValueTask Send<TData>(IEnumerable<string> connections, MessageEnvelope<TData> data, CancellationToken token)
         where TData : notnull
     {
         var targets = connections?.Where(c => !string.IsNullOrEmpty(c)).Distinct().ToArray() ?? [];
         if (targets.Length == 0)
             return ValueTask.CompletedTask;
 
-        return PublishAsync("direct", headers, targets, data);
+        return PublishAsync("direct", data, targets);
     }
 
-    public ValueTask SendToGroupAsync<TData>(string group, MessageHeaders headers, TData data, CancellationToken token)
+    public ValueTask SendToGroup<TData>(string group, MessageEnvelope<TData> data, CancellationToken token)
         where TData : notnull
     {
         if (string.IsNullOrEmpty(group))
             return ValueTask.CompletedTask;
 
-        return PublishAsync("group", headers, [group], data);
+        return PublishAsync("group", data, [group]);
     }
 
-    public ValueTask SendToGroupAsync<TData>(IEnumerable<string> groups, MessageHeaders headers, TData data, CancellationToken token)
+    public ValueTask SendToGroup<TData>(IEnumerable<string> groups, MessageEnvelope<TData> data, CancellationToken token)
         where TData : notnull
     {
         var targets = groups?.Where(g => !string.IsNullOrEmpty(g)).Distinct().ToArray() ?? [];
         if (targets.Length == 0)
             return ValueTask.CompletedTask;
 
-        return PublishAsync("group", headers, targets, data);
+        return PublishAsync("group", data, targets);
     }
 
-    private async ValueTask BroadcastAsync<TData>(MessageHeaders headers, TData data, CancellationToken token) where TData : notnull
+    private async ValueTask BroadcastAsync<TData>(MessageEnvelope<TData> data, CancellationToken token) where TData : notnull
     {
         var ids = await _db.SetMembersAsync(ConnectionsSetKey);
         if (ids.Length == 0) return;
 
         var targets = new string[ids.Length];
         for (int i = 0; i < ids.Length; i++) targets[i] = ids[i]!;
-        await PublishAsync("direct", headers, targets, data);
+        await PublishAsync("direct", data, targets);
     }
 
-    private async ValueTask PublishAsync<TData>(string kind, MessageHeaders headers, string[] targets, TData data) where TData : notnull
+    private async ValueTask PublishAsync<TData>(string kind, MessageEnvelope<TData> data, string[] targets) where TData : notnull
     {
-        var payload = JsonSerializer.Serialize(data, _jsonOptions);
-
         var declaredType = typeof(TData);
         var typeName = declaredType.AssemblyQualifiedName
             ?? declaredType.FullName
             ?? declaredType.Name
             ?? throw new NullReferenceException("");
 
-        var envelope = new Envelope(kind, headers, targets, payload, typeName);
+        var envelope = new Envelope<TData>(kind, data, targets, typeName);
         var json = JsonSerializer.Serialize(envelope, _jsonOptions);
 
         var channel = kind == "direct" ? _directRedisChannel : _groupRedisChannel;
@@ -211,12 +207,15 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
     {
         if (message.IsNullOrEmpty) return;
 
-        Envelope? env;
+        Envelope<JsonElement>? env;
         try
         {
-            env = JsonSerializer.Deserialize<Envelope>((string)message!, _jsonOptions);
+            env = JsonSerializer.Deserialize<Envelope<JsonElement>>(message.ToString(), _jsonOptions);
         }
-        catch (JsonException) { return; }
+        catch (JsonException)
+        {
+            return;
+        }
 
         if (env is null || env.Kind != expectedKind) return;
 
@@ -226,7 +225,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         object? data;
         try
         {
-            data = JsonSerializer.Deserialize(env.Data, type, _jsonOptions);
+            data = JsonSerializer.Deserialize(env.Data.Value, type, _jsonOptions);
         }
         catch (JsonException)
         {
@@ -234,6 +233,9 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
         }
 
         if (data is null) return;
+
+        var envData = env.Data;
+        var envelope = new MessageEnvelope<object>(envData.Key, data, envData.Id, envData.Type);
 
         foreach (var target in env.Targets)
         {
@@ -249,7 +251,7 @@ public sealed class RedisConnectionManager : IWsConnectionManager, IAsyncDisposa
                 var serializer = group.First().Serializer;
                 try
                 {
-                    bytes = serializer.SerializeToMessage(env.Headers, data);
+                    bytes = serializer.SerializeToMessage(envelope);
                 }
                 catch
                 {
