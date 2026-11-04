@@ -20,7 +20,7 @@ dotnet add package WebSockets.Otp.Core
 [WsEndpoint("chat/message/send")]
 public class ChatEndpoint : WsEndpoint<ChatMessage>
 {
-    public override async Task HandleAsync(ChatMessage message, EndpointContext context)
+    public override async Task HandleAsync(ChatMessage message, IEndpointContext context)
     {
         await context.Send
             .Group("general-chat")
@@ -47,11 +47,11 @@ app.MapEndpoints(
     {
         opt.OnConnected = async (context) =>
         {
-            await context.Groups.AddAsync("general-chat", context.ConnectionId);
+            await context.Groups.AddAsync("general-chat", context.Connection.Id);
         };
         opt.OnDisconnected = async (context) =>
         {
-            await context.Groups.RemoveAsync("general-chat", context.ConnectionId);
+            await context.Groups.RemoveAsync("general-chat", context.Connection.Id);
         };
     });
 ```
