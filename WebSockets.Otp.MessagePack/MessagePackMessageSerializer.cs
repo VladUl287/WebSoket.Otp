@@ -1,96 +1,63 @@
 ﻿using MessagePack;
 using System.Buffers;
 using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Models;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
-using WebSockets.Otp.Abstractions.Utils;
 
 namespace WebSockets.Otp.MessagePack;
 
 public sealed class MessagePackMessageSerializer(MessagePackSerializerOptions options) : IMessageSerializer
 {
-    public string Protocol => "message_pack";
-
+    public string Protocol => "messagepack";
     public WebSocketMessageType Type => WebSocketMessageType.Binary;
 
-    public T? Deserialize<T>(ReadOnlyMemory<byte> data) => MessagePackSerializer.Deserialize<T>(data, options);
+    public T? Deserialize<T>(ReadOnlyMemory<byte> data)
+        => MessagePackSerializer.Deserialize<T>(data, options);
 
-    public uint ParseUInt(ReadOnlyMemory<byte> data) => new MessagePackReader(data).ReadUInt32();
-
-    private const int KeyField = 0; // "key"
-    private const int IdField = 1; // "id"
-    private const int ValueField = 2; // "value"
-    private const int ErrorField = 3; // "error"
-
-    public void ScanMessage(ReadOnlyMemory<byte> data, Span<Segment> results)
+    public MessageHeaders ReadHeaders(ReadOnlyMemory<byte> data)
     {
         var reader = new MessagePackReader(data);
-        if (reader.NextMessagePackType != MessagePackType.Map)
-            return;
 
-        var mapLength = reader.ReadMapHeader();
+        uint id = 0u;
+        ReadOnlyMemory<byte> key = default;
+        ReadOnlyMemory<byte> value = default;
 
-        for (var i = 0; i < mapLength; i++)
+        if (reader.TryReadArrayHeader(out var count) && count >= 3)
         {
-            var fieldKey = reader.ReadInt32();
-
-            var start = (int)reader.Consumed;
-
-            var idx = fieldKey switch
+            if (!reader.TryReadNil())
             {
-                KeyField => 0,
-                IdField => 1,
-                ValueField => 2,
-                ErrorField => 3,
-                _ => -1,
-            };
-
-            if (idx >= 0 && !results[idx].Found)
-            {
+                var start = reader.Consumed;
                 reader.Skip();
-                var end = (int)reader.Consumed;
-                results[idx] = new Segment(start, end);
-                continue;
+                var end = reader.Consumed;
+                key = data[(int)start..(int)end];
             }
 
+            id = reader.ReadUInt32();
+
+            var valueStart = reader.Consumed;
             reader.Skip();
+            var valueEnd = reader.Consumed;
+            value = data[(int)valueStart..(int)valueEnd];
         }
+
+        return new(id, key, value);
     }
 
-    public ReadOnlyMemory<byte> SerializeToMessage<T>(MessageHeaders headers, T data)
+    public ReadOnlyMemory<byte> SerializeToMessage<T>(MessageEnvelope<T> envelope)
     {
         var buffer = new ArrayBufferWriter<byte>();
         var writer = new MessagePackWriter(buffer);
 
-        var fieldCount = 1;
-        if (!string.IsNullOrEmpty(headers.Key)) fieldCount++;
-        if (headers.CorrelationId is not null) fieldCount++;
+        writer.WriteArrayHeader(3);
 
-        writer.WriteMapHeader(fieldCount);
+        if (!string.IsNullOrEmpty(envelope.Key))
+            writer.Write(envelope.Key);
+        else
+            writer.WriteNil();
 
-        if (!string.IsNullOrEmpty(headers.Key))
-        {
-            writer.Write(KeyField);
-            writer.Write(headers.Key);
-        }
+        writer.Write(envelope.Id);
 
-        if (headers.CorrelationId is not null)
-        {
-            writer.Write(IdField);
-            writer.Write(headers.CorrelationId.Value);
-        }
-
-        switch (headers.Type)
-        {
-            case MessageType.Error:
-                writer.Write(ErrorField);
-                MessagePackSerializer.Serialize<T>(ref writer, data, options);
-                break;
-            default:
-                writer.Write(ValueField);
-                MessagePackSerializer.Serialize<T>(ref writer, data, options);
-                break;
-        }
+        MessagePackSerializer.Serialize(ref writer, envelope.Value, options);
 
         writer.Flush();
         return buffer.WrittenMemory;
