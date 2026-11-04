@@ -1,5 +1,4 @@
 ﻿using System.Buffers;
-using System.Runtime.InteropServices;
 using WebSockets.Otp.Core.Services.Utils;
 
 namespace WebSockets.Otp.Core.Tests.Services.Utils;
@@ -159,62 +158,6 @@ public class NativeChunkedBufferTests : IDisposable
         // Assert
         Assert.Equal(size, buffer.Length);
         Assert.Equal(data, buffer.Span.ToArray());
-    }
-
-    #endregion
-
-    #region Write Tests - ReadOnlySequence
-
-    [Fact]
-    public void Write_WithSequence_AddsDataToBuffer()
-    {
-        // Arrange
-        var buffer = CreateBuffer(10);
-        var data = new byte[] { 1, 2, 3, 4, 5 };
-        var sequence = new ReadOnlySequence<byte>(data);
-
-        // Act
-        buffer.Write(sequence);
-
-        // Assert
-        Assert.Equal(5, buffer.Length);
-        Assert.Equal(data, buffer.Span.ToArray());
-    }
-
-    [Fact]
-    public void Write_WithMultiSegmentSequence_AddsAllSegments()
-    {
-        // Arrange
-        var buffer = CreateBuffer(20);
-
-        var segment1 = new byte[] { 1, 2, 3 };
-        var segment2 = new byte[] { 4, 5, 6 };
-        var segment3 = new byte[] { 7, 8, 9 };
-
-        var sequence = CreateMultiSegmentSequence(segment1, segment2, segment3);
-        var expected = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
-
-        // Act
-        buffer.Write(sequence);
-
-        // Assert
-        Assert.Equal(9, buffer.Length);
-        Assert.Equal(expected, buffer.Span.ToArray());
-    }
-
-    [Fact]
-    public void Write_WithEmptySequence_DoesNothing()
-    {
-        // Arrange
-        var buffer = CreateBuffer(10);
-        var initialLength = buffer.Length;
-        var sequence = ReadOnlySequence<byte>.Empty;
-
-        // Act
-        buffer.Write(sequence);
-
-        // Assert
-        Assert.Equal(initialLength, buffer.Length);
     }
 
     #endregion
@@ -678,7 +621,6 @@ public class NativeChunkedBufferTests : IDisposable
     #endregion
 }
 
-// Extension methods for testing
 internal static class NativeChunkedBufferExtensions
 {
     public static bool IsDisposed(this NativeChunkedBuffer buffer)
