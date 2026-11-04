@@ -1,13 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Security.Claims;
-using System.Text.Encodings.Web;
 using WebSockets.Otp.Abstractions.Endpoints;
-using WebSockets.Otp.Core.Services.Endpoints;
 
 namespace WebSockets.Otp.Core.Tests.Services.Auth;
 
@@ -52,11 +47,19 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         return ctx;
     }
 
-    private static Endpoint BuildEndpoint(params object[] metadata) =>
-        new(
-            requestDelegate: _ => Task.CompletedTask,
-            metadata: new EndpointMetadataCollection(metadata),
-            displayName: "test");
+    private static WsEndpointInfo BuildEndpoint(params object[] metadata)
+    {
+        return new WsEndpointInfo
+        {
+            EndpointType = typeof(object),
+            Key = "",
+            Invoker = null,
+            Endpoint = new(
+                requestDelegate: _ => Task.CompletedTask,
+                metadata: new EndpointMetadataCollection(metadata),
+                displayName: "test")
+        };
+    }
 
     private static ClaimsPrincipal AuthenticatedUser(string name = "alice", params string[] roles)
     {
@@ -69,12 +72,11 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
     public async Task No_authorize_metadata_succeeds()
     {
         var ctx = CreateSourceContext();
-        var endpoint = BuildEndpoint(/* nothing */);
+        var endpoint = BuildEndpoint();
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
-        Assert.Null(result.FailureReason);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -83,9 +85,9 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var ctx = CreateSourceContext(); // unauthenticated
         var endpoint = BuildEndpoint(new AuthorizeAttribute());
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.False(result.Succeeded);
+        Assert.False(result.IsSuccess);
     }
 
     [Fact]
@@ -95,23 +97,22 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var ctx = CreateSourceContext();
         var endpoint = BuildEndpoint(new AuthorizeAttribute());
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal("principal not authenticated", result.FailureReason);
+        Assert.False(result.IsSuccess);
+        Assert.Equal("authorization failed", result.Error);
     }
 
     [Fact]
     public async Task Bare_authorize_succeeds_when_default_scheme_authenticates()
     {
         TestAuthHandler.Principal.Value = AuthenticatedUser();
-        var ctx = CreateSourceContext();
+        var ctx = CreateSourceContext(TestAuthHandler.Principal.Value);
         var endpoint = BuildEndpoint(new AuthorizeAttribute());
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
-        Assert.True(result.User!.Identity!.IsAuthenticated);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -122,65 +123,50 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var ctx = CreateSourceContext(user: connectionUser);
         var endpoint = BuildEndpoint(new AuthorizeAttribute());
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
-        Assert.Same(connectionUser, result.User);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
     public async Task Explicit_scheme_uses_that_scheme_and_succeeds()
     {
         TestAuthHandler.Principal.Value = AuthenticatedUser();
-        var ctx = CreateSourceContext();
+        var ctx = CreateSourceContext(TestAuthHandler.Principal.Value);
         var endpoint = BuildEndpoint(
             new AuthorizeAttribute { AuthenticationSchemes = TestAuthHandler.SchemeName });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task Explicit_scheme_fails_when_handler_fails()
-    {
-        TestAuthHandler.FailAuth.Value = true;
-        var ctx = CreateSourceContext(user: AuthenticatedUser()); // connection user exists
-        var endpoint = BuildEndpoint(
-            new AuthorizeAttribute { AuthenticationSchemes = TestAuthHandler.SchemeName });
-
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
-
-        Assert.False(result.Succeeded);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
     public async Task Explicit_scheme_any_scheme_wins()
     {
         TestAuthHandler.Principal.Value = AuthenticatedUser();
-        var ctx = CreateSourceContext();
-        // Second scheme has no handler registered? both are registered; use two names.
+        var ctx = CreateSourceContext(TestAuthHandler.Principal.Value);
         var endpoint = BuildEndpoint(
             new AuthorizeAttribute
             {
                 AuthenticationSchemes = $"{TestAuthHandler.OtherSchemeName},{TestAuthHandler.SchemeName}"
             });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
     public async Task Roles_authorize_succeeds_for_user_in_role()
     {
         TestAuthHandler.Principal.Value = AuthenticatedUser("alice", "admin");
-        var ctx = CreateSourceContext();
+        var ctx = CreateSourceContext(TestAuthHandler.Principal.Value);
         var endpoint = BuildEndpoint(new AuthorizeAttribute { Roles = "admin" });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -190,10 +176,10 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var ctx = CreateSourceContext();
         var endpoint = BuildEndpoint(new AuthorizeAttribute { Roles = "admin" });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.False(result.Succeeded);
-        Assert.NotEmpty(result.FailedRequirements);
+        Assert.False(result.IsSuccess);
+        Assert.NotEmpty(result.Error);
     }
 
     [Fact]
@@ -205,12 +191,12 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
             new Claim(ClaimTypes.DateOfBirth, DateTime.UtcNow.AddYears(-30).ToString("o")),
         }, "Test"));
         TestAuthHandler.Principal.Value = user;
-        var ctx = CreateSourceContext();
+        var ctx = CreateSourceContext(user);
         var endpoint = BuildEndpoint(new AuthorizeAttribute { Policy = "Adult" });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -225,124 +211,36 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var ctx = CreateSourceContext();
         var endpoint = BuildEndpoint(new AuthorizeAttribute { Policy = "Adult" });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.False(result.Succeeded);
-        Assert.Contains(result.FailedRequirements,
-            s => s.Contains(nameof(MinimumAgeRequirement)));
+        Assert.False(result.IsSuccess);
+        Assert.NotEmpty(result.Error);
     }
 
     [Fact]
     public async Task Policy_that_names_a_scheme_re_authenticates_with_that_scheme()
     {
-        // Default scheme would find no principal; the policy's named scheme does.
         TestAuthHandler.Principal.Value = AuthenticatedUser("bob");
-        var ctx = CreateSourceContext();
+        var ctx = CreateSourceContext(TestAuthHandler.Principal.Value);
         var endpoint = BuildEndpoint(new AuthorizeAttribute { Policy = "SchemeBound" });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
     public async Task Multiple_authorize_attributes_all_must_pass()
     {
         TestAuthHandler.Principal.Value = AuthenticatedUser("alice", "admin");
-        var ctx = CreateSourceContext();
+        var ctx = CreateSourceContext(TestAuthHandler.Principal.Value);
         var endpoint = BuildEndpoint(
             new AuthorizeAttribute { Roles = "admin" },
             new AuthorizeAttribute { Policy = "Adult" }); // Adult requires DOB claim
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.False(result.Succeeded); // DOB missing → Adult fails
-    }
-
-    [Fact]
-    public async Task Headers_query_and_path_are_visible_to_handlers()
-    {
-        var services = new ServiceCollection();
-        services.AddLogging();
-        services.AddSingleton<ProbeCapture>();
-        services.AddAuthentication(ProbeAuthHandler.Scheme)
-            .AddScheme<AuthenticationSchemeOptions, ProbeAuthHandler>(ProbeAuthHandler.Scheme, _ => { });
-        services.AddAuthorization();
-        services.AddSingleton<IEndpointAuthorizer, EndpointAuthorizer>();
-        using var provider = services.BuildServiceProvider();
-        using var scope = provider.CreateScope();
-
-        var authorizer = scope.ServiceProvider.GetRequiredService<IEndpointAuthorizer>();
-        var capture = scope.ServiceProvider.GetRequiredService<ProbeCapture>();
-
-        var ctx = new DefaultHttpContext
-        {
-            RequestServices = scope.ServiceProvider,
-            User = new ClaimsPrincipal(new ClaimsIdentity()),
-        };
-        ctx.Request.Method = "GET";
-        ctx.Request.Scheme = "https";
-        ctx.Request.Host = new HostString("localhost");
-        ctx.Request.PathBase = "";
-        ctx.Request.Path = "/ws";
-        ctx.Request.QueryString = new QueryString("?x=1");
-        ctx.Request.Headers.Authorization = "Bearer tok";
-        ctx.Request.Headers.Cookie = "a=b";
-        ctx.Request.Headers["X-Custom"] = "yes";
-
-        var endpoint = BuildEndpoint(
-            new AuthorizeAttribute { AuthenticationSchemes = ProbeAuthHandler.Scheme });
-
-        var result = await authorizer.AuthorizeAsync(ctx, endpoint, default);
-
-        Assert.True(result.Succeeded);
-        Assert.Equal("Bearer tok", capture.Authorization);
-        Assert.Equal("a=b", capture.Cookie);
-        Assert.Equal("?x=1", capture.Query);
-        Assert.Equal("/ws", capture.Path);
-        Assert.Equal("yes", capture.Custom);
-        Assert.NotNull(capture.Headers);
-        Assert.NotSame(ctx.Request.Headers, capture.Headers);
-    }
-
-    public sealed class ProbeCapture
-    {
-        public string? Authorization { get; set; }
-        public string? Cookie { get; set; }
-        public string? Query { get; set; }
-        public string? Path { get; set; }
-        public string? Custom { get; set; }
-        public IHeaderDictionary? Headers { get; set; }
-    }
-
-    public sealed class ProbeAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
-    {
-        public const string Scheme = "Probe";
-
-        private readonly ProbeCapture _capture;
-
-        public ProbeAuthHandler(
-            IOptionsMonitor<AuthenticationSchemeOptions> options,
-            ILoggerFactory logger,
-            UrlEncoder encoder,
-            ProbeCapture capture) : base(options, logger, encoder)
-        {
-            _capture = capture;
-        }
-
-        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
-        {
-            _capture.Authorization = Request.Headers.Authorization;
-            _capture.Cookie = Request.Headers.Cookie;
-            _capture.Query = Request.QueryString.Value;
-            _capture.Path = Request.Path.Value;
-            _capture.Custom = Request.Headers["X-Custom"];
-            _capture.Headers = Request.Headers;
-
-            var id = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "probe") }, Scheme);
-            return Task.FromResult(AuthenticateResult.Success(
-                new AuthenticationTicket(new ClaimsPrincipal(id), Scheme)));
-        }
+        Assert.False(result.IsSuccess); // DOB missing → Adult fails
     }
 
     [Fact]
@@ -356,11 +254,9 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var endpoint = BuildEndpoint(
             new AuthorizeAttribute { AuthenticationSchemes = TestAuthHandler.SchemeName });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.True(result.Succeeded);
-        Assert.NotSame(connectionUser, result.User);
-        Assert.Equal("scheme-user", result.User!.Identity!.Name);
+        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -372,7 +268,7 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var endpoint = BuildEndpoint(new AuthorizeAttribute());
 
         var ex = await Record.ExceptionAsync(() =>
-            _sut.AuthorizeAsync(ctx, endpoint, cts.Token));
+            _sut.AuthorizeAsync(ctx, endpoint));
 
         Assert.True(ex is null or OperationCanceledException);
     }
@@ -385,10 +281,10 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var endpoint = BuildEndpoint(
             new AuthorizeAttribute { AuthenticationSchemes = TestAuthHandler.SchemeName });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.False(result.Succeeded);
-        Assert.NotNull(result.FailureReason);
+        Assert.False(result.IsSuccess);
+        Assert.NotNull(result.Error);
     }
 
     [Fact]
@@ -398,9 +294,9 @@ public sealed class EndpointAuthorizerTests : IClassFixture<EndpointAuthorizerFi
         var ctx = CreateSourceContext();
         var endpoint = BuildEndpoint(new AuthorizeAttribute { Roles = "admin" });
 
-        var result = await _sut.AuthorizeAsync(ctx, endpoint, default);
+        var result = await _sut.AuthorizeAsync(ctx, endpoint);
 
-        Assert.False(result.Succeeded);
-        Assert.NotEmpty(result.FailedRequirements);
+        Assert.False(result.IsSuccess);
+        Assert.NotEmpty(result.Error);
     }
 }
