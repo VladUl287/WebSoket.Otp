@@ -7,6 +7,7 @@ using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Api.Database;
 using WebSockets.Otp.Api.Database.Models;
 using WebSockets.Otp.Api.Models;
+using WebSockets.Otp.Core.Models;
 
 namespace WebSockets.Otp.Api.Endpoints;
 
@@ -15,7 +16,7 @@ namespace WebSockets.Otp.Api.Endpoints;
 public sealed class ChatSendEndpoint :
     WsEndpoint<ChatMessage, ChatMessage>
 {
-    public override async Task<ChatMessage> HandleAsync(ChatMessage request, EndpointContext ctx)
+    public override async Task<ChatMessage> HandleAsync(ChatMessage request, IEndpointContext ctx)
     {
         var result = new ChatMessage
         {

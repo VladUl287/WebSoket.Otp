@@ -39,19 +39,4 @@ public class ChatsController(DatabaseContext dbContext, IWsConnectionManager man
             .ToArrayAsync();
         return Ok(result);
     }
-
-    [HttpGet]
-    public async Task<IActionResult> SendMessage()
-    {
-        var message = new
-        {
-            message = "test message text"
-        };
-
-        var payload = serializer.SerializeToMessage(new Abstractions.Endpoints.EndpointHeaders() { Key = "test" }, message);
-
-        await manager.SendAsync(payload, serializer.Type, default);
-
-        return Ok();
-    }
 }
