@@ -3,7 +3,7 @@ using WebSockets.Otp.Core.Services;
 using WebSockets.Otp.Abstractions.Connections;
 using WebSockets.Otp.Abstractions.Serializers;
 using System.Net.WebSockets;
-using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Options;
 
 namespace WebSockets.Otp.Core.Tests.Services;
 
@@ -80,7 +80,7 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
 
         // Act
-        var result = await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
+        var result = await _connectionManager.AddToGroup("group1", "test-connection-1", CancellationToken.None);
 
         // Assert
         Assert.True(result);
@@ -91,7 +91,7 @@ public class InMemoryConnectionManagerTests
     {
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            _connectionManager.AddToGroupAsync("group1", "non-existent", CancellationToken.None).AsTask());
+            _connectionManager.AddToGroup("group1", "non-existent", CancellationToken.None).AsTask());
     }
 
     [Fact]
@@ -99,10 +99,10 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
-        await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
+        await _connectionManager.AddToGroup("group1", "test-connection-1", CancellationToken.None);
 
         // Act
-        var result = await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
+        var result = await _connectionManager.AddToGroup("group1", "test-connection-1", CancellationToken.None);
 
         // Assert
         Assert.False(result);
@@ -113,10 +113,10 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
-        await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
+        await _connectionManager.AddToGroup("group1", "test-connection-1", CancellationToken.None);
 
         // Act
-        var result = await _connectionManager.RemoveFromGroupAsync("group1", "test-connection-1", CancellationToken.None);
+        var result = await _connectionManager.RemoveFromGroup("group1", "test-connection-1", CancellationToken.None);
 
         // Assert
         Assert.True(result);
@@ -129,7 +129,7 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
 
         // Act
-        var result = await _connectionManager.RemoveFromGroupAsync("group1", "test-connection-1", CancellationToken.None);
+        var result = await _connectionManager.RemoveFromGroup("group1", "test-connection-1", CancellationToken.None);
 
         // Assert
         Assert.False(result);
@@ -139,21 +139,20 @@ public class InMemoryConnectionManagerTests
     public async Task SendAsync_WithConnectionId_SendsToCorrectConnection()
     {
         // Arrange
-        var testData = new { Message = "Hello" };
         var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
+        var headers = new MessageEnvelope<object>(string.Empty, new { Message = "Hello" });
 
-        var headers = new EndpointHeaders();
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
-        _mockSerializer.Setup(s => s.SerializeToMessage(headers, testData)).Returns(serializedData);
+        _mockSerializer.Setup(s => s.SerializeToMessage(headers)).Returns(serializedData);
         _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _connectionManager.SendAsync("test-connection-1", headers, testData, CancellationToken.None);
+        await _connectionManager.Send("test-connection-1", headers, CancellationToken.None);
 
         // Assert
-        _mockSerializer.Verify(s => s.SerializeToMessage(headers, testData), Times.Once);
+        _mockSerializer.Verify(s => s.SerializeToMessage(headers), Times.Once);
         _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Once);
     }
 
@@ -161,18 +160,17 @@ public class InMemoryConnectionManagerTests
     public async Task SendAsync_WithConnectionId_NonExistentConnection_ThrowsKeyNotFoundException()
     {
         // Arrange
-        var testData = new { Message = "Hello" };
+        var headers = new MessageEnvelope<object>(string.Empty, new { Message = "Hello" });
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            _connectionManager.SendAsync("non-existent", new EndpointHeaders(), testData, CancellationToken.None).AsTask());
+            _connectionManager.Send("non-existent", headers, CancellationToken.None).AsTask());
     }
 
     [Fact]
     public async Task SendAsync_WithConnectionsCollection_SendsToAllSpecifiedConnections()
     {
         // Arrange
-        var testData = new { Message = "Broadcast" };
         var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
         var mockConnection2 = CreateMockConnection("test-connection-2", _mockSocket, _mockSerializer);
@@ -182,25 +180,24 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection3.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        _mockSerializer.Setup(s => s.SerializeToMessage(headers, testData)).Returns(serializedData);
+        var headers = new MessageEnvelope<object>(string.Empty, new { Message = "Broadcast" });
+        _mockSerializer.Setup(s => s.SerializeToMessage(headers)).Returns(serializedData);
         _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _connectionManager.SendAsync(["test-connection-1", "test-connection-2"], headers, testData, CancellationToken.None);
+        await _connectionManager.Send(["test-connection-1", "test-connection-2"], headers, CancellationToken.None);
 
         // Assert
-        _mockSerializer.Verify(s => s.SerializeToMessage(headers, testData), Times.Exactly(1));
-        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(2));
+        _mockSerializer.Verify(s => s.SerializeToMessage(headers), Times.Exactly(1));
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
     public async Task SendAsync_Default_SendsToAllConnections()
     {
         // Arrange
-        var testData = new { Message = "Broadcast" };
         var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
         var mockConnection2 = CreateMockConnection("test-connection-2", _mockSocket, _mockSerializer);
@@ -208,18 +205,18 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        _mockSerializer.Setup(s => s.SerializeToMessage(headers, testData)).Returns(serializedData);
+        var headers = new MessageEnvelope<object>(string.Empty, new { Message = "Broadcast" });
+        _mockSerializer.Setup(s => s.SerializeToMessage(headers)).Returns(serializedData);
         _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _connectionManager.SendAsync(headers, testData, CancellationToken.None);
+        await _connectionManager.Send(headers, CancellationToken.None);
 
         // Assert
-        _mockSerializer.Verify(s => s.SerializeToMessage(headers, testData), Times.Exactly(1));
-        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(2));
+        _mockSerializer.Verify(s => s.SerializeToMessage(headers), Times.Exactly(1));
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     public sealed record GroupMessage(string Message);
@@ -229,28 +226,27 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new GroupMessage("GroupMessage");
+        var headers = new MessageEnvelope<GroupMessage>(string.Empty, testData);
         var serializedData = new ReadOnlyMemory<byte>([1, 2, 3]);
 
         var mockConnection2 = CreateMockConnection("test-connection-2", _mockSocket, _mockSerializer);
 
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
-        await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
-        await _connectionManager.AddToGroupAsync("group1", "test-connection-2", CancellationToken.None);
+        await _connectionManager.AddToGroup("group1", "test-connection-1", CancellationToken.None);
+        await _connectionManager.AddToGroup("group1", "test-connection-2", CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        _mockSerializer.Setup(s => s.SerializeToMessage(headers, testData))
-            .Returns(serializedData);
+        _mockSerializer.Setup(s => s.SerializeToMessage(headers)).Returns(serializedData);
         _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _connectionManager.SendToGroupAsync("group1", headers, testData, CancellationToken.None);
+        await _connectionManager.SendToGroup("group1", headers, CancellationToken.None);
 
         // Assert
-        _mockSerializer.Verify(s => s.SerializeToMessage(headers, testData), Times.Exactly(1));
-        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(2));
+        _mockSerializer.Verify(s => s.SerializeToMessage(headers), Times.Exactly(1));
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
     [Fact]
@@ -258,10 +254,11 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new { Message = "GroupMessage" };
+        var headers = new MessageEnvelope<object>(string.Empty, testData);
 
         // Act & Assert
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
-            _connectionManager.SendToGroupAsync("non-existent-group", new EndpointHeaders(), testData, CancellationToken.None).AsTask());
+            _connectionManager.SendToGroup("non-existent-group", headers, CancellationToken.None).AsTask());
     }
 
     [Fact]
@@ -278,22 +275,22 @@ public class InMemoryConnectionManagerTests
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
         await _connectionManager.TryAdd(mockConnection3.Object, CancellationToken.None);
 
-        await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
-        await _connectionManager.AddToGroupAsync("group2", "test-connection-2", CancellationToken.None);
-        await _connectionManager.AddToGroupAsync("group2", "test-connection-3", CancellationToken.None);
+        await _connectionManager.AddToGroup("group1", "test-connection-1", CancellationToken.None);
+        await _connectionManager.AddToGroup("group2", "test-connection-2", CancellationToken.None);
+        await _connectionManager.AddToGroup("group2", "test-connection-3", CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        _mockSerializer.Setup(s => s.SerializeToMessage(headers, testData)).Returns(serializedData);
+        var headers = new MessageEnvelope<object>(string.Empty, testData);
+        _mockSerializer.Setup(s => s.SerializeToMessage(headers)).Returns(serializedData);
         _mockSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
         _mockSocket.Setup(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None))
             .Returns(ValueTask.CompletedTask);
 
         // Act
-        await _connectionManager.SendToGroupAsync(["group1", "group2"], headers, testData, CancellationToken.None);
+        await _connectionManager.SendToGroup(["group1", "group2"], headers, CancellationToken.None);
 
         // Assert
-        _mockSerializer.Verify(s => s.SerializeToMessage(headers, testData), Times.Exactly(1));
-        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, CancellationToken.None), Times.Exactly(3));
+        _mockSerializer.Verify(s => s.SerializeToMessage(headers), Times.Exactly(1));
+        _mockSocket.Verify(s => s.SendAsync(serializedData, WebSocketMessageType.Text, true, It.IsAny<CancellationToken>()), Times.Exactly(3));
     }
 
     [Fact]
@@ -313,8 +310,9 @@ public class InMemoryConnectionManagerTests
             tasks.Add(Task.Run(async () =>
             {
                 await _connectionManager.TryAdd(mockConnection.Object, CancellationToken.None);
-                await _connectionManager.AddToGroupAsync(group, connectionId, CancellationToken.None);
-                await _connectionManager.SendToGroupAsync(group, new EndpointHeaders(), new { Message = "Test" }, CancellationToken.None);
+                await _connectionManager.AddToGroup(group, connectionId, CancellationToken.None);
+                await _connectionManager.SendToGroup(
+                    group, new MessageEnvelope<object>(string.Empty, new { Message = "Test" }), CancellationToken.None);
             }));
         }
 
@@ -330,14 +328,15 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new { Message = "Test" };
+        var headers = new MessageEnvelope<object>(string.Empty, testData);
         var mockConnection2 = CreateMockConnection("test-connection-2");
         await _connectionManager.TryAdd(mockConnection2.Object, CancellationToken.None);
 
         // Act
-        await _connectionManager.SendAsync(Enumerable.Empty<string>(), new EndpointHeaders(), testData, CancellationToken.None);
+        await _connectionManager.Send(Enumerable.Empty<string>(), headers, CancellationToken.None);
 
         // Assert - Should not send to any connection
-        _mockSerializer.Verify(s => s.Serialize(testData), Times.Never);
+        _mockSerializer.Verify(s => s.SerializeToMessage(headers), Times.Never);
     }
 
     [Fact]
@@ -345,14 +344,15 @@ public class InMemoryConnectionManagerTests
     {
         // Arrange
         var testData = new { Message = "Test" };
+        var headers = new MessageEnvelope<object>(string.Empty, testData);
         await _connectionManager.TryAdd(_mockConnection.Object, CancellationToken.None);
-        await _connectionManager.AddToGroupAsync("group1", "test-connection-1", CancellationToken.None);
+        await _connectionManager.AddToGroup("group1", "test-connection-1", CancellationToken.None);
 
         // Act
-        await _connectionManager.SendToGroupAsync(Enumerable.Empty<string>(), new EndpointHeaders(), testData, CancellationToken.None);
+        await _connectionManager.SendToGroup(Enumerable.Empty<string>(), headers, CancellationToken.None);
 
         // Assert - Should not send to any connection
-        _mockSerializer.Verify(s => s.Serialize(testData), Times.Never);
+        _mockSerializer.Verify(s => s.SerializeToMessage(headers), Times.Never);
     }
 
     private Mock<IWsConnection> CreateMockConnection(string connectionId)
@@ -365,8 +365,8 @@ public class InMemoryConnectionManagerTests
         mockConnection.SetupGet(c => c.Socket).Returns(mockSocket.Object);
         mockConnection.SetupGet(c => c.Serializer).Returns(mockSerializer.Object);
 
-        mockSerializer.Setup(s => s.Serialize(It.IsAny<object>()))
-            .Returns(new ArraySegment<byte>(new byte[] { 1, 2, 3 }));
+        mockSerializer.Setup(s => s.SerializeToMessage(It.IsAny<MessageEnvelope<object>>()))
+            .Returns(new ArraySegment<byte>([1, 2, 3]));
         mockSerializer.SetupGet(s => s.Type)
             .Returns(System.Net.WebSockets.WebSocketMessageType.Text);
 
@@ -387,13 +387,13 @@ public class InMemoryConnectionManagerTests
         mockConnection.SetupGet(c => c.Socket).Returns(mockSocket.Object);
         mockConnection.SetupGet(c => c.Serializer).Returns(mockSerializer.Object);
 
-        mockSerializer.Setup(s => s.Serialize(It.IsAny<object>()))
-            .Returns(new ArraySegment<byte>(new byte[] { 1, 2, 3 }));
+        mockSerializer.Setup(s => s.SerializeToMessage(It.IsAny<MessageEnvelope<object>>()))
+            .Returns(new ArraySegment<byte>([1, 2, 3]));
         mockSerializer.SetupGet(s => s.Type)
-            .Returns(System.Net.WebSockets.WebSocketMessageType.Text);
+            .Returns(WebSocketMessageType.Text);
 
         mockSocket.Setup(s => s.SendAsync(It.IsAny<ArraySegment<byte>>(),
-            It.IsAny<System.Net.WebSockets.WebSocketMessageType>(),
+            It.IsAny<WebSocketMessageType>(),
             It.IsAny<bool>(),
             It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
