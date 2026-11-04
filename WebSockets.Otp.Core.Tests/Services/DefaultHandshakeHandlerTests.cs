@@ -5,7 +5,6 @@ using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Services;
 
 namespace WebSockets.Otp.Core.Tests.Services;
@@ -14,7 +13,6 @@ public class DefaultHandshakeHandlerTests
 {
     private readonly Mock<ISerializerStore> _storeMock;
     private readonly Mock<IMessageEnumerator> _enumeratorMock;
-    private readonly Mock<IAsyncObjectPool<IMessageBuffer>> _objectPoolMock;
     private readonly DefaultHandshakeHandler _handler;
     private readonly Mock<HttpContext> _httpContextMock;
     private readonly Mock<WebSocket> _webSocketMock;
@@ -23,14 +21,12 @@ public class DefaultHandshakeHandlerTests
     {
         _storeMock = new Mock<ISerializerStore>();
         _enumeratorMock = new Mock<IMessageEnumerator>();
-        _objectPoolMock = new Mock<IAsyncObjectPool<IMessageBuffer>>();
 
         var logger = NullLogger<DefaultHandshakeHandler>.Instance;
 
         _handler = new DefaultHandshakeHandler(
             _storeMock.Object,
             _enumeratorMock.Object,
-            _objectPoolMock.Object,
             logger
         );
 
@@ -45,11 +41,10 @@ public class DefaultHandshakeHandlerTests
         var options = new WsOptionsSnapshot(new WsOptions());
         var token = CancellationToken.None;
 
-        // Create empty async enumerable
         var emptyEnumerable = Enumerable.Empty<IMessageBuffer>().ToAsyncEnumerable();
 
         _enumeratorMock
-            .Setup(e => e.EnumerateAsync(_webSocketMock.Object, options, _objectPoolMock.Object, token))
+            .Setup(e => e.EnumerateAsync(_webSocketMock.Object, options, token))
             .Returns(emptyEnumerable);
 
         // Act
@@ -67,14 +62,13 @@ public class DefaultHandshakeHandlerTests
         var token = CancellationToken.None;
         var bufferMock = new Mock<IMessageBuffer>();
 
-        // Setup buffer with some data
         bufferMock.SetupGet(b => b.Length).Returns(10);
 
         var messageBuffer = bufferMock.Object;
         var enumerable = new[] { messageBuffer }.ToAsyncEnumerable();
 
         _enumeratorMock
-            .Setup(e => e.EnumerateAsync(_webSocketMock.Object, options, _objectPoolMock.Object, token))
+            .Setup(e => e.EnumerateAsync(_webSocketMock.Object, options, token))
             .Returns(enumerable);
 
         _storeMock
@@ -98,9 +92,8 @@ public class DefaultHandshakeHandlerTests
         cts.Cancel();
         var token = cts.Token;
 
-        // Setup enumerator to throw when cancelled
         _enumeratorMock
-            .Setup(e => e.EnumerateAsync(_webSocketMock.Object, options, _objectPoolMock.Object, token))
+            .Setup(e => e.EnumerateAsync(_webSocketMock.Object, options, token))
             .Throws<OperationCanceledException>();
 
         // Act & Assert
@@ -117,7 +110,7 @@ public static class TestHelpers
         foreach (var item in source)
         {
             yield return item;
-            await Task.Yield(); // Simulate async behavior
+            await Task.Yield();
         }
     }
 }
