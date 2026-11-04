@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.ObjectPool;
 using Moq;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
@@ -7,7 +8,6 @@ using WebSockets.Otp.Abstractions.Endpoints;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Processors;
 
 namespace WebSockets.Otp.Core.Tests.Services.Processors;
@@ -16,7 +16,7 @@ public class ParallelMessageProcessorTests
 {
     private readonly Mock<IMessageDispatcher> _mockDispatcher;
     private readonly Mock<IMessageEnumerator> _mockEnumerator;
-    private readonly Mock<IAsyncObjectPool<IMessageBuffer>> _mockBufferPool;
+    private readonly Mock<ObjectPool<IMessageBuffer>> _mockBufferPool;
     private readonly ParallelMessageProcessor _processor;
     private readonly Mock<IGlobalContext> _mockGlobalContext;
     private readonly Mock<IMessageSerializer> _mockSerializer;
@@ -26,14 +26,13 @@ public class ParallelMessageProcessorTests
     {
         _mockDispatcher = new Mock<IMessageDispatcher>();
         _mockEnumerator = new Mock<IMessageEnumerator>();
-        _mockBufferPool = new Mock<IAsyncObjectPool<IMessageBuffer>>();
+        _mockBufferPool = new Mock<ObjectPool<IMessageBuffer>>();
         _mockGlobalContext = new Mock<IGlobalContext>();
         _mockSerializer = new Mock<IMessageSerializer>();
 
         _processor = new ParallelMessageProcessor(
             _mockDispatcher.Object,
             _mockEnumerator.Object,
-            _mockBufferPool.Object,
             NullLogger<ParallelMessageProcessor>.Instance
         );
 
@@ -54,22 +53,19 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
-                _mockBufferPool.Object,
                 token))
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
 
         // Assert
         _mockEnumerator.Verify(x => x.EnumerateAsync(
             mockSocket.Object,
             _options,
-            _mockBufferPool.Object,
             token), Times.Once);
     }
 
@@ -83,16 +79,14 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
-                _mockBufferPool.Object,
                 token))
             .Returns(new List<IMessageBuffer> { mockBuffer1.Object, mockBuffer2.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
 
         // Assert
         _mockDispatcher.Verify(x => x.DispatchMessage(
@@ -108,7 +102,7 @@ public class ParallelMessageProcessorTests
     }
 
     [Fact]
-    public async Task Process_ShouldReturnBufferToPoolAfterDispatch()
+    public async Task Process_ShouldReturnBufferWhenOptionEnabled()
     {
         // Arrange
         var mockSocket = new Mock<WebSocket>();
@@ -116,96 +110,14 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
-        _mockEnumerator.Setup(x => x.EnumerateAsync(
-                mockSocket.Object,
-                _options,
-                _mockBufferPool.Object,
-                token))
+        _mockEnumerator.Setup(x => x.EnumerateAsync(mockSocket.Object, _options, token))
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
 
         // Assert
-        _mockBufferPool.Verify(x => x.Return(mockBuffer.Object, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Process_ShouldResetBufferLength()
-    {
-        // Arrange
-        var mockSocket = new Mock<WebSocket>();
-        var mockBuffer = new Mock<IMessageBuffer>();
-        var token = CancellationToken.None;
-
-        _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
-        _mockEnumerator.Setup(x => x.EnumerateAsync(
-                mockSocket.Object,
-                _options,
-                _mockBufferPool.Object,
-                token))
-            .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
-
-        // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
-
-        // Assert
-        mockBuffer.Verify(x => x.SetLength(0), Times.Once);
-    }
-
-    [Fact]
-    public async Task Process_ShouldShrinkBufferWhenOptionEnabled()
-    {
-        // Arrange
-        var mockSocket = new Mock<WebSocket>();
-        var mockBuffer = new Mock<IMessageBuffer>();
-        var token = CancellationToken.None;
-
-        _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
-        _mockEnumerator.Setup(x => x.EnumerateAsync(
-                mockSocket.Object,
-                _options,
-                _mockBufferPool.Object,
-                token))
-            .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
-
-        // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
-
-        // Assert
-        mockBuffer.Verify(x => x.Shrink(), Times.Once);
-    }
-
-    [Fact]
-    public async Task Process_ShouldNotShrinkBufferWhenOptionDisabled()
-    {
-        // Arrange
-        var mockSocket = new Mock<WebSocket>();
-        var mockBuffer = new Mock<IMessageBuffer>();
-        var token = CancellationToken.None;
-
-        var options = new WsOptionsSnapshot(new WsOptions
-        {
-            ShrinkBuffers = false
-        });
-
-        _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(options);
-        _mockEnumerator.Setup(x => x.EnumerateAsync(
-                mockSocket.Object,
-                options,
-                _mockBufferPool.Object,
-                token))
-            .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
-
-        // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
-
-        // Assert
-        mockBuffer.Verify(x => x.Shrink(), Times.Never);
+        _mockEnumerator.Verify(x => x.ReturnBuffer(mockBuffer.Object), Times.Once);
     }
 
     [Fact]
@@ -216,18 +128,15 @@ public class ParallelMessageProcessorTests
         var token = CancellationToken.None;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
-                _mockBufferPool.Object,
                 token))
             .Returns(Enumerable.Empty<IMessageBuffer>().ToAsyncEnumerable());
 
-        // Act & Assert (should not throw)
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
+        // Act & Assert
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
 
-        // Verify no dispatches were attempted
         _mockDispatcher.Verify(x => x.DispatchMessage(
             It.IsAny<IGlobalContext>(),
             It.IsAny<IMessageSerializer>(),
@@ -249,7 +158,6 @@ public class ParallelMessageProcessorTests
             MaxDegreeOfParallelism = maxDegree,
         });
 
-        // Create more buffers than max degree of parallelism
         for (int i = 0; i < 5; i++)
         {
             buffers.Add(new Mock<IMessageBuffer>());
@@ -260,11 +168,9 @@ public class ParallelMessageProcessorTests
         var maxConcurrentCalls = 0;
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 options,
-                _mockBufferPool.Object,
                 token))
             .Returns(buffers.ConvertAll(b => b.Object).ToAsyncEnumerable());
 
@@ -281,13 +187,13 @@ public class ParallelMessageProcessorTests
                 {
                     maxConcurrentCalls = concurrentCalls;
                 }
-                Thread.Sleep(100); // Simulate work to allow parallel execution
+                Thread.Sleep(100);
                 Interlocked.Decrement(ref concurrentCalls);
             })
             .Returns(Task.CompletedTask);
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, options, token);
 
         // Assert
         Assert.Equal(buffers.Count, callCount);
@@ -305,11 +211,9 @@ public class ParallelMessageProcessorTests
         var expectedException = new InvalidOperationException("Test exception");
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
-                _mockBufferPool.Object,
                 token))
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
@@ -322,11 +226,9 @@ public class ParallelMessageProcessorTests
 
         // Act & Assert
         var exception = await Record.ExceptionAsync(() =>
-            _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token));
+            _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token));
 
-        // Buffer should still be returned to pool even if dispatch fails
-        mockBuffer.Verify(x => x.SetLength(0), Times.Once);
-        mockBuffer.Verify(x => x.Shrink(), Times.Once);
+        _mockEnumerator.Verify(x => x.ReturnBuffer(mockBuffer.Object), Times.Once);
     }
 
     [Fact]
@@ -341,20 +243,15 @@ public class ParallelMessageProcessorTests
         _mockGlobalContext
             .Setup(x => x.Socket)
             .Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options)
-            .Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
-                _mockBufferPool.Object,
                 token))
             .Returns(new List<IMessageBuffer> { mockBuffer.Object }.ToAsyncEnumerable());
 
         // Act
-        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
+        await _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
 
-        // Note: We can't easily verify TaskScheduler usage without more complex setup
-        // This test at least ensures the option is accepted without throwing
         Assert.NotNull(_options.TaskScheduler);
     }
 
@@ -369,7 +266,6 @@ public class ParallelMessageProcessorTests
         var processingOrder = new ConcurrentBag<int>();
         var processingTasks = new List<TaskCompletionSource<bool>>();
 
-        // Create buffers and task completion sources for synchronization
         for (int i = 0; i < bufferCount; i++)
         {
             buffers.Add(new Mock<IMessageBuffer>());
@@ -377,11 +273,9 @@ public class ParallelMessageProcessorTests
         }
 
         _mockGlobalContext.Setup(x => x.Socket).Returns(mockSocket.Object);
-        _mockGlobalContext.Setup(x => x.Options).Returns(_options);
         _mockEnumerator.Setup(x => x.EnumerateAsync(
                 mockSocket.Object,
                 _options,
-                _mockBufferPool.Object,
                 token))
             .Returns(buffers.ConvertAll(b => b.Object).ToAsyncEnumerable());
 
@@ -398,7 +292,7 @@ public class ParallelMessageProcessorTests
                 return processingTasks[currentIndex].Task;
             });
 
-        var processTask = _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, token);
+        var processTask = _processor.Process(_mockGlobalContext.Object, _mockSerializer.Object, _options, token);
 
         await Task.Delay(100);
 
