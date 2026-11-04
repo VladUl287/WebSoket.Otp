@@ -1,9 +1,9 @@
-﻿using Moq;
+﻿using Microsoft.Extensions.ObjectPool;
+using Moq;
 using System.Buffers;
 using System.Net.WebSockets;
 using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Transport;
-using WebSockets.Otp.Abstractions.Utils;
 using WebSockets.Otp.Core.Services;
 
 namespace WebSockets.Otp.Core.Tests.Services;
@@ -11,7 +11,7 @@ namespace WebSockets.Otp.Core.Tests.Services;
 public class MessageEnumeratorTests
 {
     private readonly Mock<WebSocket> _mockWebSocket;
-    private readonly Mock<IAsyncObjectPool<IMessageBuffer>> _mockBufferPool;
+    private readonly Mock<ObjectPool<IMessageBuffer>> _mockBufferPool;
     private readonly Mock<IMessageBuffer> _mockMessageBuffer;
     private readonly WsOptionsSnapshot _config;
     private readonly MessageEnumerator _enumerator;
@@ -19,14 +19,14 @@ public class MessageEnumeratorTests
     public MessageEnumeratorTests()
     {
         _mockWebSocket = new Mock<WebSocket>();
-        _mockBufferPool = new Mock<IAsyncObjectPool<IMessageBuffer>>();
+        _mockBufferPool = new Mock<ObjectPool<IMessageBuffer>>();
         _mockMessageBuffer = new Mock<IMessageBuffer>();
         _config = new WsOptionsSnapshot(new WsOptions
         {
             ReceiveBufferSize = 1024,
             MaxMessageSize = 8192
         });
-        _enumerator = new MessageEnumerator(ArrayPool<byte>.Shared);
+        _enumerator = new MessageEnumerator(_mockBufferPool.Object);
     }
 
     [Fact]
@@ -38,8 +38,8 @@ public class MessageEnumeratorTests
 
         var messageBuffer = new TestMessageBuffer();
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(messageBuffer);
+        _mockBufferPool.Setup(p => p.Get())
+            .Returns(messageBuffer);
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
                 It.IsAny<ArraySegment<byte>>(),
@@ -58,7 +58,6 @@ public class MessageEnumeratorTests
         await foreach (var message in _enumerator.EnumerateAsync(
             _mockWebSocket.Object,
             _config,
-            _mockBufferPool.Object,
             cancellationToken))
         {
             messages.Add(message);
@@ -77,8 +76,8 @@ public class MessageEnumeratorTests
 
         var messageBuffer = new TestMessageBuffer();
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(messageBuffer);
+        _mockBufferPool.Setup(p => p.Get())
+            .Returns(messageBuffer);
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
                 It.IsAny<ArraySegment<byte>>(),
@@ -93,7 +92,6 @@ public class MessageEnumeratorTests
         await foreach (var message in _enumerator.EnumerateAsync(
             _mockWebSocket.Object,
             _config,
-            _mockBufferPool.Object,
             cancellationToken))
         {
             messages.Add(message);
@@ -112,8 +110,8 @@ public class MessageEnumeratorTests
 
         var messageBuffer = new TestMessageBuffer();
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(messageBuffer);
+        _mockBufferPool.Setup(p => p.Get())
+            .Returns(messageBuffer);
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
                 It.IsAny<ArraySegment<byte>>(),
@@ -134,9 +132,8 @@ public class MessageEnumeratorTests
             await foreach (var _ in _enumerator.EnumerateAsync(
                 _mockWebSocket.Object,
                 _config,
-                _mockBufferPool.Object,
                 cancellationToken))
-            {}
+            { }
         });
 
         Assert.Contains(_config.MaxMessageSize.ToString(), exception.Message);
@@ -149,8 +146,8 @@ public class MessageEnumeratorTests
         using var cts = new CancellationTokenSource();
         var cancellationToken = cts.Token;
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(_mockMessageBuffer.Object);
+        _mockBufferPool.Setup(p => p.Get())
+            .Returns(_mockMessageBuffer.Object);
 
         var tcs = new TaskCompletionSource<ValueWebSocketReceiveResult>();
 
@@ -167,7 +164,6 @@ public class MessageEnumeratorTests
             await foreach (var message in _enumerator.EnumerateAsync(
                 _mockWebSocket.Object,
                 _config,
-                _mockBufferPool.Object,
                 cancellationToken))
             {
                 messages.Add(message);
@@ -192,8 +188,8 @@ public class MessageEnumeratorTests
 
         var messageBuffer = new TestMessageBuffer();
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(messageBuffer);
+        _mockBufferPool.Setup(p => p.Get())
+            .Returns(messageBuffer);
 
         var receiveSequence = new Queue<WebSocketReceiveResult>();
 
@@ -213,7 +209,6 @@ public class MessageEnumeratorTests
         await foreach (var message in _enumerator.EnumerateAsync(
             _mockWebSocket.Object,
             _config,
-            _mockBufferPool.Object,
             cancellationToken))
         {
             messages.Add(message);
@@ -224,7 +219,7 @@ public class MessageEnumeratorTests
         // Assert
         Assert.Equal(2, messages.Count);
         Assert.Equal(2, messageBuffer.WrtieMap.Single().Value);
-        _mockBufferPool.Verify(p => p.Rent(It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _mockBufferPool.Verify(p => p.Get(), Times.Exactly(2));
     }
 
     [Fact]
@@ -235,8 +230,8 @@ public class MessageEnumeratorTests
 
         var messageBuffer = new TestMessageBuffer();
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(messageBuffer);
+        _mockBufferPool.Setup(p => p.Get())
+            .Returns(messageBuffer);
 
         _mockWebSocket.Setup(s => s.ReceiveAsync(
                 It.IsAny<ArraySegment<byte>>(),
@@ -251,7 +246,6 @@ public class MessageEnumeratorTests
         await foreach (var message in _enumerator.EnumerateAsync(
             _mockWebSocket.Object,
             _config,
-            _mockBufferPool.Object,
             cancellationToken))
         {
             messages.Add(message);
@@ -276,8 +270,8 @@ public class MessageEnumeratorTests
 
         var messageBuffer = new TestMessageBuffer();
 
-        _mockBufferPool.Setup(p => p.Rent(cancellationToken))
-            .ReturnsAsync(messageBuffer);
+        _mockBufferPool.Setup(p => p.Get())
+            .Returns(messageBuffer);
 
         var receiveSequence = new Queue<WebSocketReceiveResult>();
         receiveSequence.Enqueue(new WebSocketReceiveResult(3, WebSocketMessageType.Binary, false));
@@ -304,7 +298,6 @@ public class MessageEnumeratorTests
         await foreach (var message in _enumerator.EnumerateAsync(
             _mockWebSocket.Object,
             _config,
-            _mockBufferPool.Object,
             cancellationToken))
         {
             messages.Add(message);
