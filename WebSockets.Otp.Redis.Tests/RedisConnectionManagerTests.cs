@@ -3,7 +3,7 @@ using StackExchange.Redis;
 using System.Net.WebSockets;
 using System.Text.Json;
 using WebSockets.Otp.Abstractions.Connections;
-using WebSockets.Otp.Abstractions.Endpoints;
+using WebSockets.Otp.Abstractions.Options;
 using WebSockets.Otp.Abstractions.Serializers;
 
 namespace WebSockets.Otp.Redis.Tests;
@@ -30,10 +30,6 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         _mockConnection.SetupGet(c => c.Id).Returns("test-connection-1");
         _mockConnection.SetupGet(c => c.Socket).Returns(_mockSocket.Object);
         _mockConnection.SetupGet(c => c.Serializer).Returns(_mockSerializer.Object);
-
-        _mockSerializer
-            .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
-            .Returns((ReadOnlyMemory<byte> m) => m.ToArray());
 
         _mockSerializer
             .SetupGet(s => s.Type)
@@ -64,9 +60,6 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var socket = new Mock<WebSocket>();
         var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
-        serializer
-            .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
-            .Returns((ReadOnlyMemory<byte> m) => m.ToArray());
 
         var conn = new Mock<IWsConnection>();
         conn.SetupGet(c => c.Id).Returns(id);
@@ -100,9 +93,6 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 
         var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(type);
-        serializer
-            .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
-            .Returns((ReadOnlyMemory<byte> m) => m.ToArray());
 
         var conn = new Mock<IWsConnection>();
         conn.SetupGet(c => c.Id).Returns(id);
@@ -193,8 +183,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var conn = CreateConnection("c1");
         await sut.TryAdd(conn.Object, CancellationToken.None);
 
-        await sut.AddToGroupAsync("g1", "c1", CancellationToken.None);
-        await sut.AddToGroupAsync("g2", "c1", CancellationToken.None);
+        await sut.AddToGroup("g1", "c1", CancellationToken.None);
+        await sut.AddToGroup("g2", "c1", CancellationToken.None);
 
         var removed = await sut.TryRemove("c1", CancellationToken.None);
         Assert.True(removed);
@@ -215,7 +205,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     public async Task AddToGroupAsync_InvalidArgs_ReturnsFalse(string? group, string? connId)
     {
         await using var sut = NewSut();
-        Assert.False(await sut.AddToGroupAsync(group!, connId!, CancellationToken.None));
+        Assert.False(await sut.AddToGroup(group!, connId!, CancellationToken.None));
     }
 
     [Fact]
@@ -225,7 +215,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var conn = CreateConnection("c1");
         await sut.TryAdd(conn.Object, CancellationToken.None);
 
-        Assert.True(await sut.AddToGroupAsync("g1", "c1", CancellationToken.None));
+        Assert.True(await sut.AddToGroup("g1", "c1", CancellationToken.None));
 
         var db = _fx.Multiplexer.GetDatabase();
         Assert.True(await db.SetContainsAsync("ws:group:g1", "c1"));
@@ -239,8 +229,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var conn = CreateConnection("c1");
         await sut.TryAdd(conn.Object, CancellationToken.None);
 
-        Assert.True(await sut.AddToGroupAsync("g1", "c1", CancellationToken.None));
-        Assert.True(await sut.AddToGroupAsync("g1", "c1", CancellationToken.None));
+        Assert.True(await sut.AddToGroup("g1", "c1", CancellationToken.None));
+        Assert.True(await sut.AddToGroup("g1", "c1", CancellationToken.None));
     }
 
     [Fact]
@@ -249,9 +239,9 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         await using var sut = NewSut();
         var conn = CreateConnection("c1");
         await sut.TryAdd(conn.Object, CancellationToken.None);
-        await sut.AddToGroupAsync("g1", "c1", CancellationToken.None);
+        await sut.AddToGroup("g1", "c1", CancellationToken.None);
 
-        Assert.True(await sut.RemoveFromGroupAsync("g1", "c1", CancellationToken.None));
+        Assert.True(await sut.RemoveFromGroup("g1", "c1", CancellationToken.None));
 
         var db = _fx.Multiplexer.GetDatabase();
         Assert.False(await db.SetContainsAsync("ws:group:g1", "c1"));
@@ -264,7 +254,7 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     public async Task RemoveFromGroupAsync_InvalidArgs_ReturnsFalse(string group, string connId)
     {
         await using var sut = NewSut();
-        Assert.False(await sut.RemoveFromGroupAsync(group, connId, CancellationToken.None));
+        Assert.False(await sut.RemoveFromGroup(group, connId, CancellationToken.None));
     }
 
     [Fact]
@@ -274,8 +264,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var conn = CreateConnection1("c1");
         await sut.TryAdd(conn.Connection.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendAsync("c1", headers, new { Hello = "world" }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { Hello = "world" });
+        await sut.Send("c1", headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(conn.Socket.Invocations.Any(i =>
@@ -286,9 +276,9 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     public async Task SendAsync_EmptyConnectionId_NoOp()
     {
         await using var sut = NewSut();
-        var headers = new EndpointHeaders();
-        await sut.SendAsync("", headers, new { x = 1 }, CancellationToken.None);
-        await sut.SendAsync((string)null!, headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send("", headers, CancellationToken.None);
+        await sut.Send((string)null!, headers, CancellationToken.None);
     }
 
     [Fact]
@@ -303,8 +293,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         await sut.TryAdd(c2.Connection.Object, CancellationToken.None);
         await sut.TryAdd(c3.Connection.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendAsync(["c1", "c2"], headers, new { msg = "hi" }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send(["c1", "c2"], headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(
@@ -319,8 +309,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     public async Task SendAsync_EmptyConnectionList_NoOp()
     {
         await using var sut = NewSut();
-        var headers = new EndpointHeaders();
-        await sut.SendAsync(Array.Empty<string>(), headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send([], headers, CancellationToken.None);
     }
 
     [Fact]
@@ -332,11 +322,11 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 
         await sut.TryAdd(c1.Connection.Object, CancellationToken.None);
         await sut.TryAdd(c2.Connection.Object, CancellationToken.None);
-        await sut.AddToGroupAsync("g1", "c1", CancellationToken.None);
-        await sut.AddToGroupAsync("g1", "c2", CancellationToken.None);
+        await sut.AddToGroup("g1", "c1", CancellationToken.None);
+        await sut.AddToGroup("g1", "c2", CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendToGroupAsync("g1", headers, new { grp = "hi" }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { grp = "hi" });
+        await sut.SendToGroup("g1", headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(
@@ -348,8 +338,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     public async Task SendToGroupAsync_EmptyGroup_NoOp()
     {
         await using var sut = NewSut();
-        var headers = new EndpointHeaders();
-        await sut.SendToGroupAsync("", headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.SendToGroup("", headers, CancellationToken.None);
     }
 
     [Fact]
@@ -361,11 +351,11 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 
         await sut.TryAdd(c1.Connection.Object, CancellationToken.None);
         await sut.TryAdd(c2.Connection.Object, CancellationToken.None);
-        await sut.AddToGroupAsync("g1", "c1", CancellationToken.None);
-        await sut.AddToGroupAsync("g2", "c2", CancellationToken.None);
+        await sut.AddToGroup("g1", "c1", CancellationToken.None);
+        await sut.AddToGroup("g2", "c2", CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendToGroupAsync(["g1", "g2"], headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.SendToGroup(["g1", "g2"], headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(
@@ -377,8 +367,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     public async Task SendToGroupAsync_EmptyList_NoOp()
     {
         await using var sut = NewSut();
-        var headers = new EndpointHeaders();
-        await sut.SendToGroupAsync(Array.Empty<string>(), headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.SendToGroup(Array.Empty<string>(), headers, CancellationToken.None);
     }
 
     [Fact]
@@ -393,8 +383,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         await sut.TryAdd(c2.Connection.Object, CancellationToken.None);
         await sut.TryAdd(c3.Connection.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendAsync(headers, new { broadcast = true }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send(headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(
@@ -407,8 +397,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
     public async Task Broadcast_NoConnections_NoOp()
     {
         await using var sut = NewSut();
-        var headers = new EndpointHeaders();
-        await sut.SendAsync(headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send(headers, CancellationToken.None);
     }
 
     [Fact]
@@ -473,8 +463,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var conn = CreateConnection("c1");
         await sut.TryAdd(conn.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendAsync("ghost-connection", headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send("ghost-connection", headers, CancellationToken.None);
 
         await Task.Delay(150);
 
@@ -490,9 +480,6 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var socket = new Mock<WebSocket>();
         var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
-        serializer
-            .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
-            .Throws(new InvalidOperationException("boom"));
 
         var conn = new Mock<IWsConnection>();
         conn.SetupGet(c => c.Id).Returns("c1");
@@ -501,8 +488,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 
         await sut.TryAdd(conn.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendAsync("c1", headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send("c1", headers, CancellationToken.None);
 
         await Task.Delay(200);
 
@@ -525,9 +512,6 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 
         var serializer = new Mock<IMessageSerializer>();
         serializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
-        serializer
-            .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
-            .Returns((ReadOnlyMemory<byte> m) => m.ToArray());
 
         var conn = new Mock<IWsConnection>();
         conn.SetupGet(c => c.Id).Returns("c1");
@@ -535,8 +519,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         conn.SetupGet(c => c.Serializer).Returns(serializer.Object);
 
         await sut.TryAdd(conn.Object, CancellationToken.None);
-        var headers = new EndpointHeaders();
-        await sut.SendAsync("c1", headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send("c1", headers, CancellationToken.None);
         await Task.Delay(200);
     }
 
@@ -550,15 +534,9 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 
         var textSerializer = new Mock<IMessageSerializer>();
         textSerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Text);
-        textSerializer
-            .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
-            .Returns((ReadOnlyMemory<byte> m) => m.ToArray());
 
         var binarySerializer = new Mock<IMessageSerializer>();
         binarySerializer.SetupGet(s => s.Type).Returns(WebSocketMessageType.Binary);
-        binarySerializer
-            .Setup(s => s.Serialize(It.IsAny<ReadOnlyMemory<byte>>()))
-            .Returns((ReadOnlyMemory<byte> m) => m.ToArray());
 
         var cText = new Mock<IWsConnection>();
         cText.SetupGet(c => c.Id).Returns("cText");
@@ -573,8 +551,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         await sut.TryAdd(cText.Object, CancellationToken.None);
         await sut.TryAdd(cBinary.Object, CancellationToken.None);
 
-        var headers = new EndpointHeaders();
-        await sut.SendAsync(new[] { "cText", "cBinary" }, headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sut.Send(["cText", "cBinary"], headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(
@@ -626,8 +604,8 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
 
         await Task.Delay(100);
 
-        var headers = new EndpointHeaders();
-        await sutA.SendAsync("cross-1", headers, new { hello = "cross" }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { hello = "cross" });
+        await sutA.Send("cross-1", headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(connOnB.Socket.Invocations.Any(i =>
@@ -643,12 +621,12 @@ public sealed class RedisConnectionManagerTests : IAsyncLifetime
         var connOnB = CreateConnection1("cross-grp-1");
 
         await sutB.TryAdd(connOnB.Connection.Object, CancellationToken.None);
-        await sutB.AddToGroupAsync("shared-group", "cross-grp-1", CancellationToken.None);
+        await sutB.AddToGroup("shared-group", "cross-grp-1", CancellationToken.None);
 
         await Task.Delay(200);
 
-        var headers = new EndpointHeaders();
-        await sutA.SendToGroupAsync("shared-group", headers, new { x = 1 }, CancellationToken.None);
+        var headers = new MessageEnvelope<object>(string.Empty, new { x = 1 });
+        await sutA.SendToGroup("shared-group", headers, CancellationToken.None);
 
         await WaitUntilAsync(() =>
             Task.FromResult(connOnB.Socket.Invocations.Any(
