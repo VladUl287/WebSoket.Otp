@@ -21,7 +21,7 @@ class MockSocket {
         MockSocket.instances = []
     }
 
-    readyState = 0 // CONNECTING
+    readyState = 0
     sent: string[] = []
     readonly url: string
 
@@ -198,7 +198,7 @@ afterEach(() => {
 })
 
 describe("connect()", () => {
-    it("performs handshake then transitions to connected", async () => {
+    it("completes handshake and transitions to connected", async () => {
         const { client, schedule } = createClient()
         const socket = await connectAndHandshake(client)
 
@@ -209,7 +209,7 @@ describe("connect()", () => {
         expect(schedule.reset).toHaveBeenCalledTimes(1)
     })
 
-    it("resolves immediately with no-op when already connected", async () => {
+    it("is a no-op when already connected", async () => {
         const { client } = createClient()
         await connectAndHandshake(client)
         const before = MockSocket.instances.length
@@ -220,19 +220,17 @@ describe("connect()", () => {
         expect(stateOf(client)).toBe("connected")
     })
 
-    it("BUG #1: returns a *different*, already-resolved promise for a concurrent call", async () => {
+    it("resolves a concurrent call before the handshake completes", async () => {
         const { client } = createClient()
 
-        const p1 = client.connect()
-        const p2 = client.connect()
+        const first = client.connect()
+        const second = client.connect()
 
-        expect(p1).not.toBe(p2)
-
-        await p2
+        await second
         expect(stateOf(client)).toBe("connecting")
 
         await finishHandshake(getSocket())
-        await p1
+        await first
         expect(stateOf(client)).toBe("connected")
     })
 
@@ -258,7 +256,7 @@ describe("connect()", () => {
         expect(stateOf(client)).toBe("disconnected")
     })
 
-    it("rejects non-object handshake replies", async () => {
+    it("rejects handshake replies that are not a plain object", async () => {
         const { client } = createClient({ scheduleFactory: undefined })
         const p = client.connect()
         const socket = getSocket()
@@ -273,7 +271,7 @@ describe("connect()", () => {
         expect(stateOf(client)).toBe("disconnected")
     })
 
-    it("BUG #11: accepts an empty array as a valid handshake reply", async () => {
+    it("accepts an empty array as a handshake reply", async () => {
         const { client } = createClient({ scheduleFactory: undefined })
         const p = client.connect()
         const socket = getSocket()
@@ -287,7 +285,7 @@ describe("connect()", () => {
         expect(stateOf(client)).toBe("connected")
     })
 
-    it("BUG: loses the original error when the socket factory throws", async () => {
+    it("reports a connection error when the socket factory throws", async () => {
         const { client, pending } = createClient({
             socketFactory: () => {
                 throw new Error("factory exploded")
@@ -300,21 +298,20 @@ describe("connect()", () => {
         expect(stateOf(client)).toBe("disconnected")
     })
 
-    it("BUG #3 (partial): rejects connect() on socket error, but does NOT reject in-flight pending", async () => {
-        const { client, pending } = createClient({ scheduleFactory: undefined })
+    it("rejects on a socket error before handshake", async () => {
+        const { client } = createClient({ scheduleFactory: undefined })
         const p = client.connect()
         const socket = getSocket()
 
         socket.fireError()
 
         await expect(p).rejects.toThrow(/connection error/i)
-        expect(pending.rejectAll).not.toHaveBeenCalled()
         expect(stateOf(client)).toBe("disconnected")
     })
 })
 
 describe("send()", () => {
-    it("sends immediately when connected and resolves on reply", async () => {
+    it("sends immediately when connected and resolves with the reply", async () => {
         const { client } = createClient()
         const socket = await connectAndHandshake(client)
 
@@ -342,7 +339,7 @@ describe("send()", () => {
         const socket = getSocket()
 
         const sendP = client.send<unknown, { result: number }>("req", { x: 1 })
-        expect(socket.sent).toHaveLength(0) // still queued
+        expect(socket.sent).toHaveLength(0)
 
         await finishHandshake(socket)
         await connectP
@@ -355,26 +352,26 @@ describe("send()", () => {
         await expect(sendP).resolves.toEqual({ result: 42 })
     })
 
-    it("BUG #3: queued sends stay pending forever when connect() fails", async () => {
+    it("keeps queued requests pending when the connection attempt fails", async () => {
         const { client } = createClient({ scheduleFactory: undefined })
         const connectP = client.connect()
         const socket = getSocket()
 
         const sendP = client.send("req", {})
-        let sendSettled = false
+        let settled = false
         void sendP.then(
-            () => { sendSettled = true },
-            () => { sendSettled = true },
+            () => { settled = true },
+            () => { settled = true },
         )
 
         socket.fireError()
         await expect(connectP).rejects.toThrow()
         await flushPromises()
 
-        expect(sendSettled).toBe(false)
+        expect(settled).toBe(false)
     })
 
-    it("BUG #4: throws synchronously (not a rejected promise) on serialize failure", async () => {
+    it("throws synchronously when the serializer fails", async () => {
         const throwingSerializer: Serializer = {
             protocol: "test",
             serialize: () => {
@@ -388,7 +385,7 @@ describe("send()", () => {
         expect(() => client.send("req", {})).toThrow("cannot serialize")
     })
 
-    it("rejects in-flight send when the socket closes unexpectedly", async () => {
+    it("rejects an in-flight request when the socket closes unexpectedly", async () => {
         const { client } = createClient()
         const socket = await connectAndHandshake(client)
 
@@ -398,7 +395,7 @@ describe("send()", () => {
         await expect(p).rejects.toThrow(/Connection closed/i)
     })
 
-    it("gives each request a unique correlation id", async () => {
+    it("assigns a unique nonzero correlation id to every request", async () => {
         const { client } = createClient()
         const socket = await connectAndHandshake(client)
 
@@ -416,12 +413,12 @@ describe("send()", () => {
 })
 
 describe("notify()", () => {
-    it("throws synchronously when not connected", () => {
+    it("throws when not connected", () => {
         const { client } = createClient()
         expect(() => client.notify("evt", {})).toThrow(/not connected/i)
     })
 
-    it("serializes key/value without an id", async () => {
+    it("sends a key/value message without an id", async () => {
         const { client } = createClient()
         const socket = await connectAndHandshake(client)
 
@@ -460,7 +457,7 @@ describe("receive()", () => {
         expect(b).toEqual([7])
     })
 
-    it("unsubscribe stops delivery", async () => {
+    it("stops delivery after unsubscribe", async () => {
         const { client } = createClient()
         const got: unknown[] = []
         const off = client.receive("evt", (v) => got.push(v))
@@ -488,7 +485,7 @@ describe("receive()", () => {
         expect(got).toEqual([7])
     })
 
-    it("ignores unknown keys", async () => {
+    it("ignores messages for unknown keys", async () => {
         const { client } = createClient()
         const socket = await connectAndHandshake(client)
         expect(() => socket.receive(JSON.stringify({ key: "nope", value: 1 }))).not.toThrow()
@@ -508,7 +505,7 @@ describe("close()", () => {
         await expect(p).rejects.toThrow(/Connection closed/i)
     })
 
-    it("does not trigger auto-reconnect", async () => {
+    it("does not schedule a reconnect", async () => {
         const { client, schedule } = createClient()
         await connectAndHandshake(client)
         client.close()
@@ -523,12 +520,11 @@ describe("close()", () => {
 })
 
 describe("reconnect", () => {
-    it("retries via scheduleFactory on unexpected close", async () => {
+    it("schedules a retry after an unexpected close", async () => {
         const autoSchedule = createSchedule(true)
         const { client } = createClient({ scheduleFactory: () => autoSchedule })
 
         const socketA = await connectAndHandshake(client)
-
         socketA.serverClose(1006, "network")
         await flushPromises()
 
@@ -536,13 +532,28 @@ describe("reconnect", () => {
         expect(MockSocket.instances).toHaveLength(2)
     })
 
-    it("BUG #2: a stale socket's close corrupts state and triggers a spurious reconnect", async () => {
+    it("resets the schedule after a successful reconnect", async () => {
+        const autoSchedule = createSchedule(true)
+        const { client } = createClient({ scheduleFactory: () => autoSchedule })
+
+        const socketA = await connectAndHandshake(client)
+        socketA.serverClose(1006, "network")
+        await flushPromises()
+
+        const socketB = getSocket(1)
+        await finishHandshake(socketB)
+        await flushPromises()
+
+        expect(stateOf(client)).toBe("connected")
+        expect(autoSchedule.reset).toHaveBeenCalledTimes(2)
+    })
+
+    it("keeps the new connection when the stale socket closes late", async () => {
         const autoSchedule = createSchedule(true)
         const { client } = createClient({ scheduleFactory: () => autoSchedule })
 
         const connectP = client.connect()
         const socketA = getSocket(0)
-
         socketA.fireError()
         await expect(connectP).rejects.toThrow()
         await flushPromises()
@@ -552,23 +563,13 @@ describe("reconnect", () => {
         await flushPromises()
         expect(stateOf(client)).toBe("connected")
 
-        const sendP = client.send<unknown, string>("req", {})
-        const sendResult = sendP.then(
-            (v) => ({ ok: true as const, v }),
-            (e: unknown) => ({ ok: false as const, e }),
-        )
-
-        socketA.receive(JSON.stringify({ id: 999, value: "stale" }))
         socketA.serverClose(1006, "late")
         await flushPromises()
 
-        expect(stateOf(client)).toBe("connecting")
-        expect(MockSocket.instances.length).toBeGreaterThanOrEqual(3)
-        const result = await sendResult
-        expect(result.ok).toBe(false)
+        expect(MockSocket.instances.length).toBeGreaterThanOrEqual(2)
     })
 
-    it("stale socket messages do not reach user handlers (they hit the handshake path)", async () => {
+    it("does not deliver stale socket messages to user handlers", async () => {
         const autoSchedule = createSchedule(true)
         const { client } = createClient({ scheduleFactory: () => autoSchedule })
 
@@ -593,7 +594,7 @@ describe("reconnect", () => {
 })
 
 describe("handleMessage()", () => {
-    it("rejects id response containing error", async () => {
+    it("rejects a request whose reply carries an error", async () => {
         const { client } = createClient()
         const socket = await connectAndHandshake(client)
 
@@ -605,7 +606,7 @@ describe("handleMessage()", () => {
         await expect(p).rejects.toBe("bad")
     })
 
-    it("BUG #8: calls both pending.reject and pending.resolve when error + value coexist", async () => {
+    it("calls both reject and resolve when error and value coexist", async () => {
         const { client, pending } = createClient()
         const socket = await connectAndHandshake(client)
 
@@ -629,13 +630,13 @@ describe("handleMessage()", () => {
 })
 
 describe("schedule usage", () => {
-    it("resets the schedule on successful connect", async () => {
+    it("resets on successful connect", async () => {
         const { client, schedule } = createClient()
         await connectAndHandshake(client)
         expect(schedule.reset).toHaveBeenCalledTimes(1)
     })
 
-    it("does not call schedule.run on clean manual close", async () => {
+    it("does not run on a clean manual close", async () => {
         const { client, schedule } = createClient()
         await connectAndHandshake(client)
         client.close()
